@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Telegram-like dark theme design system */
+
+@layer base {
+  :root {
+    /* Dark Telegram theme */
+    --background: 210 15% 12%;
+    --foreground: 0 0% 98%;
+
+    --card: 210 15% 16%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 210 15% 16%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Telegram blue accent */
+    --primary: 210 100% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 15% 22%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 210 15% 20%;
+    --muted-foreground: 210 10% 60%;
+
+    --accent: 210 15% 25%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 15% 25%;
+    --input: 210 15% 20%;
+    --ring: 210 100% 52%;
+
+    --radius: 1rem;
+
+    /* Custom tokens */
+    --chip-selected: 210 100% 52%;
+    --chip-default: 210 15% 22%;
+    --message-bg: 210 15% 20%;
+    --success: 142 76% 45%;
+  }
+
+  .dark {
+    --background: 210 15% 12%;
+    --foreground: 0 0% 98%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .chip {
+    @apply px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200;
+    @apply bg-secondary text-secondary-foreground;
+    @apply active:scale-95;
+  }
+
+  .chip-selected {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .message-card {
+    @apply bg-muted rounded-2xl p-4 relative;
+  }
+
+  .btn-primary {
+    @apply w-full py-4 rounded-xl font-semibold text-base;
+    @apply bg-primary text-primary-foreground;
+    @apply active:scale-[0.98] transition-transform duration-150;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-copy {
+    @apply px-3 py-1.5 rounded-lg text-xs font-medium;
+    @apply bg-secondary text-secondary-foreground;
+    @apply active:scale-95 transition-all duration-150;
+  }
+
+  .btn-copy-success {
+    @apply bg-[hsl(var(--success))] text-white;
+  }
+
+  .input-field {
+    @apply w-full bg-input border-0 rounded-xl px-4 py-3;
+    @apply text-foreground placeholder:text-muted-foreground;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/50;
+    @apply resize-none;
+  }
+
+  .label-text {
+    @apply text-sm text-muted-foreground mb-2 block;
+  }
+
+  .section-gap {
+    @apply mb-6;
+  }
+}
+
+/* Loader animation */
+@keyframes pulse-dot {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.loader-dot {
+  animation: pulse-dot 1.4s infinite ease-in-out both;
+}
+
+.loader-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loader-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.loader-dot:nth-child(3) {
+  animation-delay: 0s;
+}
