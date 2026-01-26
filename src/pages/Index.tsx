@@ -9,7 +9,7 @@ import ErrorScreen from '../components/ErrorScreen';
  * Управляет переключением между экранами
  */
 const Index: React.FC = () => {
-  const { isReady, isTelegramAvailable, userId, authError, hapticFeedback, hapticSuccess } = useTelegram();
+  const { isReady, isTelegramAvailable, userId, hapticFeedback, hapticSuccess } = useTelegram();
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
   // Проверяем, проходил ли пользователь онбординг
