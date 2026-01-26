@@ -10,7 +10,6 @@ export const useTelegram = () => {
   const [isTelegramAvailable, setIsTelegramAvailable] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [user, setUser] = useState<TelegramUser | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const initTelegram = async () => {
@@ -33,7 +32,6 @@ export const useTelegram = () => {
         if (tgUser?.id) {
           setUserId(tgUser.id);
           
-          // Авторизуем пользователя на backend
           try {
             const response = await authTelegram({
               telegram_id: tgUser.id,
@@ -47,9 +45,13 @@ export const useTelegram = () => {
               setUser(response.user);
             }
           } catch (error) {
-            console.error('Auth error:', error);
-            setAuthError(error instanceof Error ? error.message : 'Ошибка авторизации');
+            console.error('Auth error (ignored for MVP):', error);
+            // ❗ НИЧЕГО НЕ СТАВИМ В authError
           }
+        } else {
+            // 👇 ВАЖНО: это НОРМАЛЬНЫЙ СЦЕНАРИЙ
+           console.log('Telegram user not provided yet — running in guest mode');
+            setUserId(null);
         }
         
         setIsReady(true);
@@ -101,7 +103,6 @@ export const useTelegram = () => {
     isTelegramAvailable,
     userId,
     user,
-    authError,
     tg: window.Telegram?.WebApp,
     hapticFeedback,
     hapticSuccess,
