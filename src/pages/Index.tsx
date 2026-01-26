@@ -12,6 +12,9 @@ const Index: React.FC = () => {
   const { isReady, isTelegramAvailable, userId, hapticFeedback, hapticSuccess } = useTelegram();
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
+  const isDev = import.meta.env.DEV;
+
+
   // Проверяем, проходил ли пользователь онбординг
   useEffect(() => {
     const completed = localStorage.getItem('onboardingCompleted');
@@ -36,9 +39,6 @@ const Index: React.FC = () => {
     );
   }
 
-  // Показываем ошибку, если приложение открыто вне Telegram
-  // В режиме разработки пропускаем эту проверку
-  const isDev = import.meta.env.DEV;
   if (!isTelegramAvailable && !isDev) {
     return <ErrorScreen />;
   }
