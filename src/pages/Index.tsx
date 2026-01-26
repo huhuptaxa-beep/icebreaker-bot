@@ -36,18 +36,6 @@ const Index: React.FC = () => {
     );
   }
 
-  // Показываем ошибку авторизации
-  if (authError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="text-center">
-          <p className="text-destructive mb-2">Ошибка авторизации</p>
-          <p className="text-muted-foreground text-sm">{authError}</p>
-        </div>
-      </div>
-    );
-  }
-
   // Показываем ошибку, если приложение открыто вне Telegram
   // В режиме разработки пропускаем эту проверку
   const isDev = import.meta.env.DEV;
@@ -55,14 +43,9 @@ const Index: React.FC = () => {
     return <ErrorScreen />;
   }
 
-  // Если нет userId — ещё загружаемся
-  if (!userId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+// userId может быть null — это допустимо для MVP
+// просто передаём его дальше
+
 
   // Показываем онбординг или основную форму
   return (
