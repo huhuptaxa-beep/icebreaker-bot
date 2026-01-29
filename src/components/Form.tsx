@@ -4,21 +4,19 @@ import Loader from './Loader';
 import Result from './Result';
 import { generateMessages } from '../api/api';
 import { toast } from 'sonner';
+import { HelpCircle } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface FormProps {
   telegramId: number;
   onHapticFeedback: (type?: 'light' | 'medium' | 'heavy') => void;
   onHapticSuccess: () => void;
 }
-
-// Опции для выбора платформы
-const platformOptions = [
-  { value: 'tinder', label: 'Tinder' },
-  { value: 'pure', label: 'Pure' },
-  { value: 'twinby', label: 'Twinby' },
-  { value: 'instagram', label: 'Instagram' },
-  { value: 'real', label: 'Реальная жизнь' },
-];
 
 // Опции для выбора стадии
 const stageOptions = [
@@ -29,23 +27,17 @@ const stageOptions = [
 
 /**
  * Основная форма приложения
- * Содержит выбор платформы, стадии и поле ввода
+ * Содержит выбор стадии и поле ввода
  */
 const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSuccess }) => {
   // Состояние формы
-  const [platform, setPlatform] = useState('');
   const [stage, setStage] = useState('');
   const [girlInfo, setGirlInfo] = useState('');
+  const [instructionOpen, setInstructionOpen] = useState(false);
   
   // Состояние загрузки и результатов
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
-
-  // Обработчик выбора платформы
-  const handlePlatformChange = (value: string) => {
-    onHapticFeedback('light');
-    setPlatform(value);
-  };
 
   // Обработчик выбора стадии
   const handleStageChange = (value: string) => {
@@ -53,8 +45,14 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
     setStage(value);
   };
 
+  // Открытие инструкции
+  const handleOpenInstruction = () => {
+    onHapticFeedback('light');
+    setInstructionOpen(true);
+  };
+
   // Проверка заполненности формы
-  const isFormValid = platform && stage && girlInfo.trim().length > 0;
+  const isFormValid = stage && girlInfo.trim().length > 0;
 
   // Генерация сообщений
   const handleGenerate = async () => {
@@ -66,7 +64,7 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
     try {
       const response = await generateMessages({
         telegram_id: telegramId,
-        platform,
+        platform: 'default',
         stage,
         girl_info: girlInfo,
       });
@@ -110,14 +108,6 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
   // Основная форма
   return (
     <div className="py-4">
-      {/* Выбор платформы */}
-      <ChipSelect
-        options={platformOptions}
-        value={platform}
-        onChange={handlePlatformChange}
-        label="Где познакомились?"
-      />
-
       {/* Выбор стадии */}
       <ChipSelect
         options={stageOptions}
@@ -128,7 +118,17 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
 
       {/* Поле ввода информации */}
       <div className="section-gap">
-        <label className="label-text">Детали</label>
+        <div className="flex items-center justify-between">
+          <label className="label-text">Детали</label>
+          <button
+            type="button"
+            onClick={handleOpenInstruction}
+            className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            aria-label="Инструкция"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+        </div>
         <textarea
           value={girlInfo}
           onChange={(e) => setGirlInfo(e.target.value)}
@@ -146,6 +146,18 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
       >
         Сгенерировать сообщение
       </button>
+
+      {/* Bottom Sheet с инструкцией */}
+      <Sheet open={instructionOpen} onOpenChange={setInstructionOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8">
+          <SheetHeader className="text-left">
+            <SheetTitle className="text-lg">Как заполнить</SheetTitle>
+          </SheetHeader>
+          <p className="mt-4 text-muted-foreground leading-relaxed">
+            Напиши всё, что ты о ней знаешь или заметил. Детали внешности, факты из её описания или интересов. Чем живее описание — тем лучше получится сообщение.
+          </p>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
