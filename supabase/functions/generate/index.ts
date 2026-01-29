@@ -24,7 +24,7 @@ const PLATFORM_DESCRIPTIONS: Record<string, string> = {
 const STAGE_DESCRIPTIONS: Record<string, string> = {
   first: "Первое сообщение — нужно привлечь внимание и начать диалог",
   transition: "Придумать ответ — уже есть контакт, нужно продолжить общение",
-  chatting: "Уже общаемся — нужно вывести на встречу или углубить общение",
+  chatting: "Комплимент — Нужно придумать невероятный комплимент",
 };
 
 serve(async (req) => {
