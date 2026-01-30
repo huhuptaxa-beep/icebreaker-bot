@@ -11,6 +11,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 interface FormProps {
   telegramId: number;
@@ -62,6 +72,10 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
   // Состояние загрузки и результатов
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
+  
+  // Состояние лимитов
+  const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
+  const [limitReachedOpen, setLimitReachedOpen] = useState(false);
 
   // Получить placeholder в зависимости от стадии
   const getCurrentPlaceholder = () => {
@@ -106,17 +120,41 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
       
       if (response.success) {
         setMessages(response.messages);
+        // Сохраняем remaining_generations для отображения счётчика
+        if (response.remaining_generations !== undefined) {
+          setRemainingGenerations(response.remaining_generations);
+        }
         onHapticSuccess();
       } else {
         throw new Error(response.error || 'Ошибка генерации');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Ошибка генерации:', error);
-      toast.error(error instanceof Error ? error.message : 'Произошла ошибка');
+      
+      // Проверяем, достигнут ли лимит
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage.includes('LIMIT_REACHED') || errorMessage.includes('лимит')) {
+        setLimitReachedOpen(true);
+      } else {
+        toast.error(errorMessage || 'Произошла ошибка');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Получить текст счётчика лимитов
+  const getLimitCounterText = () => {
+    if (remainingGenerations === 3) {
+      return 'Осталось 3 генерации на этой неделе';
+    }
+    if (remainingGenerations === 1) {
+      return 'Последняя бесплатная генерация';
+    }
+    return null;
+  };
+
+  const limitCounterText = getLimitCounterText();
 
   // Сброс результатов
   const handleReset = () => {
@@ -173,6 +211,13 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
         />
       </div>
 
+      {/* Счётчик лимитов */}
+      {limitCounterText && (
+        <p className="text-sm text-muted-foreground text-center mt-3 mb-1">
+          {limitCounterText}
+        </p>
+      )}
+
       {/* Кнопка генерации */}
       <button
         onClick={handleGenerate}
@@ -193,6 +238,30 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
           </p>
         </SheetContent>
       </Sheet>
+
+      {/* Модалка при достижении лимита */}
+      <AlertDialog open={limitReachedOpen} onOpenChange={setLimitReachedOpen}>
+        <AlertDialogContent className="max-w-[340px] rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center text-lg">
+              Лимит исчерпан
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-muted-foreground leading-relaxed pt-2">
+              Бесплатный лимит на этой неделе закончился.
+              <br />
+              Хочешь продолжить без ограничений?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction className="w-full">
+              Разблокировать
+            </AlertDialogAction>
+            <AlertDialogCancel className="w-full mt-0">
+              Закрыть
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
