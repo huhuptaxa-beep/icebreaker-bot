@@ -1,16 +1,12 @@
 /**
- * API сервис для работы с backend
+ * API сервис для работы с backend (Express)
  */
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 export interface TelegramUser {
   id: string;
   telegram_id: number;
-  username?: string;
-  first_name: string;
-  last_name?: string;
-  language: string;
   created_at: string;
   last_active_at: string;
 }
@@ -30,23 +26,19 @@ export interface GenerateRequest {
 }
 
 export interface GenerateResponse {
-  success: boolean;
   messages: string[];
-  remaining_generations?: number;
+  weekly_limit?: number;
+  weekly_used?: number;
   error?: string;
 }
 
 /**
- * Авторизация через Telegram
+ * 🔐 Инициализация пользователя (можно вызывать 1 раз)
  */
 export const authTelegram = async (userData: {
   telegram_id: number;
-  username?: string;
-  first_name: string;
-  last_name?: string;
-  language?: string;
 }): Promise<AuthResponse> => {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/auth-telegram`, {
+  const response = await fetch(`${BACKEND_URL}/user/init`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -56,19 +48,19 @@ export const authTelegram = async (userData: {
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || "Authentication failed");
+    throw new Error(error.error || "Auth failed");
   }
 
   return response.json();
 };
 
 /**
- * Генерация сообщений через AI
+ * ✨ Генерация сообщений (С ЛИМИТАМИ)
  */
 export const generateMessages = async (
   request: GenerateRequest
 ): Promise<GenerateResponse> => {
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/generate`, {
+  const response = await fetch(`${BACKEND_URL}/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -76,21 +68,14 @@ export const generateMessages = async (
     body: JSON.stringify(request),
   });
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const error = await response.json();
-    
-    if (response.status === 429 || error.error === 'LIMIT_REACHED') {
+    if (data.error === "LIMIT_REACHED") {
       throw new Error("LIMIT_REACHED");
     }
-    if (response.status === 402) {
-      throw new Error("Исчерпаны AI-кредиты. Обратитесь в поддержку.");
-    }
-    if (response.status === 401) {
-      throw new Error("Необходима авторизация через Telegram.");
-    }
-    
-    throw new Error(error.error || "Generation failed");
+    throw new Error(data.error || "Generation failed");
   }
 
-  return response.json();
+  return data;
 };
