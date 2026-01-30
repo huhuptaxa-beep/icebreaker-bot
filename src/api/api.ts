@@ -32,6 +32,7 @@ export interface GenerateRequest {
 export interface GenerateResponse {
   success: boolean;
   messages: string[];
+  remaining_generations?: number;
   error?: string;
 }
 
@@ -78,8 +79,8 @@ export const generateMessages = async (
   if (!response.ok) {
     const error = await response.json();
     
-    if (response.status === 429) {
-      throw new Error("Превышен лимит запросов. Попробуйте позже.");
+    if (response.status === 429 || error.error === 'LIMIT_REACHED') {
+      throw new Error("LIMIT_REACHED");
     }
     if (response.status === 402) {
       throw new Error("Исчерпаны AI-кредиты. Обратитесь в поддержку.");
