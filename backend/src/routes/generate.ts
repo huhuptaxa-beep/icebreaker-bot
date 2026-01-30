@@ -17,15 +17,21 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // 2️⃣ НАХОДИМ ИЛИ СОЗДАЁМ ПОЛЬЗОВАТЕЛЯ
-    const { data: existingUser, error: findError } = await supabase
+    // 2️⃣ ПОЛУЧАЕМ ПОЛЬЗОВАТЕЛЯ (БЕЗ single!)
+    const { data: users, error: findError } = await supabase
       .from("users")
       .select("*")
       .eq("telegram_id", telegram_id)
-      .single();
+      .limit(1);
 
-    let user = existingUser;
+    if (findError) {
+      console.error("User select error:", findError);
+      return res.status(500).json({ error: "Failed to fetch user" });
+    }
 
+    let user = users?.[0];
+
+    // 3️⃣ ЕСЛИ ПОЛЬЗОВАТЕЛЯ НЕТ — СОЗДАЁМ
     if (!user) {
       const { data: newUser, error: insertError } = await supabase
         .from("users")
@@ -34,6 +40,7 @@ router.post("/", async (req: Request, res: Response) => {
           weekly_limit: 7,
           weekly_used: 0,
           week_started_at: new Date().toISOString(),
+          last_active_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -48,7 +55,7 @@ router.post("/", async (req: Request, res: Response) => {
       user = newUser;
     }
 
-    // 3️⃣ ПРОВЕРЯЕМ ЛИМИТ
+    // 4️⃣ ПРОВЕРКА ЛИМИТА
     if (user.weekly_used >= user.weekly_limit) {
       return res.status(403).json({
         error: "LIMIT_REACHED",
@@ -57,27 +64,35 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // 4️⃣ ГЕНЕРАЦИЯ
+    // 5️⃣ ГЕНЕРАЦИЯ
     const messages = await generateMessages({
       platform,
       stage,
       girlInfo: girl_info,
     });
 
-    // 5️⃣ УВЕЛИЧИВАЕМ СЧЁТЧИК
-    await supabase
+    // 6️⃣ ОБНОВЛЯЕМ СЧЁТЧИК
+    const newWeeklyUsed = user.weekly_used + 1;
+
+    const { error: updateError } = await supabase
       .from("users")
       .update({
-        weekly_used: user.weekly_used + 1,
+        weekly_used: newWeeklyUsed,
         last_active_at: new Date().toISOString(),
       })
       .eq("telegram_id", telegram_id);
 
-    // 6️⃣ ОТВЕТ
+    if (updateError) {
+      console.error("User update error:", updateError);
+      // ⚠️ генерация уже произошла — не валим ответ
+    }
+
+    // 7️⃣ ОТВЕТ
     return res.json({
       messages,
       weekly_limit: user.weekly_limit,
-      weekly_used: user.weekly_used + 1,
+      weekly_used: newWeeklyUsed,
+      remaining: user.weekly_limit - newWeeklyUsed,
     });
   } catch (error) {
     console.error("Generate error:", error);
