@@ -17,7 +17,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // 2️⃣ ПОЛУЧАЕМ ПОЛЬЗОВАТЕЛЯ (БЕЗ single!)
+    // 2️⃣ ИЩЕМ ПОЛЬЗОВАТЕЛЯ (БЕЗ single)
     const { data: users, error: findError } = await supabase
       .from("users")
       .select("*")
@@ -31,7 +31,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     let user = users?.[0];
 
-    // 3️⃣ ЕСЛИ ПОЛЬЗОВАТЕЛЯ НЕТ — СОЗДАЁМ
+    // 3️⃣ ЕСЛИ НЕТ — СОЗДАЁМ
     if (!user) {
       const { data: newUser, error: insertError } = await supabase
         .from("users")
@@ -40,16 +40,13 @@ router.post("/", async (req: Request, res: Response) => {
           weekly_limit: 7,
           weekly_used: 0,
           week_started_at: new Date().toISOString(),
-          last_active_at: new Date().toISOString(),
         })
         .select()
         .single();
 
       if (insertError) {
         console.error("User insert error:", insertError);
-        return res.status(500).json({
-          error: "Failed to create user",
-        });
+        return res.status(500).json({ error: "Failed to create user" });
       }
 
       user = newUser;
@@ -72,27 +69,21 @@ router.post("/", async (req: Request, res: Response) => {
     });
 
     // 6️⃣ ОБНОВЛЯЕМ СЧЁТЧИК
-    const newWeeklyUsed = user.weekly_used + 1;
+    const newUsed = user.weekly_used + 1;
 
-    const { error: updateError } = await supabase
+    await supabase
       .from("users")
       .update({
-        weekly_used: newWeeklyUsed,
+        weekly_used: newUsed,
         last_active_at: new Date().toISOString(),
       })
       .eq("telegram_id", telegram_id);
-
-    if (updateError) {
-      console.error("User update error:", updateError);
-      // ⚠️ генерация уже произошла — не валим ответ
-    }
 
     // 7️⃣ ОТВЕТ
     return res.json({
       messages,
       weekly_limit: user.weekly_limit,
-      weekly_used: newWeeklyUsed,
-      remaining: user.weekly_limit - newWeeklyUsed,
+      weekly_used: newUsed,
     });
   } catch (error) {
     console.error("Generate error:", error);
