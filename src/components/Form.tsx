@@ -21,9 +21,30 @@ interface FormProps {
 // Опции для выбора стадии
 const stageOptions = [
   { value: 'first', label: 'Первое сообщение' },
-  { value: 'transition', label: 'Переход в мессенджер' },
-  { value: 'chatting', label: 'Уже общаемся' },
+  { value: 'transition', label: 'Придумать ответ' },
+  { value: 'chatting', label: 'Назначить свидание' },
 ];
+
+// Примеры для первого сообщения (рандом)
+const firstMessageExamples = [
+  'любит пиво, всегда в чёрном, длинные ноги',
+  'изучает испанский, любит корги, искренняя улыбка',
+  'из Сибири, любит космос, большие очки',
+];
+
+// Плейсхолдеры для каждой стадии
+const stagePlaceholders: Record<string, string> = {
+  first: '', // будет рандомный
+  transition: 'Вставь её сообщение',
+  chatting: 'Когда лучше назначить свидание?',
+};
+
+// Инструкции для каждой стадии
+const stageInstructions: Record<string, string> = {
+  first: 'Используй детали из её профиля, чтобы зацепить внимание. Одной детали достаточно — главное, чтобы было живо и по делу.',
+  transition: 'Вставляй её сообщение целиком. При необходимости меняй формулировки сгенерированных ответов.',
+  chatting: 'К свиданию нужно переходить как можно быстрее. Тактика простая: вызвали интерес, заинтриговали, идём на свидание. В онлайне ей пишут десятки парней каждый день, поэтому не медлим и назначаем дэйт.',
+};
 
 /**
  * Основная форма приложения
@@ -34,10 +55,24 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
   const [stage, setStage] = useState('');
   const [girlInfo, setGirlInfo] = useState('');
   const [instructionOpen, setInstructionOpen] = useState(false);
+  const [firstMessagePlaceholder] = useState(() => 
+    firstMessageExamples[Math.floor(Math.random() * firstMessageExamples.length)]
+  );
   
   // Состояние загрузки и результатов
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
+
+  // Получить placeholder в зависимости от стадии
+  const getCurrentPlaceholder = () => {
+    if (stage === 'first') return firstMessagePlaceholder;
+    return stagePlaceholders[stage] || '';
+  };
+
+  // Получить инструкцию в зависимости от стадии
+  const getCurrentInstruction = () => {
+    return stageInstructions[stage] || stageInstructions.first;
+  };
 
   // Обработчик выбора стадии
   const handleStageChange = (value: string) => {
@@ -132,7 +167,7 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
         <textarea
           value={girlInfo}
           onChange={(e) => setGirlInfo(e.target.value)}
-          placeholder="Множество образов на фото, кудрявые волосы, любит поэзию&#10;&#10;Был вкуснейший ужин, уют и улыбка"
+          placeholder={getCurrentPlaceholder()}
           className="input-field min-h-[120px]"
           rows={4}
         />
@@ -154,7 +189,7 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
             <SheetTitle className="text-lg">Как заполнить</SheetTitle>
           </SheetHeader>
           <p className="mt-4 text-muted-foreground leading-relaxed">
-            Напиши всё, что ты о ней знаешь или заметил. Детали внешности, факты из её описания или интересов. Чем живее описание — тем лучше получится сообщение.
+            {getCurrentInstruction()}
           </p>
         </SheetContent>
       </Sheet>
