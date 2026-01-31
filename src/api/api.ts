@@ -1,21 +1,27 @@
 /**
- * API сервис для работы с backend (Express)
+ * API сервис для работы с backend
  */
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+// 👉 URL твоего backend (Vercel или localhost)
+const API_URL = import.meta.env.VITE_API_URL;
+
+if (!API_URL) {
+  console.error("❌ VITE_API_URL is not defined");
+}
+
+// =====================
+// TYPES
+// =====================
 
 export interface TelegramUser {
   id: string;
   telegram_id: number;
+  username?: string;
+  first_name: string;
+  last_name?: string;
+  language: string;
   created_at: string;
   last_active_at: string;
-}
-
-export interface AuthResponse {
-  success: boolean;
-  user: TelegramUser;
-  is_new: boolean;
-  error?: string;
 }
 
 export interface GenerateRequest {
@@ -32,35 +38,14 @@ export interface GenerateResponse {
   error?: string;
 }
 
-/**
- * 🔐 Инициализация пользователя (можно вызывать 1 раз)
- */
-export const authTelegram = async (userData: {
-  telegram_id: number;
-}): Promise<AuthResponse> => {
-  const response = await fetch(`${BACKEND_URL}/user/init`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(userData),
-  });
+// =====================
+// GENERATE MESSAGES
+// =====================
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || "Auth failed");
-  }
-
-  return response.json();
-};
-
-/**
- * ✨ Генерация сообщений (С ЛИМИТАМИ)
- */
 export const generateMessages = async (
   request: GenerateRequest
 ): Promise<GenerateResponse> => {
-  const response = await fetch(`${BACKEND_URL}/generate`, {
+  const response = await fetch(`${API_URL}/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -68,13 +53,21 @@ export const generateMessages = async (
     body: JSON.stringify(request),
   });
 
-  const data = await response.json();
+  let data: any = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("Invalid server response");
+  }
 
   if (!response.ok) {
-    if (data.error === "LIMIT_REACHED") {
+    // лимит
+    if (data?.error === "LIMIT_REACHED") {
       throw new Error("LIMIT_REACHED");
     }
-    throw new Error(data.error || "Generation failed");
+
+    throw new Error(data?.error || "Generation failed");
   }
 
   return data;
