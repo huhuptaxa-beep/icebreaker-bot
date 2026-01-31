@@ -2,16 +2,12 @@
  * API сервис для работы с backend
  */
 
-// 👉 URL твоего backend (Vercel или localhost)
+// 🔥 ВАЖНО: это URL твоего backend (Express / Vercel)
 const API_URL = import.meta.env.VITE_API_URL;
 
 if (!API_URL) {
-  console.error("❌ VITE_API_URL is not defined");
+  console.error('❌ VITE_API_URL is not defined');
 }
-
-// =====================
-// TYPES
-// =====================
 
 export interface TelegramUser {
   id: string;
@@ -38,10 +34,9 @@ export interface GenerateResponse {
   error?: string;
 }
 
-// =====================
-// GENERATE MESSAGES
-// =====================
-
+/**
+ * Генерация сообщений
+ */
 export const generateMessages = async (
   request: GenerateRequest
 ): Promise<GenerateResponse> => {
@@ -53,22 +48,15 @@ export const generateMessages = async (
     body: JSON.stringify(request),
   });
 
-  let data: any = null;
-
-  try {
-    data = await response.json();
-  } catch {
-    throw new Error("Invalid server response");
-  }
-
   if (!response.ok) {
-    // лимит
-    if (data?.error === "LIMIT_REACHED") {
+    const error = await response.json();
+
+    if (error.error === "LIMIT_REACHED") {
       throw new Error("LIMIT_REACHED");
     }
 
-    throw new Error(data?.error || "Generation failed");
+    throw new Error(error.error || "Generation failed");
   }
 
-  return data;
+  return response.json();
 };
