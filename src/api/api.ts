@@ -2,13 +2,6 @@
  * API сервис для работы с backend
  */
 
-// 🔥 ВАЖНО: это URL твоего backend (Express / Vercel)
-const API_URL = import.meta.env.VITE_API_URL;
-
-if (!API_URL) {
-  console.error('❌ VITE_API_URL is not defined');
-}
-
 export interface TelegramUser {
   id: string;
   telegram_id: number;
@@ -40,7 +33,7 @@ export interface GenerateResponse {
 export const generateMessages = async (
   request: GenerateRequest
 ): Promise<GenerateResponse> => {
-  const response = await fetch(`${API_URL}/generate`, {
+  const response = await fetch("/generate", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
