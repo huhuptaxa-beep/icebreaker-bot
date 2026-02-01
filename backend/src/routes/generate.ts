@@ -11,28 +11,36 @@ router.post("/", async (req: Request, res: Response) => {
     console.log("generate called with telegram_id:", telegram_id);
 
     // 1️⃣ ВАЛИДАЦИЯ
-    if (!telegram_id || !platform || !stage || !girl_info) {
+    if (!telegram_id) {
       return res.status(400).json({
-        error: "telegram_id, platform, stage, girl_info are required",
+        error: "TELEGRAM_ID_REQUIRED",
       });
     }
 
-    // 2️⃣ ИЩЕМ ПОЛЬЗОВАТЕЛЯ (БЕЗ single)
-    const { data: users, error: findError } = await supabase
+    if (!platform || !stage) {
+      return res.status(400).json({
+        error: "PLATFORM_AND_STAGE_REQUIRED",
+      });
+    }
+
+    // 2️⃣ ИЩЕМ ПОЛЬЗОВАТЕЛЯ
+    let currentUser = null;
+
+    const { data, error: findError } = await supabase
       .from("users")
       .select("*")
       .eq("telegram_id", telegram_id)
-      .limit(1);
+      .maybeSingle();
 
     if (findError) {
       console.error("User select error:", findError);
-      return res.status(500).json({ error: "Failed to fetch user" });
+      return res.status(500).json({ error: "FAILED_TO_FETCH_USER" });
     }
 
-    let user = users?.[0];
+    currentUser = data;
 
     // 3️⃣ ЕСЛИ НЕТ — СОЗДАЁМ
-    if (!user) {
+    if (!currentUser) {
       const { data: newUser, error: insertError } = await supabase
         .from("users")
         .insert({
@@ -40,55 +48,93 @@ router.post("/", async (req: Request, res: Response) => {
           weekly_limit: 7,
           weekly_used: 0,
           week_started_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          last_active_at: new Date().toISOString(),
         })
         .select()
         .single();
 
       if (insertError) {
         console.error("User insert error:", insertError);
-        return res.status(500).json({ error: "Failed to create user" });
+        return res.status(500).json({ error: "FAILED_TO_CREATE_USER" });
       }
 
-      user = newUser;
+      currentUser = newUser;
     }
 
-    // 4️⃣ ПРОВЕРКА ЛИМИТА
-    if (user.weekly_used >= user.weekly_limit) {
+    // 4️⃣ АВТОСБРОС ЛИМИТА (ШАГ 4)
+    const now = new Date();
+    const weekStartedAt = new Date(currentUser.week_started_at);
+
+    const diffMs = now.getTime() - weekStartedAt.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (diffDays >= 7) {
+      const { error: resetError } = await supabase
+        .from("users")
+        .update({
+          weekly_used: 0,
+          week_started_at: now.toISOString(),
+        })
+        .eq("telegram_id", telegram_id);
+
+      if (resetError) {
+        console.error("Limit reset error:", resetError);
+        return res.status(500).json({ error: "FAILED_TO_RESET_LIMIT" });
+      }
+
+      currentUser.weekly_used = 0;
+      currentUser.week_started_at = now.toISOString();
+    }
+
+    // 5️⃣ ПРОВЕРКА ЛИМИТА
+    if (currentUser.weekly_used >= currentUser.weekly_limit) {
+      const resetAt = new Date(
+        new Date(currentUser.week_started_at).getTime() +
+          7 * 24 * 60 * 60 * 1000
+      );
+
       return res.status(403).json({
         error: "LIMIT_REACHED",
-        weekly_limit: user.weekly_limit,
-        weekly_used: user.weekly_used,
+        weekly_limit: currentUser.weekly_limit,
+        weekly_used: currentUser.weekly_used,
+        reset_at: resetAt.toISOString(),
       });
     }
 
-    // 5️⃣ ГЕНЕРАЦИЯ
+    // 6️⃣ ГЕНЕРАЦИЯ (MOCK)
     const messages = await generateMessages({
       platform,
       stage,
-      girlInfo: girl_info,
+      girlInfo: girl_info ?? "",
     });
 
-    // 6️⃣ ОБНОВЛЯЕМ СЧЁТЧИК
-    const newUsed = user.weekly_used + 1;
+    // 7️⃣ ИНКРЕМЕНТ
+    const newUsed = currentUser.weekly_used + 1;
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("users")
       .update({
         weekly_used: newUsed,
-        last_active_at: new Date().toISOString(),
+        last_active_at: now.toISOString(),
       })
       .eq("telegram_id", telegram_id);
 
-    // 7️⃣ ОТВЕТ
+    if (updateError) {
+      console.error("User update error:", updateError);
+      return res.status(500).json({ error: "FAILED_TO_UPDATE_USER" });
+    }
+
+    // 8️⃣ ОТВЕТ
     return res.json({
       messages,
-      weekly_limit: user.weekly_limit,
+      weekly_limit: currentUser.weekly_limit,
       weekly_used: newUsed,
     });
   } catch (error) {
     console.error("Generate error:", error);
     return res.status(500).json({
-      error: "Internal server error",
+      error: "INTERNAL_SERVER_ERROR",
     });
   }
 });
