@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import ChipSelect from './ChipSelect';
 import Loader from './Loader';
 import Result from './Result';
-import { generateMessages } from '../api/api';
+import { generateMessages, isLimitReachedError, LimitReachedError } from '../api/api';
 import { toast } from 'sonner';
 import { HelpCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
 import {
   Sheet,
   SheetContent,
@@ -18,7 +20,6 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogCancel,
   AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 
@@ -74,8 +75,10 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
   const [messages, setMessages] = useState<string[]>([]);
   
   // Состояние лимитов
-  const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
+  const [weeklyLimit, setWeeklyLimit] = useState<number | null>(null);
+  const [weeklyUsed, setWeeklyUsed] = useState<number | null>(null);
   const [limitReachedOpen, setLimitReachedOpen] = useState(false);
+  const [limitResetAt, setLimitResetAt] = useState<string | null>(null);
 
   // Получить placeholder в зависимости от стадии
   const getCurrentPlaceholder = () => {
@@ -118,25 +121,23 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
         girl_info: girlInfo,
       });
       
-      if (response.success) {
-        setMessages(response.messages);
-        // Сохраняем remaining_generations для отображения счётчика
-        if (response.remaining_generations !== undefined) {
-          setRemainingGenerations(response.remaining_generations);
-        }
-        onHapticSuccess();
-      } else {
-        throw new Error(response.error || 'Ошибка генерации');
-      }
+      setMessages(response.messages);
+      // Сохраняем данные о лимитах
+      setWeeklyLimit(response.weekly_limit);
+      setWeeklyUsed(response.weekly_used);
+      onHapticSuccess();
     } catch (error: unknown) {
       console.error('Ошибка генерации:', error);
       
       // Проверяем, достигнут ли лимит
-      const errorMessage = error instanceof Error ? error.message : '';
-      if (errorMessage.includes('LIMIT_REACHED') || errorMessage.includes('лимит')) {
+      if (isLimitReachedError(error)) {
+        setWeeklyLimit(error.weekly_limit);
+        setWeeklyUsed(error.weekly_used);
+        setLimitResetAt(error.reset_at);
         setLimitReachedOpen(true);
       } else {
-        toast.error(errorMessage || 'Произошла ошибка');
+        const errorMessage = error instanceof Error ? error.message : 'Произошла ошибка';
+        toast.error(errorMessage);
       }
     } finally {
       setLoading(false);
@@ -145,10 +146,12 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
 
   // Получить текст счётчика лимитов
   const getLimitCounterText = () => {
-    if (remainingGenerations === 3) {
+    if (weeklyLimit === null || weeklyUsed === null) return null;
+    const remaining = weeklyLimit - weeklyUsed;
+    if (remaining === 3) {
       return 'Осталось 3 генерации на этой неделе';
     }
-    if (remainingGenerations === 1) {
+    if (remaining === 1) {
       return 'Последняя бесплатная генерация';
     }
     return null;
@@ -247,18 +250,19 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
               Лимит исчерпан
             </AlertDialogTitle>
             <AlertDialogDescription className="text-center text-muted-foreground leading-relaxed pt-2">
-              Бесплатный лимит на этой неделе закончился.
-              <br />
-              Хочешь продолжить без ограничений?
+              Ты использовал все бесплатные генерации на эту неделю.
+              {limitResetAt && (
+                <span className="block mt-2 text-sm">
+                  Новые генерации будут доступны{' '}
+                  {format(new Date(limitResetAt), "d MMMM 'в' HH:mm", { locale: ru })}
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+          <AlertDialogFooter className="flex-col sm:flex-col">
             <AlertDialogAction className="w-full">
-              Разблокировать
+              Понятно
             </AlertDialogAction>
-            <AlertDialogCancel className="w-full mt-0">
-              Закрыть
-            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

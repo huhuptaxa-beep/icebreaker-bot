@@ -30,10 +30,16 @@ export interface GenerateRequest {
 }
 
 export interface GenerateResponse {
-  success: boolean;
   messages: string[];
-  remaining_generations?: number;
-  error?: string;
+  weekly_limit: number;
+  weekly_used: number;
+}
+
+export interface LimitReachedError {
+  type: 'LIMIT_REACHED';
+  weekly_limit: number;
+  weekly_used: number;
+  reset_at: string;
 }
 
 /**
@@ -77,11 +83,19 @@ export const generateMessages = async (
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const errorData = await response.json();
     
-    if (response.status === 429 || error.error === 'LIMIT_REACHED') {
-      throw new Error("LIMIT_REACHED");
+    // Проверяем, достигнут ли лимит (403 с LIMIT_REACHED)
+    if (response.status === 403 && errorData.error === 'LIMIT_REACHED') {
+      const limitError: LimitReachedError = {
+        type: 'LIMIT_REACHED',
+        weekly_limit: errorData.weekly_limit,
+        weekly_used: errorData.weekly_used,
+        reset_at: errorData.reset_at,
+      };
+      throw limitError;
     }
+    
     if (response.status === 402) {
       throw new Error("Исчерпаны AI-кредиты. Обратитесь в поддержку.");
     }
@@ -89,8 +103,15 @@ export const generateMessages = async (
       throw new Error("Необходима авторизация через Telegram.");
     }
     
-    throw new Error(error.error || "Generation failed");
+    throw new Error(errorData.error || "Generation failed");
   }
 
   return response.json();
+};
+
+/**
+ * Проверка, является ли ошибка LimitReachedError
+ */
+export const isLimitReachedError = (error: unknown): error is LimitReachedError => {
+  return typeof error === 'object' && error !== null && (error as LimitReachedError).type === 'LIMIT_REACHED';
 };
