@@ -23,7 +23,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // 2️⃣ ИЩЕМ ПОЛЬЗОВАТЕЛЯ ПО TELEGRAM_ID
+    // 2️⃣ ИЩЕМ ПОЛЬЗОВАТЕЛЯ
     let currentUser = null;
 
     const { data, error: findError } = await supabase
@@ -39,7 +39,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     currentUser = data;
 
-    // 3️⃣ ЕСЛИ ПОЛЬЗОВАТЕЛЯ НЕТ — СОЗДАЁМ
+    // 3️⃣ ЕСЛИ НЕТ — СОЗДАЁМ
     if (!currentUser) {
       const { data: newUser, error: insertError } = await supabase
         .from("users")
@@ -62,30 +62,61 @@ router.post("/", async (req: Request, res: Response) => {
       currentUser = newUser;
     }
 
-    // 4️⃣ ПРОВЕРКА ЛИМИТА
+    // 4️⃣ АВТОСБРОС ЛИМИТА (ШАГ 4)
+    const now = new Date();
+    const weekStartedAt = new Date(currentUser.week_started_at);
+
+    const diffMs = now.getTime() - weekStartedAt.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+    if (diffDays >= 7) {
+      const { error: resetError } = await supabase
+        .from("users")
+        .update({
+          weekly_used: 0,
+          week_started_at: now.toISOString(),
+        })
+        .eq("telegram_id", telegram_id);
+
+      if (resetError) {
+        console.error("Limit reset error:", resetError);
+        return res.status(500).json({ error: "FAILED_TO_RESET_LIMIT" });
+      }
+
+      currentUser.weekly_used = 0;
+      currentUser.week_started_at = now.toISOString();
+    }
+
+    // 5️⃣ ПРОВЕРКА ЛИМИТА
     if (currentUser.weekly_used >= currentUser.weekly_limit) {
+      const resetAt = new Date(
+        new Date(currentUser.week_started_at).getTime() +
+          7 * 24 * 60 * 60 * 1000
+      );
+
       return res.status(403).json({
         error: "LIMIT_REACHED",
         weekly_limit: currentUser.weekly_limit,
         weekly_used: currentUser.weekly_used,
+        reset_at: resetAt.toISOString(),
       });
     }
 
-    // 5️⃣ ГЕНЕРАЦИЯ (MOCK / AI)
+    // 6️⃣ ГЕНЕРАЦИЯ (MOCK)
     const messages = await generateMessages({
       platform,
       stage,
       girlInfo: girl_info ?? "",
     });
 
-    // 6️⃣ ОБНОВЛЯЕМ СЧЁТЧИК
+    // 7️⃣ ИНКРЕМЕНТ
     const newUsed = currentUser.weekly_used + 1;
 
     const { error: updateError } = await supabase
       .from("users")
       .update({
         weekly_used: newUsed,
-        last_active_at: new Date().toISOString(),
+        last_active_at: now.toISOString(),
       })
       .eq("telegram_id", telegram_id);
 
@@ -94,7 +125,7 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(500).json({ error: "FAILED_TO_UPDATE_USER" });
     }
 
-    // 7️⃣ ОТВЕТ
+    // 8️⃣ ОТВЕТ
     return res.json({
       messages,
       weekly_limit: currentUser.weekly_limit,
