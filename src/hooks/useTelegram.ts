@@ -1,10 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import { authTelegram, TelegramUser } from '../api/api';
+import { useEffect, useState, useCallback } from "react";
+import { authTelegram, TelegramUser } from "../api/api";
 
-/**
- * Хук для работы с Telegram WebApp API
- * Проверяет доступность Telegram, авторизует пользователя и предоставляет доступ к API
- */
 export const useTelegram = () => {
   const [isReady, setIsReady] = useState(false);
   const [isTelegramAvailable, setIsTelegramAvailable] = useState(false);
@@ -13,110 +9,93 @@ export const useTelegram = () => {
 
   useEffect(() => {
     const initTelegram = async () => {
-      // 🔍 DIAGNOSTIC LOGS (КЛЮЧЕВЫЕ)
-      console.log('[useTelegram] window.Telegram:', window.Telegram);
-      console.log('[useTelegram] WebApp:', window.Telegram?.WebApp);
-
-      // Проверяем доступность Telegram WebApp
       const tg = window.Telegram?.WebApp;
 
-      if (tg) {
-        console.log('[useTelegram] ✅ Telegram WebApp detected');
-        setIsTelegramAvailable(true);
-
-        // Инициализируем приложение
-        tg.ready();
-        tg.expand();
-
-        // Устанавливаем цвета
-        tg.setHeaderColor('#1e2530');
-        tg.setBackgroundColor('#1a1f26');
-
-        // 🔍 ЛОГИ INIT DATA
-        console.log('[useTelegram] initDataUnsafe:', tg.initDataUnsafe);
-
-        // Получаем данные пользователя
-        const tgUser = tg.initDataUnsafe?.user;
-        console.log('[useTelegram] Telegram user:', tgUser);
-
-        if (tgUser?.id) {
-          console.log('[useTelegram] ✅ Telegram ID detected:', tgUser.id);
-          setUserId(tgUser.id);
-
-          try {
-            const response = await authTelegram({
-              telegram_id: tgUser.id,
-              username: tgUser.username,
-              first_name: tgUser.first_name || 'User',
-              last_name: tgUser.last_name,
-              language: tgUser.language_code,
-            });
-
-            if (response.success) {
-              console.log('[useTelegram] ✅ User authorized via backend');
-              setUser(response.user);
-            } else {
-              console.warn('[useTelegram] ❌ Backend auth failed:', response.error);
-            }
-          } catch (error) {
-            console.error('[useTelegram] Auth error (ignored for MVP):', error);
-            // ❗ намеренно игнорируем, MVP
-          }
-        } else {
-          // 👇 ВАЖНО: это НОРМАЛЬНЫЙ СЦЕНАРИЙ
-          console.warn(
-            '[useTelegram] ⚠️ Telegram user not provided — running in guest mode'
-          );
-          setUserId(null);
-        }
-
-        setIsReady(true);
-      } else {
-        console.warn('[useTelegram] ❌ Telegram WebApp NOT available');
-        setIsTelegramAvailable(false);
-
-        // Для разработки вне Telegram — создаём тестового пользователя
+      if (!tg) {
+        // DEV / browser
         if (import.meta.env.DEV) {
           const devUserId = 123456789;
-          console.log('[useTelegram] 🧪 DEV MODE — using mock telegram_id:', devUserId);
           setUserId(devUserId);
-
           try {
-            const response = await authTelegram({
+            const res = await authTelegram({
               telegram_id: devUserId,
-              username: 'dev_user',
-              first_name: 'Developer',
-              language: 'ru',
+              username: "dev_user",
+              first_name: "Developer",
+              language: "ru",
             });
-
-            if (response.success) {
-              console.log('[useTelegram] ✅ Dev user authorized');
-              setUser(response.user);
-            }
-          } catch (error) {
-            console.error('[useTelegram] Dev auth error:', error);
-            // В dev-режиме продолжаем без авторизации
-          }
+            if (res.success) setUser(res.user);
+          } catch {}
         }
-
         setIsReady(true);
+        return;
       }
+
+      setIsTelegramAvailable(true);
+      tg.ready();
+      tg.expand();
+
+      tg.setHeaderColor("#1e2530");
+      tg.setBackgroundColor("#1a1f26");
+
+      let telegramId: number | null = null;
+      let telegramUser = tg.initDataUnsafe?.user;
+
+      // ✅ PRIMARY
+      if (telegramUser?.id) {
+        telegramId = telegramUser.id;
+      }
+
+      // ✅ FALLBACK (важно)
+      if (!telegramId && tg.initData) {
+        const params = new URLSearchParams(tg.initData);
+        const userParam = params.get("user");
+        if (userParam) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(userParam));
+            if (parsed?.id) {
+              telegramId = parsed.id;
+              telegramUser = parsed;
+            }
+          } catch {}
+        }
+      }
+
+      if (!telegramId) {
+        console.warn("[useTelegram] Telegram ID not available");
+        setIsReady(true);
+        return;
+      }
+
+      setUserId(telegramId);
+
+      try {
+        const res = await authTelegram({
+          telegram_id: telegramId,
+          username: telegramUser?.username,
+          first_name: telegramUser?.first_name || "User",
+          last_name: telegramUser?.last_name,
+          language: telegramUser?.language_code,
+        });
+        if (res.success) setUser(res.user);
+      } catch (e) {
+        console.error("Auth error:", e);
+      }
+
+      setIsReady(true);
     };
 
     initTelegram();
   }, []);
 
-  // Вибрация при нажатии
   const hapticFeedback = useCallback(
-    (type: 'light' | 'medium' | 'heavy' = 'light') => {
+    (type: "light" | "medium" | "heavy" = "light") => {
       window.Telegram?.WebApp?.HapticFeedback?.impactOccurred(type);
     },
     []
   );
 
-  // Вибрация при успешном действии
   const hapticSuccess = useCallback(() => {
-    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred("success");
   }, []);
 
   return {
