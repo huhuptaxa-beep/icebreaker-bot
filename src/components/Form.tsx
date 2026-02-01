@@ -106,6 +106,10 @@ const Form: React.FC<FormProps> = ({ telegramId, onHapticFeedback, onHapticSucce
   // Проверка заполненности формы
   const isFormValid = stage && girlInfo.trim().length > 0;
 
+  <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 8 }}>
+   Telegram ID: {telegramId ?? 'нет'}
+  </div>
+  
   // Генерация сообщений
   const handleGenerate = async () => {
     if (!isFormValid) return;
