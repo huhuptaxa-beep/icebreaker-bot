@@ -9,53 +9,49 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// ✅ anon key можно безопасно использовать на клиенте
+// ⚠️ ВСТАВЬ СВОЙ ANON KEY
 const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jYmZ4amN3YnphZWhqeXVoYXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5NzI4OTIsImV4cCI6MjA4NDU0ODg5Mn0.xcDdueNZGc6px4Eb7kexTmosNZjS0jgGfrAsfVrGeXI;
 
 const App = () => {
   useEffect(() => {
-    try {
-      const tg = window.Telegram?.WebApp;
-      if (!tg) {
-        console.warn("Telegram WebApp not found");
-        return;
-      }
-
-      tg.ready();
-
-      const telegramId = tg.initDataUnsafe?.user?.id;
-      console.log("Telegram ID:", telegramId);
-
-      if (!telegramId) {
-        console.warn("Telegram ID is undefined");
-        return;
-      }
-
-      fetch(
-        "https://ocbfxjcwbzaehjyuhatz.supabase.co/functions/v1/auth-telegram",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ telegram_id: telegramId }),
-        }
-      )
-        .then((res) => {
-          console.log("auth-telegram status:", res.status);
-        })
-        .catch((err) => {
-          console.error("auth-telegram fetch error:", err);
-        });
-    } catch (e) {
-      console.error("Telegram init crash:", e);
+    const tg = window.Telegram?.WebApp;
+    if (!tg) {
+      console.warn("Telegram WebApp not found");
+      return;
     }
+
+    tg.ready();
+
+    const telegramId = tg.initDataUnsafe?.user?.id;
+    console.log("Telegram ID:", telegramId);
+
+    if (!telegramId) {
+      console.warn("Telegram ID is undefined");
+      return;
+    }
+
+    fetch(
+      "https://ocbfxjcwbzaehjyuhatz.supabase.co/functions/v1/auth-telegram",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ telegram_id: telegramId }),
+      }
+    )
+      .then((res) => {
+        console.log("auth-telegram status:", res.status);
+      })
+      .catch((err) => {
+        console.error("auth-telegram error:", err);
+      });
   }, []);
 
   return (
-    <>
-      {/* 🟢 UI рендерится ВСЕГДА */}
+    <div style={{ minHeight: "100vh" }}>
+      {/* 🟢 Debug marker */}
       <div
         style={{
           position: "fixed",
@@ -68,3 +64,22 @@ const App = () => {
         }}
       >
         Casanova Mini App
+      </div>
+
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </div>
+  );
+};
+
+export default App;
