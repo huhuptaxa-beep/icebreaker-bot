@@ -9,6 +9,10 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// 🔴 ВСТАВЬ СВОЙ ANON KEY
+const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jYmZ4amN3YnphZWhqeXVoYXR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5NzI4OTIsImV4cCI6MjA4NDU0ODg5Mn0.xcDdueNZGc6px4Eb7kexTmosNZjS0jgGfrAsfVrGeXI
+  "PASTE_YOUR_SUPABASE_ANON_KEY_HERE";
+
 const App = () => {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -18,23 +22,18 @@ const App = () => {
       return;
     }
 
-    // 🔴 ОБЯЗАТЕЛЬНО
     tg.ready();
 
     const telegramId = tg.initDataUnsafe?.user?.id;
 
-    // 🔍 Диагностика Telegram
     alert("Telegram ID: " + telegramId);
     console.log("Telegram ID:", telegramId);
 
     if (!telegramId) {
-      alert(
-        "❌ Telegram ID is undefined. Close Mini App and open it again from Telegram."
-      );
+      alert("❌ Telegram ID is undefined");
       return;
     }
 
-    // 🔴 ДИАГНОСТИЧЕСКИЙ FETCH
     fetch(
       "https://ocbfxjcwbzaehjyuhatz.supabase.co/functions/v1/auth-telegram",
       {
@@ -42,6 +41,7 @@ const App = () => {
         mode: "cors",
         headers: {
           "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           telegram_id: telegramId,
@@ -55,13 +55,12 @@ const App = () => {
       })
       .catch((err) => {
         alert("❌ Fetch failed: " + err.message);
-        console.error("Fetch error:", err);
+        console.error(err);
       });
   }, []);
 
   return (
     <>
-      {/* 🔴 DEBUG MARKER — ДОЛЖЕН БЫТЬ ВИДЕН ВСЕГДА */}
       <div
         style={{
           position: "fixed",
