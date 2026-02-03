@@ -23,7 +23,7 @@ const App = () => {
 
     const telegramId = tg.initDataUnsafe?.user?.id;
 
-    // 🔍 Диагностика
+    // 🔍 Диагностика Telegram
     alert("Telegram ID: " + telegramId);
     console.log("Telegram ID:", telegramId);
 
@@ -34,10 +34,12 @@ const App = () => {
       return;
     }
 
+    // 🔴 ДИАГНОСТИЧЕСКИЙ FETCH
     fetch(
       "https://ocbfxjcwbzaehjyuhatz.supabase.co/functions/v1/auth-telegram",
       {
         method: "POST",
+        mode: "cors",
         headers: {
           "Content-Type": "application/json",
         },
@@ -46,12 +48,14 @@ const App = () => {
         }),
       }
     )
-      .then(() => {
-        console.log("✅ auth-telegram called");
+      .then(async (res) => {
+        alert("Fetch status: " + res.status);
+        const text = await res.text();
+        console.log("Response text:", text);
       })
       .catch((err) => {
-        console.error("auth-telegram error:", err);
-        alert("❌ auth-telegram error, see console");
+        alert("❌ Fetch failed: " + err.message);
+        console.error("Fetch error:", err);
       });
   }, []);
 
