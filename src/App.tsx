@@ -35,7 +35,7 @@ const App = () => {
     }
 
     fetch(
-      "https://ocbfxjcwbzaehjyuhatz.functions.supabase.co/auth-telegram",
+      "https://ocbfxjcwbzaehjyuhatz.supabase.co/functions/v1/auth-telegram",
       {
         method: "POST",
         headers: {
