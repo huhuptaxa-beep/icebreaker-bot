@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -15,20 +15,14 @@ const SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 const App = () => {
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    if (!tg) {
-      console.warn("Telegram WebApp not found");
-      return;
-    }
+    if (!tg) return;
 
     tg.ready();
 
     const telegramId = tg.initDataUnsafe?.user?.id;
     console.log("Telegram ID:", telegramId);
 
-    if (!telegramId) {
-      console.warn("Telegram ID is undefined");
-      return;
-    }
+    if (!telegramId) return;
 
     fetch(
       "https://ocbfxjcwbzaehjyuhatz.supabase.co/functions/v1/auth-telegram",
@@ -40,27 +34,20 @@ const App = () => {
         },
         body: JSON.stringify({ telegram_id: telegramId }),
       }
-    )
-      .then((res) => {
-        console.log("auth-telegram status:", res.status);
-      })
-      .catch((err) => {
-        console.error("auth-telegram error:", err);
-      });
+    ).catch(console.error);
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      {/* 🟢 Debug marker */}
+    <div style={{ minHeight: "100vh", background: "#0f172a", color: "white" }}>
+      {/* 🟢 UI МАРКЕР */}
       <div
         style={{
           position: "fixed",
-          top: 4,
-          left: 4,
+          top: 6,
+          left: 6,
           fontSize: 12,
-          opacity: 0.6,
+          opacity: 0.7,
           zIndex: 9999,
-          pointerEvents: "none",
         }}
       >
         Casanova Mini App
@@ -70,12 +57,12 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <HashRouter>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+          </HashRouter>
         </TooltipProvider>
       </QueryClientProvider>
     </div>
