@@ -10,20 +10,30 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  // 🟢 TELEGRAM: получаем Telegram WebApp и ID
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    const telegramId = tg?.initDataUnsafe?.user?.id;
 
+    if (!tg) {
+      alert("❌ Telegram WebApp object not found");
+      return;
+    }
+
+    // 🔴 ОБЯЗАТЕЛЬНО
+    tg.ready();
+
+    const telegramId = tg.initDataUnsafe?.user?.id;
+
+    // 🔍 Диагностика
+    alert("Telegram ID: " + telegramId);
     console.log("Telegram ID:", telegramId);
 
     if (!telegramId) {
-      throw new Error(
-        "Telegram ID not available — app not opened in Telegram"
+      alert(
+        "❌ Telegram ID is undefined. Close Mini App and open it again from Telegram."
       );
+      return;
     }
 
-    // 🟢 TELEGRAM: отправляем telegram_id в auth-telegram
     fetch(
       "https://ocbfxjcwbzaehjyuhatz.supabase.co/functions/v1/auth-telegram",
       {
@@ -35,9 +45,14 @@ const App = () => {
           telegram_id: telegramId,
         }),
       }
-    ).catch((err) => {
-      console.error("auth-telegram error:", err);
-    });
+    )
+      .then(() => {
+        console.log("✅ auth-telegram called");
+      })
+      .catch((err) => {
+        console.error("auth-telegram error:", err);
+        alert("❌ auth-telegram error, see console");
+      });
   }, []);
 
   return (
@@ -64,7 +79,6 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
