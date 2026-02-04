@@ -1,90 +1,57 @@
 import { useEffect, useState, useCallback } from "react";
-import { authTelegram, TelegramUser } from "../api/api";
 
 export const useTelegram = () => {
   const [isReady, setIsReady] = useState(false);
   const [isTelegramAvailable, setIsTelegramAvailable] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
-  const [user, setUser] = useState<TelegramUser | null>(null);
 
   useEffect(() => {
-    const initTelegram = async () => {
-      const tg = window.Telegram?.WebApp;
+    const tg = window.Telegram?.WebApp;
 
-      if (!tg) {
-        // DEV / browser
-        if (import.meta.env.DEV) {
-          const devUserId = 123456789;
-          setUserId(devUserId);
-          try {
-            const res = await authTelegram({
-              telegram_id: devUserId,
-              username: "dev_user",
-              first_name: "Developer",
-              language: "ru",
-            });
-            if (res.success) setUser(res.user);
-          } catch {}
-        }
-        setIsReady(true);
-        return;
+    // Browser / DEV режим
+    if (!tg) {
+      if (import.meta.env.DEV) {
+        setUserId(123456789);
       }
+      setIsReady(true);
+      return;
+    }
 
-      setIsTelegramAvailable(true);
+    setIsTelegramAvailable(true);
+
+    try {
       tg.ready();
       tg.expand();
-
       tg.setHeaderColor("#1e2530");
       tg.setBackgroundColor("#1a1f26");
+    } catch {
+      // НИЧЕГО не делаем — главное не упасть
+    }
 
-      let telegramId: number | null = null;
-      let telegramUser = tg.initDataUnsafe?.user;
+    let telegramId: number | null = null;
 
-      // ✅ PRIMARY
-      if (telegramUser?.id) {
-        telegramId = telegramUser.id;
-      }
+    // PRIMARY
+    if (tg.initDataUnsafe?.user?.id) {
+      telegramId = tg.initDataUnsafe.user.id;
+    }
 
-      // ✅ FALLBACK (важно)
-      if (!telegramId && tg.initData) {
+    // FALLBACK
+    if (!telegramId && tg.initData) {
+      try {
         const params = new URLSearchParams(tg.initData);
         const userParam = params.get("user");
         if (userParam) {
-          try {
-            const parsed = JSON.parse(decodeURIComponent(userParam));
-            if (parsed?.id) {
-              telegramId = parsed.id;
-              telegramUser = parsed;
-            }
-          } catch {}
+          const parsed = JSON.parse(decodeURIComponent(userParam));
+          if (parsed?.id) telegramId = parsed.id;
         }
-      }
+      } catch {}
+    }
 
-      if (!telegramId) {
-        console.warn("[useTelegram] Telegram ID not available");
-        setIsReady(true);
-        return;
-      }
-
+    if (telegramId) {
       setUserId(telegramId);
+    }
 
-      try {
-        const res = await authTelegram({
-          telegram_id: telegramId,
-          username: telegramUser?.username,
-          first_name: telegramUser?.first_name || "User",
-          last_name: telegramUser?.last_name,
-          language: telegramUser?.language_code,
-        });
-        if (res.success) setUser(res.user);
-      } catch (e) {
-        console.error("Auth error:", e);
-      }
-
-      setIsReady(true);
-    };
-
-    initTelegram();
+    setIsReady(true);
   }, []);
 
   const hapticFeedback = useCallback(
@@ -102,8 +69,6 @@ export const useTelegram = () => {
     isReady,
     isTelegramAvailable,
     userId,
-    user,
-    tg: window.Telegram?.WebApp,
     hapticFeedback,
     hapticSuccess,
   };
