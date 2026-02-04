@@ -2,21 +2,16 @@
  * API сервис для работы с backend
  */
 
-/**
- * Безопасно получаем SUPABASE_URL
- * ❗️ НЕ на уровне модуля, а в момент вызова
- */
-const getSupabaseUrl = (): string => {
-  const url = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  if (!url) {
-    throw new Error(
-      "[api] VITE_SUPABASE_URL is not defined. Check environment variables."
-    );
-  }
+if (!SUPABASE_URL) {
+  throw new Error("VITE_SUPABASE_URL is not defined");
+}
 
-  return url;
-};
+if (!SUPABASE_ANON_KEY) {
+  throw new Error("VITE_SUPABASE_ANON_KEY is not defined");
+}
 
 export interface TelegramUser {
   id: string;
@@ -66,25 +61,26 @@ export const authTelegram = async (userData: {
   last_name?: string;
   language?: string;
 }): Promise<AuthResponse> => {
-  const SUPABASE_URL = getSupabaseUrl();
-
   const response = await fetch(
     `${SUPABASE_URL}/functions/v1/auth-telegram`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify(userData),
     }
   );
 
+  const data = await response.json();
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || "Authentication failed");
+    throw new Error(data.error || "Authentication failed");
   }
 
-  return response.json();
+  return data;
 };
 
 /**
@@ -93,50 +89,45 @@ export const authTelegram = async (userData: {
 export const generateMessages = async (
   request: GenerateRequest
 ): Promise<GenerateResponse> => {
-  const SUPABASE_URL = getSupabaseUrl();
-
   const response = await fetch(
     `${SUPABASE_URL}/functions/v1/generate`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify(request),
     }
   );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
+  const data = await response.json();
 
-    // Лимит
-    if (response.status === 403 && errorData.error === "LIMIT_REACHED") {
-      const limitError: LimitReachedError = {
+  if (!response.ok) {
+    if (response.status === 403 && data.error === "LIMIT_REACHED") {
+      throw {
         type: "LIMIT_REACHED",
-        weekly_limit: errorData.weekly_limit,
-        weekly_used: errorData.weekly_used,
-        reset_at: errorData.reset_at,
-      };
-      throw limitError;
+        weekly_limit: data.weekly_limit,
+        weekly_used: data.weekly_used,
+        reset_at: data.reset_at,
+      } as LimitReachedError;
     }
 
     if (response.status === 402) {
-      throw new Error("Исчерпаны AI-кредиты. Обратитесь в поддержку.");
+      throw new Error("Исчерпаны AI-кредиты");
     }
 
     if (response.status === 401) {
-      throw new Error("Необходима авторизация через Telegram.");
+      throw new Error("Необходима авторизация");
     }
 
-    throw new Error(errorData.error || "Generation failed");
+    throw new Error(data.error || "Generation failed");
   }
 
-  return response.json();
+  return data;
 };
 
-/**
- * Проверка, является ли ошибка LimitReachedError
- */
 export const isLimitReachedError = (
   error: unknown
 ): error is LimitReachedError => {
