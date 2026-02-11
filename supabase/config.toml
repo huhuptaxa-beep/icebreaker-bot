@@ -5,3 +5,46 @@ verify_jwt = false
 
 [functions.generate]
 verify_jwt = false
+[functions.chat-generate]
+enabled = true
+verify_jwt = true
+import_map = "./functions/chat-generate/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/chat-generate/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/chat-generate/*.html" ]
+
+[functions.create-conversation]
+enabled = true
+verify_jwt = true
+import_map = "./functions/create-conversation/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/create-conversation/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/create-conversation/*.html" ]
+
+[functions.chat-save]
+enabled = true
+verify_jwt = true
+import_map = "./functions/chat-save/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/chat-save/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/chat-save/*.html" ]
+
+[functions.get-conversation]
+enabled = true
+verify_jwt = true
+import_map = "./functions/get-conversation/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/get-conversation/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/get-conversation/*.html" ]
