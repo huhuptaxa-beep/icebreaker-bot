@@ -1,80 +1,92 @@
 const BASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const headers = {
+  "Content-Type": "application/json",
+  apikey: ANON_KEY,
+  Authorization: `Bearer ${ANON_KEY}`,
+};
 
 export interface Conversation {
   id: string;
-  title: string;
+  girl_name: string;
   created_at: string;
-  last_message?: string;
 }
 
 export interface Message {
   id: string;
-  role: "user" | "girl";
+  conversation_id: string;
+  role: "assistant" | "girl";
   text: string;
   created_at: string;
 }
 
 export interface GenerateResponse {
   suggestions: string[];
+  limit_reached: boolean;
 }
 
 export const createConversation = async (
-  telegram_id: number
+  telegram_id: number,
+  girl_name: string
 ): Promise<Conversation> => {
-  const res = await fetch(`${BASE_URL}/functions/v1/chat-conversations`, {
+  const res = await fetch(`${BASE_URL}/functions/v1/create-conversation`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ telegram_id }),
+    headers,
+    body: JSON.stringify({ telegram_id, girl_name }),
   });
-  if (!res.ok) throw new Error("Failed to create conversation");
-  return res.json();
-};
 
-export const getConversations = async (
-  telegram_id: number
-): Promise<Conversation[]> => {
-  const res = await fetch(
-    `${BASE_URL}/functions/v1/chat-conversations?telegram_id=${telegram_id}`
-  );
-  if (!res.ok) throw new Error("Failed to fetch conversations");
-  return res.json();
+  if (!res.ok) throw new Error("Failed to create conversation");
+  const data = await res.json();
+  return data.conversation;
 };
 
 export const getConversation = async (
   conversation_id: string
-): Promise<{ conversation: Conversation; messages: Message[] }> => {
-  const res = await fetch(
-    `${BASE_URL}/functions/v1/chat-conversations?id=${conversation_id}`
-  );
+): Promise<{ girl_name: string; messages: Message[] }> => {
+  const res = await fetch(`${BASE_URL}/functions/v1/get-conversation`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ conversation_id }),
+  });
+
   if (!res.ok) throw new Error("Failed to fetch conversation");
   return res.json();
 };
 
 export const chatGenerate = async (
   conversation_id: string,
-  message: string | null,
-  action: "normal" | "reengage" | "contact" | "date"
+  incoming_message: string | null,
+  action_type: "normal" | "reengage" | "contact" | "date"
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversation_id, message, action }),
+    headers,
+    body: JSON.stringify({
+      conversation_id,
+      incoming_message,
+      action_type,
+    }),
   });
+
   if (!res.ok) throw new Error("Failed to generate response");
   return res.json();
 };
 
 export const chatSave = async (
   conversation_id: string,
-  text: string,
-  role: "user" | "girl",
-  girl_message?: string
+  selected_text: string
 ): Promise<Message> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-save`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversation_id, text, role, girl_message }),
+    headers,
+    body: JSON.stringify({
+      conversation_id,
+      selected_text,
+    }),
   });
+
   if (!res.ok) throw new Error("Failed to save message");
-  return res.json();
+  const data = await res.json();
+  return data.message;
 };
