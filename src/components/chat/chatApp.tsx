@@ -19,12 +19,13 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
 
   const fetchConversations = useCallback(async () => {
     if (!telegramId) return;
+
     setLoading(true);
     try {
       const data = await getConversations(telegramId);
       setConversations(data);
-    } catch {
-      // silent
+    } catch (e) {
+      console.error("Failed to fetch conversations", e);
     } finally {
       setLoading(false);
     }
@@ -36,14 +37,19 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
 
   const handleCreate = async () => {
     if (!telegramId) return;
+
     setLoading(true);
     try {
-      const conv = await createConversation(telegramId);
+      const conv = await createConversation(
+        telegramId,
+        "Новый диалог"
+      );
+
       setConversations((prev) => [conv, ...prev]);
       setActiveConversationId(conv.id);
       setView("chat");
-    } catch {
-      // silent
+    } catch (e) {
+      console.error("Failed to create conversation", e);
     } finally {
       setLoading(false);
     }
@@ -61,7 +67,12 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   };
 
   if (view === "chat" && activeConversationId) {
-    return <ChatPage conversationId={activeConversationId} onBack={handleBack} />;
+    return (
+      <ChatPage
+        conversationId={activeConversationId}
+        onBack={handleBack}
+      />
+    );
   }
 
   return (
