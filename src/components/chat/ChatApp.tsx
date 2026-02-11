@@ -1,0 +1,77 @@
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  Conversation,
+  createConversation,
+  getConversations,
+} from "@/api/chatApi";
+import ConversationsPage from "./ConversationsPage";
+import ChatPage from "./ChatPage";
+
+interface ChatAppProps {
+  telegramId: number | null;
+}
+
+const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
+  const [view, setView] = useState<"list" | "chat">("list");
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchConversations = useCallback(async () => {
+    if (!telegramId) return;
+    setLoading(true);
+    try {
+      const data = await getConversations(telegramId);
+      setConversations(data);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, [telegramId]);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
+
+  const handleCreate = async () => {
+    if (!telegramId) return;
+    setLoading(true);
+    try {
+      const conv = await createConversation(telegramId);
+      setConversations((prev) => [conv, ...prev]);
+      setActiveConversationId(conv.id);
+      setView("chat");
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelect = (id: string) => {
+    setActiveConversationId(id);
+    setView("chat");
+  };
+
+  const handleBack = () => {
+    setView("list");
+    setActiveConversationId(null);
+    fetchConversations();
+  };
+
+  if (view === "chat" && activeConversationId) {
+    return <ChatPage conversationId={activeConversationId} onBack={handleBack} />;
+  }
+
+  return (
+    <ConversationsPage
+      conversations={conversations}
+      onSelect={handleSelect}
+      onCreate={handleCreate}
+      loading={loading}
+    />
+  );
+};
+
+export default ChatApp;
