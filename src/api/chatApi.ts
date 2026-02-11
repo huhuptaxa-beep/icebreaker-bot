@@ -11,6 +11,7 @@ export interface Conversation {
   id: string;
   girl_name: string;
   created_at: string;
+  last_message?: string;
 }
 
 export interface Message {
@@ -26,6 +27,10 @@ export interface GenerateResponse {
   limit_reached: boolean;
 }
 
+/* ===========================
+   CREATE CONVERSATION
+=========================== */
+
 export const createConversation = async (
   telegram_id: number,
   girl_name: string
@@ -37,9 +42,32 @@ export const createConversation = async (
   });
 
   if (!res.ok) throw new Error("Failed to create conversation");
+
   const data = await res.json();
   return data.conversation;
 };
+
+/* ===========================
+   GET ALL CONVERSATIONS
+=========================== */
+
+export const getConversations = async (
+  telegram_id: number
+): Promise<Conversation[]> => {
+  const res = await fetch(`${BASE_URL}/functions/v1/get-conversations`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ telegram_id }),
+  });
+
+  if (!res.ok) throw new Error("Failed to fetch conversations");
+
+  return res.json();
+};
+
+/* ===========================
+   GET SINGLE CONVERSATION
+=========================== */
 
 export const getConversation = async (
   conversation_id: string
@@ -51,8 +79,13 @@ export const getConversation = async (
   });
 
   if (!res.ok) throw new Error("Failed to fetch conversation");
+
   return res.json();
 };
+
+/* ===========================
+   GENERATE SUGGESTIONS
+=========================== */
 
 export const chatGenerate = async (
   conversation_id: string,
@@ -70,8 +103,13 @@ export const chatGenerate = async (
   });
 
   if (!res.ok) throw new Error("Failed to generate response");
+
   return res.json();
 };
+
+/* ===========================
+   SAVE MESSAGE
+=========================== */
 
 export const chatSave = async (
   conversation_id: string,
@@ -87,6 +125,7 @@ export const chatSave = async (
   });
 
   if (!res.ok) throw new Error("Failed to save message");
+
   const data = await res.json();
   return data.message;
 };
