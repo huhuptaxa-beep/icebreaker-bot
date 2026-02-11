@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useTelegram } from "../hooks/useTelegram";
 import Onboarding from "../components/Onboarding";
-import Form from "../components/Form";
+import ChatApp from "../components/chat/ChatApp";
 import ErrorScreen from "../components/ErrorScreen";
 
 const Index: React.FC = () => {
@@ -47,7 +47,7 @@ const Index: React.FC = () => {
       {!onboardingCompleted ? (
         <Onboarding onStart={handleOnboardingComplete} />
       ) : (
-        <Form
+        <ChatApp
           telegramId={userId}
           onHapticFeedback={hapticFeedback}
           onHapticSuccess={hapticSuccess}
