@@ -11,7 +11,6 @@ export interface Conversation {
   id: string;
   girl_name: string;
   created_at: string;
-  last_message?: string;
 }
 
 export interface Message {
@@ -41,28 +40,39 @@ export const createConversation = async (
     body: JSON.stringify({ telegram_id, girl_name }),
   });
 
-  if (!res.ok) throw new Error("Failed to create conversation");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("createConversation error:", text);
+    throw new Error("Failed to create conversation");
+  }
 
   const data = await res.json();
   return data.conversation;
 };
 
 /* ===========================
-   GET ALL CONVERSATIONS
+   LIST CONVERSATIONS
 =========================== */
 
 export const getConversations = async (
   telegram_id: number
 ): Promise<Conversation[]> => {
-  const res = await fetch(`${BASE_URL}/functions/v1/get-conversations`, {
+  const res = await fetch(`${BASE_URL}/functions/v1/list-conversations`, {
     method: "POST",
     headers,
     body: JSON.stringify({ telegram_id }),
   });
 
-  if (!res.ok) throw new Error("Failed to fetch conversations");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("listConversations error:", text);
+    throw new Error("Failed to fetch conversations");
+  }
 
-  return res.json();
+  const data = await res.json();
+
+  // Гарантируем, что всегда возвращается массив
+  return Array.isArray(data) ? data : [];
 };
 
 /* ===========================
@@ -78,7 +88,11 @@ export const getConversation = async (
     body: JSON.stringify({ conversation_id }),
   });
 
-  if (!res.ok) throw new Error("Failed to fetch conversation");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("getConversation error:", text);
+    throw new Error("Failed to fetch conversation");
+  }
 
   return res.json();
 };
@@ -102,7 +116,11 @@ export const chatGenerate = async (
     }),
   });
 
-  if (!res.ok) throw new Error("Failed to generate response");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("chatGenerate error:", text);
+    throw new Error("Failed to generate response");
+  }
 
   return res.json();
 };
@@ -124,7 +142,11 @@ export const chatSave = async (
     }),
   });
 
-  if (!res.ok) throw new Error("Failed to save message");
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("chatSave error:", text);
+    throw new Error("Failed to save message");
+  }
 
   const data = await res.json();
   return data.message;
