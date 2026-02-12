@@ -31,7 +31,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
         const msgs = data.messages || [];
         setMessages(msgs);
 
-        // 🔥 сразу вниз
+        // скроллим вниз сразу
         setTimeout(() => {
           if (scrollRef.current) {
             scrollRef.current.scrollTop =
@@ -80,7 +80,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     const myMessage: Message = {
       id: crypto.randomUUID(),
       conversation_id: conversationId,
-      role: "user", // 🔥 ВАЖНО — было assistant
+      role: "assistant", // ✅ теперь правильно
       text,
       created_at: new Date().toISOString(),
     };
@@ -90,7 +90,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     setDraftGirlReply("");
 
     try {
-      await chatSave(conversationId, text);
+      await chatSave(conversationId, text, "assistant"); // ✅ передаём role
     } catch {}
   };
 
@@ -113,7 +113,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     setDraftGirlReply("");
 
     try {
-      await chatSave(conversationId, draftGirlReply);
+      await chatSave(conversationId, draftGirlReply, "girl"); // ✅ передаём role
     } catch {}
   };
 
@@ -146,7 +146,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
           <MessageBubble
             key={msg.id}
             text={msg.text}
-            role={msg.role as any}
+            role={msg.role}
           />
         ))}
 
