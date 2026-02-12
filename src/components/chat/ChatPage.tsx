@@ -18,7 +18,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
 
-  // стартовые поля
   const [leftDraft, setLeftDraft] = useState("");
   const [rightDraft, setRightDraft] = useState("");
   const [startHidden, setStartHidden] = useState(false);
@@ -42,53 +41,66 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     }
   }, [messages, suggestions]);
 
-  const handleStartGenerate = async () => {
+  /* ===========================
+     START GENERATION
+  ============================ */
+
+  const handleStartGenerate = async (
+    action: "normal" | "reengage" | "contact" | "date" = "normal"
+  ) => {
     if (!leftDraft.trim() && !rightDraft.trim()) return;
 
     setGenerating(true);
     setSuggestions([]);
 
     try {
-      // если девушка написала первой
+      // 👩 Девушка написала первой
       if (leftDraft.trim()) {
         const girlMsg: Message = {
           id: crypto.randomUUID(),
           conversation_id: conversationId,
           role: "girl",
-          text: leftDraft,
+          text: leftDraft.trim(),
           created_at: new Date().toISOString(),
         };
 
         setMessages([girlMsg]);
-        await chatSave(conversationId, leftDraft);
+
+        await chatSave(conversationId, leftDraft.trim());
 
         const res = await chatGenerate(
           conversationId,
-          leftDraft,
-          "normal"
+          leftDraft.trim(),
+          action
         );
 
         setSuggestions(res.suggestions || []);
       }
 
-      // если это факты
+      // 🧠 Факты о девушке
       else if (rightDraft.trim()) {
         const res = await chatGenerate(
           conversationId,
-          rightDraft,
-          "normal"
+          rightDraft.trim(),
+          action
         );
 
         setSuggestions(res.suggestions || []);
       }
 
       setStartHidden(true);
+      setLeftDraft("");
+      setRightDraft("");
     } catch {
       setSuggestions(["Ошибка генерации. Попробуй ещё раз."]);
     } finally {
       setGenerating(false);
     }
   };
+
+  /* ===========================
+     SELECT SUGGESTION
+  ============================ */
 
   const handleSelectSuggestion = async (text: string) => {
     const assistantMsg: Message = {
@@ -174,19 +186,46 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
         loading={generating}
       />
 
-      {/* Общая кнопка */}
-      {!startHidden && (
-        <div className="px-4 pb-4">
-          <button
-            onClick={handleStartGenerate}
-            disabled={generating}
-            className="w-2/3 mx-auto block py-3 rounded-2xl text-white text-sm font-medium active:scale-95"
-            style={{ background: "#4F7CFF" }}
-          >
-            Сделать шаг
-          </button>
-        </div>
-      )}
+      {/* Быстрые действия */}
+      <div className="flex gap-2 px-4 pb-3">
+        <button
+          onClick={() => handleStartGenerate("reengage")}
+          className="flex-1 py-2 rounded-full text-xs font-medium"
+          style={{ background: "#EEF2FF", color: "#4F7CFF" }}
+        >
+          Продолжить
+        </button>
+
+        <button
+          onClick={() => handleStartGenerate("contact")}
+          className="flex-1 py-2 rounded-full text-xs font-medium"
+          style={{ background: "#EEF2FF", color: "#4F7CFF" }}
+        >
+          Контакт
+        </button>
+
+        <button
+          onClick={() => handleStartGenerate("date")}
+          className="flex-1 py-2 rounded-full text-xs font-medium"
+          style={{ background: "#EEF2FF", color: "#4F7CFF" }}
+        >
+          Встреча
+        </button>
+      </div>
+
+      {/* Кнопка */}
+      <div className="px-4 pb-4">
+        <button
+          onClick={() => handleStartGenerate()}
+          disabled={generating}
+          className="w-2/3 mx-auto block py-3 rounded-2xl text-white text-sm font-medium active:scale-95 disabled:opacity-50"
+          style={{
+            background: "linear-gradient(135deg, #4F7CFF, #6F95FF)",
+          }}
+        >
+          Сделать шаг
+        </button>
+      </div>
     </div>
   );
 };
