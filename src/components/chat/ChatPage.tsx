@@ -7,25 +7,32 @@ import {
 } from "@/api/chatApi";
 import MessageBubble from "./MessageBubble";
 import SuggestionsPanel from "./SuggestionsPanel";
-import ChatInput from "./ChatInput";
 
 interface ChatPageProps {
   conversationId: string;
   onBack: () => void;
 }
 
-type StartMode = "me_first" | "she_first";
-
 const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
-  const [startMode, setStartMode] = useState<StartMode>("me_first");
+
+  // стартовые поля
+  const [leftDraft, setLeftDraft] = useState("");
+  const [rightDraft, setRightDraft] = useState("");
+  const [startHidden, setStartHidden] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getConversation(conversationId)
-      .then((data) => setMessages(data.messages || []))
+      .then((data) => {
+        if (data.messages?.length > 0) {
+          setStartHidden(true);
+        }
+        setMessages(data.messages || []);
+      })
       .catch(() => {});
   }, [conversationId]);
 
@@ -35,37 +42,47 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     }
   }, [messages, suggestions]);
 
-  const isEmptyChat = messages.length === 0;
+  const handleStartGenerate = async () => {
+    if (!leftDraft.trim() && !rightDraft.trim()) return;
 
-  const handleGenerate = async (
-    inputText: string | null,
-    action: "normal" | "reengage" | "contact" | "date"
-  ) => {
-    setSuggestions([]);
     setGenerating(true);
+    setSuggestions([]);
 
     try {
-      // Если она написала первой — сохраняем её сообщение
-      if (isEmptyChat && startMode === "she_first" && inputText) {
+      // если девушка написала первой
+      if (leftDraft.trim()) {
         const girlMsg: Message = {
           id: crypto.randomUUID(),
           conversation_id: conversationId,
           role: "girl",
-          text: inputText,
+          text: leftDraft,
           created_at: new Date().toISOString(),
         };
 
-        setMessages((prev) => [...prev, girlMsg]);
-        await chatSave(conversationId, inputText);
+        setMessages([girlMsg]);
+        await chatSave(conversationId, leftDraft);
+
+        const res = await chatGenerate(
+          conversationId,
+          leftDraft,
+          "normal"
+        );
+
+        setSuggestions(res.suggestions || []);
       }
 
-      const res = await chatGenerate(
-        conversationId,
-        inputText,
-        action
-      );
+      // если это факты
+      else if (rightDraft.trim()) {
+        const res = await chatGenerate(
+          conversationId,
+          rightDraft,
+          "normal"
+        );
 
-      setSuggestions(res.suggestions || []);
+        setSuggestions(res.suggestions || []);
+      }
+
+      setStartHidden(true);
     } catch {
       setSuggestions(["Ошибка генерации. Попробуй ещё раз."]);
     } finally {
@@ -87,9 +104,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
 
     try {
       await chatSave(conversationId, text);
-    } catch {
-      // silent
-    }
+    } catch {}
   };
 
   return (
@@ -112,44 +127,39 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3">
-        {isEmptyChat && (
-          <div className="mb-6">
-            <div className="flex gap-3 mb-4">
-              <button
-                onClick={() => setStartMode("me_first")}
-                className="px-4 py-2 rounded-full text-sm"
-                style={{
-                  background:
-                    startMode === "me_first" ? "#4F7CFF" : "#E6E8F0",
-                  color: startMode === "me_first" ? "#FFFFFF" : "#1A1A1A",
-                }}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+        {!startHidden && (
+          <>
+            {/* Левый стартовый баббл */}
+            <div className="mb-4 flex">
+              <div
+                className="px-4 py-3 rounded-2xl bg-white w-3/4"
+                style={{ border: "1px solid #E6E8F0" }}
               >
-                Я пишу первым
-              </button>
-
-              <button
-                onClick={() => setStartMode("she_first")}
-                className="px-4 py-2 rounded-full text-sm"
-                style={{
-                  background:
-                    startMode === "she_first" ? "#4F7CFF" : "#E6E8F0",
-                  color: startMode === "she_first" ? "#FFFFFF" : "#1A1A1A",
-                }}
-              >
-                Она написала первой
-              </button>
+                <textarea
+                  value={leftDraft}
+                  onChange={(e) => setLeftDraft(e.target.value)}
+                  placeholder="Вставь её текст, если написала первой"
+                  className="w-full bg-transparent outline-none resize-none text-sm"
+                />
+              </div>
             </div>
 
-            <div
-              className="text-sm text-center"
-              style={{ color: "#8B8FA3" }}
-            >
-              {startMode === "me_first"
-                ? "Вставь факты о девушке для первого сообщения"
-                : "Вставь её первое сообщение"}
+            {/* Правый стартовый баббл */}
+            <div className="mb-6 flex justify-end">
+              <div
+                className="px-4 py-3 rounded-2xl w-3/4"
+                style={{ background: "#E9EEFF" }}
+              >
+                <textarea
+                  value={rightDraft}
+                  onChange={(e) => setRightDraft(e.target.value)}
+                  placeholder="Напиши о ней факты — я напишу первое сообщение"
+                  className="w-full bg-transparent outline-none resize-none text-sm"
+                />
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {messages.map((msg) => (
@@ -164,13 +174,19 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
         loading={generating}
       />
 
-      {/* Input */}
-      <ChatInput
-        onSend={(text) => handleGenerate(text, "normal")}
-        onAction={(action) => handleGenerate(null, action)}
-        disabled={generating}
-        buttonLabel="Сделать шаг"
-      />
+      {/* Общая кнопка */}
+      {!startHidden && (
+        <div className="px-4 pb-4">
+          <button
+            onClick={handleStartGenerate}
+            disabled={generating}
+            className="w-2/3 mx-auto block py-3 rounded-2xl text-white text-sm font-medium active:scale-95"
+            style={{ background: "#4F7CFF" }}
+          >
+            Сделать шаг
+          </button>
+        </div>
+      )}
     </div>
   );
 };
