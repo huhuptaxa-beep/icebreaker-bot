@@ -19,12 +19,19 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
 
   const fetchConversations = useCallback(async () => {
     if (!telegramId) return;
+
     setLoading(true);
     try {
       const data = await getConversations(telegramId);
-      setConversations(data);
-    } catch {
-      // silent
+
+      const safeData = Array.isArray(data)
+        ? data.filter((c) => c && c.id)
+        : [];
+
+      setConversations(safeData);
+    } catch (e) {
+      console.error("Failed to fetch conversations:", e);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -36,20 +43,31 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
 
   const handleCreate = async () => {
     if (!telegramId) return;
+
     setLoading(true);
     try {
-      const conv = await createConversation(telegramId);
-      setConversations((prev) => [conv, ...prev]);
+      const conv = await createConversation(
+        telegramId,
+        "Новый диалог"
+      );
+
+      if (!conv || !conv.id) {
+        console.error("Invalid conversation response:", conv);
+        return;
+      }
+
+      setConversations((prev) => [conv, ...prev.filter((c) => c && c.id)]);
       setActiveConversationId(conv.id);
       setView("chat");
-    } catch {
-      // silent
+    } catch (e) {
+      console.error("Failed to create conversation:", e);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSelect = (id: string) => {
+    if (!id) return;
     setActiveConversationId(id);
     setView("chat");
   };
@@ -61,7 +79,12 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   };
 
   if (view === "chat" && activeConversationId) {
-    return <ChatPage conversationId={activeConversationId} onBack={handleBack} />;
+    return (
+      <ChatPage
+        conversationId={activeConversationId}
+        onBack={handleBack}
+      />
+    );
   }
 
   return (
