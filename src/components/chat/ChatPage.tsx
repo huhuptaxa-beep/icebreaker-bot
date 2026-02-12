@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   Message,
   chatGenerate,
@@ -18,11 +18,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
 
-  // стартовые режимы
   const [leftDraft, setLeftDraft] = useState("");
   const [rightDraft, setRightDraft] = useState("");
-  const [dialogStarted, setDialogStarted] = useState(false);
-  const [awaitingGirlReply, setAwaitingGirlReply] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -33,9 +30,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   useEffect(() => {
     getConversation(conversationId)
       .then((data) => {
-        if (data.messages?.length > 0) {
-          setDialogStarted(true);
-        }
         setMessages(data.messages || []);
       })
       .catch(() => {});
@@ -48,46 +42,28 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   }, [messages, suggestions]);
 
   /* ===========================
-     START STEP (ОБЩАЯ КНОПКА)
+     DERIVED STAGE
+  ============================ */
+
+  const stage = useMemo(() => {
+    if (messages.length === 0) return "start";
+
+    const last = messages[messages.length - 1];
+
+    if (last.role === "assistant") return "await_girl";
+
+    return "normal";
+  }, [messages]);
+
+  /* ===========================
+     HANDLE STEP
   ============================ */
 
   const handleStep = async () => {
     if (generating) return;
 
-    // === СЦЕНАРИЙ: девушка отвечает после моего сообщения
-    if (awaitingGirlReply && leftDraft.trim()) {
-      const girlMsg: Message = {
-        id: crypto.randomUUID(),
-        conversation_id: conversationId,
-        role: "girl",
-        text: leftDraft.trim(),
-        created_at: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, girlMsg]);
-      setLeftDraft("");
-      setAwaitingGirlReply(false);
-      setGenerating(true);
-      setSuggestions([]);
-
-      try {
-        const res = await chatGenerate(
-          conversationId,
-          girlMsg.text,
-          "normal"
-        );
-        setSuggestions(res.suggestions || []);
-      } catch {
-        setSuggestions(["Ошибка генерации. Попробуй ещё раз."]);
-      } finally {
-        setGenerating(false);
-      }
-
-      return;
-    }
-
-    // === СЦЕНАРИЙ: девушка написала первой (первый шаг)
-    if (!dialogStarted && leftDraft.trim()) {
+    // === START: девушка первая
+    if (stage === "start" && leftDraft.trim()) {
       const girlMsg: Message = {
         id: crypto.randomUUID(),
         conversation_id: conversationId,
@@ -98,52 +74,61 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
 
       setMessages([girlMsg]);
       setLeftDraft("");
-      setDialogStarted(true);
-      setGenerating(true);
 
-      try {
-        await chatSave(conversationId, girlMsg.text);
-        const res = await chatGenerate(
-          conversationId,
-          girlMsg.text,
-          "normal"
-        );
-        setSuggestions(res.suggestions || []);
-      } catch {
-        setSuggestions(["Ошибка генерации. Попробуй ещё раз."]);
-      } finally {
-        setGenerating(false);
-      }
+      await chatSave(conversationId, girlMsg.text);
+
+      setGenerating(true);
+      const res = await chatGenerate(
+        conversationId,
+        girlMsg.text,
+        "normal"
+      );
+      setSuggestions(res.suggestions || []);
+      setGenerating(false);
 
       return;
     }
 
-    // === СЦЕНАРИЙ: я пишу первым (факты)
-    if (!dialogStarted && rightDraft.trim()) {
+    // === START: я первый (факты)
+    if (stage === "start" && rightDraft.trim()) {
       setGenerating(true);
-      setSuggestions([]);
-
-      try {
-        const res = await chatGenerate(
-          conversationId,
-          rightDraft.trim(),
-          "normal"
-        );
-        setSuggestions(res.suggestions || []);
-        setRightDraft("");
-        setDialogStarted(true);
-      } catch {
-        setSuggestions(["Ошибка генерации. Попробуй ещё раз."]);
-      } finally {
-        setGenerating(false);
-      }
-
+      const res = await chatGenerate(
+        conversationId,
+        rightDraft.trim(),
+        "normal"
+      );
+      setSuggestions(res.suggestions || []);
+      setRightDraft("");
+      setGenerating(false);
       return;
+    }
+
+    // === AWAIT GIRL REPLY
+    if (stage === "await_girl" && leftDraft.trim()) {
+      const girlMsg: Message = {
+        id: crypto.randomUUID(),
+        conversation_id: conversationId,
+        role: "girl",
+        text: leftDraft.trim(),
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, girlMsg]);
+      setLeftDraft("");
+
+      setGenerating(true);
+      const res = await chatGenerate(
+        conversationId,
+        girlMsg.text,
+        "normal"
+      );
+      setSuggestions(res.suggestions || []);
+      setGenerating(false);
     }
   };
 
   /* ===========================
-     ВЫБОР ВАРИАНТА
+     SELECT SUGGESTION
   ============================ */
 
   const handleSelectSuggestion = async (text: string) => {
@@ -157,11 +142,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
 
     setMessages((prev) => [...prev, myMsg]);
     setSuggestions([]);
-    setAwaitingGirlReply(true);
 
-    try {
-      await chatSave(conversationId, text);
-    } catch {}
+    await chatSave(conversationId, text);
   };
 
   /* ===========================
@@ -171,113 +153,76 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   return (
     <div className="flex flex-col h-screen" style={{ background: "#F6F7FB" }}>
       {/* Header */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 shrink-0"
-        style={{ background: "#FFFFFF", borderBottom: "1px solid #E6E8F0" }}
-      >
-        <button
-          onClick={onBack}
-          className="text-sm font-medium active:scale-95"
-          style={{ color: "#4F7CFF" }}
-        >
+      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b">
+        <button onClick={onBack} className="text-sm text-blue-600">
           ← Назад
         </button>
-        <span className="text-base font-semibold" style={{ color: "#1A1A1A" }}>
-          Чат
-        </span>
+        <span className="font-semibold">Чат</span>
       </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
-        {/* === СТАРТОВЫЕ БАБЛЫ === */}
-        {!dialogStarted && (
+        {stage === "start" && (
           <>
-            {/* ЛЕВОЕ */}
+            {/* Left */}
             <div className="mb-4 flex">
-              <div
-                className="px-4 py-3 rounded-2xl w-3/4 text-white"
-                style={{
-                  background:
-                    "linear-gradient(135deg,#F6B5C5,#F8C7D3)",
-                }}
-              >
+              <div className="w-3/4 rounded-2xl p-4 bg-pink-200">
                 <textarea
                   value={leftDraft}
                   onChange={(e) => setLeftDraft(e.target.value)}
                   placeholder="Вставь её текст, если написала первой"
-                  className="w-full bg-transparent outline-none resize-none text-sm text-white placeholder-white/80"
+                  className="w-full bg-transparent outline-none resize-none"
                 />
               </div>
             </div>
 
-            {/* ПРАВОЕ */}
+            {/* Right */}
             <div className="mb-6 flex justify-end">
-              <div
-                className="px-4 py-3 rounded-2xl w-3/4 text-white"
-                style={{
-                  background:
-                    "linear-gradient(135deg,#5C7CFA,#4F7CFF)",
-                }}
-              >
+              <div className="w-3/4 rounded-2xl p-4 bg-blue-200">
                 <textarea
                   value={rightDraft}
                   onChange={(e) => setRightDraft(e.target.value)}
                   placeholder="Напиши факты о ней — я напишу первое сообщение"
-                  className="w-full bg-transparent outline-none resize-none text-sm text-white placeholder-white/80"
+                  className="w-full bg-transparent outline-none resize-none"
                 />
               </div>
             </div>
           </>
         )}
 
-        {/* === ДИАЛОГ === */}
         {messages.map((msg) => (
           <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
         ))}
 
-        {/* === ОЖИДАНИЕ ЕЁ ОТВЕТА === */}
-        {awaitingGirlReply && (
+        {stage === "await_girl" && (
           <div className="mt-4 flex">
-            <div
-              className="px-4 py-3 rounded-2xl w-3/4 text-white"
-              style={{
-                background:
-                  "linear-gradient(135deg,#F6B5C5,#F8C7D3)",
-              }}
-            >
+            <div className="w-3/4 rounded-2xl p-4 bg-pink-200">
               <textarea
                 value={leftDraft}
                 onChange={(e) => setLeftDraft(e.target.value)}
                 placeholder="Вставь её ответ..."
-                className="w-full bg-transparent outline-none resize-none text-sm text-white placeholder-white/80"
+                className="w-full bg-transparent outline-none resize-none"
               />
             </div>
           </div>
         )}
       </div>
 
-      {/* Suggestions */}
       <SuggestionsPanel
         suggestions={suggestions}
         onSelect={handleSelectSuggestion}
         loading={generating}
       />
 
-      {/* Кнопка */}
-      {( !dialogStarted || awaitingGirlReply ) && (
-        <div className="px-4 pb-4">
-          <button
-            onClick={handleStep}
-            disabled={generating}
-            className="w-2/3 mx-auto block py-3 rounded-2xl text-white text-sm font-medium active:scale-95"
-            style={{
-              background: "linear-gradient(135deg,#5C7CFA,#4F7CFF)",
-            }}
-          >
-            Сделать шаг
-          </button>
-        </div>
-      )}
+      <div className="px-4 pb-4">
+        <button
+          onClick={handleStep}
+          disabled={generating}
+          className="w-2/3 mx-auto block py-3 rounded-2xl text-white bg-blue-600"
+        >
+          Сделать шаг
+        </button>
+      </div>
     </div>
   );
 };
