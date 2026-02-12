@@ -13,7 +13,10 @@ interface ChatPageProps {
   onBack: () => void;
 }
 
-const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
+const ChatPage: React.FC<ChatPageProps> = ({
+  conversationId,
+  onBack,
+}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -22,7 +25,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   /* ===========================
-     LOAD HISTORY + AUTO SCROLL
+     LOAD HISTORY
   ============================ */
 
   useEffect(() => {
@@ -30,17 +33,13 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
       .then((data) => {
         const msgs = data.messages || [];
         setMessages(msgs);
-
-        // скроллим вниз сразу
-        setTimeout(() => {
-          if (scrollRef.current) {
-            scrollRef.current.scrollTop =
-              scrollRef.current.scrollHeight;
-          }
-        }, 50);
       })
       .catch(() => {});
   }, [conversationId]);
+
+  /* ===========================
+     AUTO SCROLL
+  ============================ */
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -63,7 +62,11 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     setSuggestions([]);
 
     try {
-      const res = await chatGenerate(conversationId, input, action);
+      const res = await chatGenerate(
+        conversationId,
+        input,
+        action
+      );
       setSuggestions(res.suggestions || []);
     } catch {
       setSuggestions(["Ошибка генерации"]);
@@ -80,7 +83,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     const myMessage: Message = {
       id: crypto.randomUUID(),
       conversation_id: conversationId,
-      role: "assistant", // ✅ теперь правильно
+      role: "user", // 🔥 ВАЖНО
       text,
       created_at: new Date().toISOString(),
     };
@@ -90,7 +93,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     setDraftGirlReply("");
 
     try {
-      await chatSave(conversationId, text, "assistant"); // ✅ передаём role
+      await chatSave(conversationId, text);
     } catch {}
   };
 
@@ -113,14 +116,14 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     setDraftGirlReply("");
 
     try {
-      await chatSave(conversationId, draftGirlReply, "girl"); // ✅ передаём role
+      await chatSave(conversationId, draftGirlReply);
     } catch {}
   };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#F6F7FB]">
 
-      {/* ================= HEADER (STICKY) ================= */}
+      {/* ================= HEADER ================= */}
       <div className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/40 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
@@ -157,7 +160,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
             <div className="max-w-[70%]">
               <textarea
                 value={draftGirlReply}
-                onChange={(e) => setDraftGirlReply(e.target.value)}
+                onChange={(e) =>
+                  setDraftGirlReply(e.target.value)
+                }
                 placeholder="Вставь её ответ..."
                 className="w-full px-4 py-3 rounded-2xl 
                            bg-gradient-to-br from-pink-200 to-pink-300
