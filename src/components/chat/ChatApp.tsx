@@ -41,14 +41,22 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     fetchConversations();
   }, [fetchConversations]);
 
+  /* ===========================
+     CREATE WITH GIRL NAME INPUT
+  ============================ */
+
   const handleCreate = async () => {
     if (!telegramId) return;
+
+    const girlName = window.prompt("Введите имя девушки");
+
+    if (!girlName || girlName.trim().length === 0) return;
 
     setLoading(true);
     try {
       const conv = await createConversation(
         telegramId,
-        "Новый диалог"
+        girlName.trim()
       );
 
       if (!conv || !conv.id) {
@@ -56,7 +64,11 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
         return;
       }
 
-      setConversations((prev) => [conv, ...prev.filter((c) => c && c.id)]);
+      setConversations((prev) => [
+        conv,
+        ...prev.filter((c) => c && c.id),
+      ]);
+
       setActiveConversationId(conv.id);
       setView("chat");
     } catch (e) {
