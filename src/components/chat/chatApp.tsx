@@ -18,14 +18,21 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   const [loading, setLoading] = useState(false);
 
   const fetchConversations = useCallback(async () => {
-    if (!telegramId) return;
+    if (!telegramId) {
+      console.log("No telegramId for fetching conversations");
+      return;
+    }
+
+    console.log("Fetching conversations for:", telegramId);
 
     setLoading(true);
     try {
       const data = await getConversations(telegramId);
+      console.log("Fetched conversations:", data);
       setConversations(data);
     } catch (e) {
-      console.error("Failed to fetch conversations", e);
+      console.error("Failed to fetch conversations:", e);
+      alert("Ошибка загрузки диалогов");
     } finally {
       setLoading(false);
     }
@@ -36,7 +43,13 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   }, [fetchConversations]);
 
   const handleCreate = async () => {
-    if (!telegramId) return;
+    if (!telegramId) {
+      console.log("No telegramId for creating conversation");
+      alert("Нет Telegram ID");
+      return;
+    }
+
+    console.log("Creating conversation...");
 
     setLoading(true);
     try {
@@ -45,22 +58,27 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
         "Новый диалог"
       );
 
+      console.log("Conversation created:", conv);
+
       setConversations((prev) => [conv, ...prev]);
       setActiveConversationId(conv.id);
       setView("chat");
     } catch (e) {
-      console.error("Failed to create conversation", e);
+      console.error("Failed to create conversation:", e);
+      alert("Ошибка создания диалога");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSelect = (id: string) => {
+    console.log("Selecting conversation:", id);
     setActiveConversationId(id);
     setView("chat");
   };
 
   const handleBack = () => {
+    console.log("Back to list");
     setView("list");
     setActiveConversationId(null);
     fetchConversations();

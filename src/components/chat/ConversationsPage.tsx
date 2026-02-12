@@ -24,6 +24,7 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
         <h1 className="text-lg font-semibold" style={{ color: "#1A1A1A" }}>
           Диалоги
         </h1>
+
         <button
           onClick={onCreate}
           disabled={loading}
@@ -45,11 +46,13 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
             Нет диалогов. Создай первый!
           </div>
         )}
+
         {loading && (
           <div className="flex items-center justify-center h-40">
             <div className="w-6 h-6 border-2 border-[#4F7CFF] border-t-transparent rounded-full animate-spin" />
           </div>
         )}
+
         {conversations.map((conv) => (
           <button
             key={conv.id}
@@ -58,16 +61,8 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
             style={{ borderBottom: "1px solid #E6E8F0", background: "#FFFFFF" }}
           >
             <div className="text-sm font-medium" style={{ color: "#1A1A1A" }}>
-              {conv.title || "Новый диалог"}
+              {conv.girl_name || "Новый диалог"}
             </div>
-            {conv.last_message && (
-              <div
-                className="text-xs mt-0.5 truncate"
-                style={{ color: "#8B8FA3" }}
-              >
-                {conv.last_message}
-              </div>
-            )}
           </button>
         ))}
       </div>
