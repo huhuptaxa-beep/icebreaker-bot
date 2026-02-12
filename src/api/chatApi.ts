@@ -13,10 +13,15 @@ export interface Conversation {
   created_at: string;
 }
 
+/* 
+  🔥 ВАЖНО:
+  В UI теперь используем только:
+  role: "user" | "girl"
+*/
 export interface Message {
   id: string;
   conversation_id: string;
-  role: "assistant" | "girl";
+  role: "user" | "girl";
   text: string;
   created_at: string;
 }
@@ -70,8 +75,6 @@ export const getConversations = async (
   }
 
   const data = await res.json();
-
-  // Гарантируем, что всегда возвращается массив
   return Array.isArray(data) ? data : [];
 };
 
@@ -94,7 +97,20 @@ export const getConversation = async (
     throw new Error("Failed to fetch conversation");
   }
 
-  return res.json();
+  const data = await res.json();
+
+  // 🔥 НОРМАЛИЗАЦИЯ РОЛЕЙ
+  const normalizedMessages: Message[] = (data.messages || []).map(
+    (msg: any) => ({
+      ...msg,
+      role: msg.role === "assistant" ? "user" : msg.role,
+    })
+  );
+
+  return {
+    girl_name: data.girl_name,
+    messages: normalizedMessages,
+  };
 };
 
 /* ===========================
@@ -131,7 +147,8 @@ export const chatGenerate = async (
 
 export const chatSave = async (
   conversation_id: string,
-  selected_text: string
+  selected_text: string,
+  role: "user" | "girl"
 ): Promise<Message> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-save`, {
     method: "POST",
@@ -139,6 +156,7 @@ export const chatSave = async (
     body: JSON.stringify({
       conversation_id,
       selected_text,
+      role,
     }),
   });
 
@@ -149,5 +167,12 @@ export const chatSave = async (
   }
 
   const data = await res.json();
-  return data.message;
+
+  return {
+    ...data.message,
+    role:
+      data.message.role === "assistant"
+        ? "user"
+        : data.message.role,
+  };
 };
