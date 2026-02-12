@@ -14,6 +14,10 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
   onCreate,
   loading,
 }) => {
+  const safeConversations = Array.isArray(conversations)
+    ? conversations.filter((conv) => conv && conv.id)
+    : [];
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#F6F7FB" }}>
       {/* Header */}
@@ -41,8 +45,11 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
 
       {/* List */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 && !loading && (
-          <div className="flex items-center justify-center h-40 text-sm" style={{ color: "#8B8FA3" }}>
+        {safeConversations.length === 0 && !loading && (
+          <div
+            className="flex items-center justify-center h-40 text-sm"
+            style={{ color: "#8B8FA3" }}
+          >
             Нет диалогов. Создай первый!
           </div>
         )}
@@ -53,14 +60,17 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
           </div>
         )}
 
-        {conversations.map((conv) => (
+        {safeConversations.map((conv) => (
           <button
             key={conv.id}
             onClick={() => onSelect(conv.id)}
             className="w-full text-left px-4 py-3.5 transition-colors active:bg-[#EEF0F6]"
             style={{ borderBottom: "1px solid #E6E8F0", background: "#FFFFFF" }}
           >
-            <div className="text-sm font-medium" style={{ color: "#1A1A1A" }}>
+            <div
+              className="text-sm font-medium"
+              style={{ color: "#1A1A1A" }}
+            >
               {conv.girl_name || "Новый диалог"}
             </div>
           </button>

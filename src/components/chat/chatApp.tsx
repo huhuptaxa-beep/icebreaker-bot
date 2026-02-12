@@ -18,21 +18,21 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   const [loading, setLoading] = useState(false);
 
   const fetchConversations = useCallback(async () => {
-    if (!telegramId) {
-      console.log("No telegramId for fetching conversations");
-      return;
-    }
-
-    console.log("Fetching conversations for:", telegramId);
+    if (!telegramId) return;
 
     setLoading(true);
     try {
       const data = await getConversations(telegramId);
-      console.log("Fetched conversations:", data);
-      setConversations(data);
+
+      // 🔥 защита от мусора
+      const safeData = Array.isArray(data)
+        ? data.filter((c) => c && c.id)
+        : [];
+
+      setConversations(safeData);
     } catch (e) {
       console.error("Failed to fetch conversations:", e);
-      alert("Ошибка загрузки диалогов");
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -43,13 +43,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   }, [fetchConversations]);
 
   const handleCreate = async () => {
-    if (!telegramId) {
-      console.log("No telegramId for creating conversation");
-      alert("Нет Telegram ID");
-      return;
-    }
-
-    console.log("Creating conversation...");
+    if (!telegramId) return;
 
     setLoading(true);
     try {
@@ -58,27 +52,29 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
         "Новый диалог"
       );
 
-      console.log("Conversation created:", conv);
+      // 🔥 защита от undefined
+      if (!conv || !conv.id) {
+        console.error("Invalid conversation response:", conv);
+        return;
+      }
 
-      setConversations((prev) => [conv, ...prev]);
+      setConversations((prev) => [conv, ...prev.filter((c) => c && c.id)]);
       setActiveConversationId(conv.id);
       setView("chat");
     } catch (e) {
       console.error("Failed to create conversation:", e);
-      alert("Ошибка создания диалога");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSelect = (id: string) => {
-    console.log("Selecting conversation:", id);
+    if (!id) return;
     setActiveConversationId(id);
     setView("chat");
   };
 
   const handleBack = () => {
-    console.log("Back to list");
     setView("list");
     setActiveConversationId(null);
     fetchConversations();
