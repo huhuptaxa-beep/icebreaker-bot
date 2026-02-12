@@ -1,24 +1,33 @@
 import React from "react";
 
-interface MessageBubbleProps {
+interface Props {
   text: string;
-  role: "user" | "girl";
+  role: "assistant" | "girl" | "user";
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ text, role }) => {
-  const isUser = role === "user";
+const MessageBubble: React.FC<Props> = ({ text, role }) => {
+  const isGirl = role === "girl";
+  const isUser = role === "assistant" || role === "user";
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-2`}>
+    <div
+      className={`flex mb-3 ${
+        isGirl ? "justify-start" : "justify-end"
+      }`}
+    >
       <div
-        className="px-4 py-2.5 text-sm leading-relaxed"
-        style={{
-          maxWidth: "70%",
-          borderRadius: isUser ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-          background: isUser ? "#4F7CFF" : "#FFFFFF",
-          color: isUser ? "#FFFFFF" : "#1A1A1A",
-          border: isUser ? "none" : "1px solid #E6E8F0",
-        }}
+        className="px-4 py-3 rounded-2xl max-w-[75%] text-sm font-medium"
+        style={
+          isGirl
+            ? {
+                background: "linear-gradient(135deg, #FFE6EC, #FFD4E0)",
+                color: "#5A1A2B",
+              }
+            : {
+                background: "linear-gradient(135deg, #4F7CFF, #6F95FF)",
+                color: "#FFFFFF",
+              }
+        }
       >
         {text}
       </div>
