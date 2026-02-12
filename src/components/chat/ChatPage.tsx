@@ -21,24 +21,35 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [draftGirlReply, setDraftGirlReply] = useState("");
+  const [girlName, setGirlName] = useState<string>("Чат");
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   /* ===========================
-     LOAD HISTORY
+     LOAD HISTORY + GIRL NAME
   ============================ */
 
   useEffect(() => {
     getConversation(conversationId)
       .then((data) => {
         const msgs = data.messages || [];
+
+        setGirlName(data.girl_name || "Чат");
         setMessages(msgs);
+
+        // автоскролл вниз после загрузки
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop =
+              scrollRef.current.scrollHeight;
+          }
+        }, 50);
       })
       .catch(() => {});
   }, [conversationId]);
 
   /* ===========================
-     AUTO SCROLL
+     AUTO SCROLL ON UPDATE
   ============================ */
 
   useEffect(() => {
@@ -67,6 +78,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         input,
         action
       );
+
       setSuggestions(res.suggestions || []);
     } catch {
       setSuggestions(["Ошибка генерации"]);
@@ -83,7 +95,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     const myMessage: Message = {
       id: crypto.randomUUID(),
       conversation_id: conversationId,
-      role: "user", // 🔥 ВАЖНО
+      role: "user",
       text,
       created_at: new Date().toISOString(),
     };
@@ -128,14 +140,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={onBack}
-            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB] 
+            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB]
                        text-sm font-medium shadow-sm
                        active:scale-95 transition-all"
           >
             ← Назад
           </button>
+
           <span className="font-semibold text-[#1A1A1A]">
-            Чат
+            {girlName}
           </span>
         </div>
       </div>
@@ -149,7 +162,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <MessageBubble
             key={msg.id}
             text={msg.text}
-            role={msg.role}
+            role={msg.role as "user" | "girl"}
           />
         ))}
 
@@ -164,7 +177,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setDraftGirlReply(e.target.value)
                 }
                 placeholder="Вставь её ответ..."
-                className="w-full px-4 py-3 rounded-2xl 
+                className="w-full px-4 py-3 rounded-2xl
                            bg-gradient-to-br from-pink-200 to-pink-300
                            text-[#5A2D35] resize-none outline-none text-sm
                            shadow-md transition-all duration-300"
