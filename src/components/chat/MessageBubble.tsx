@@ -2,32 +2,24 @@ import React from "react";
 
 interface Props {
   text: string;
-  role: "assistant" | "girl" | "user";
+  role: "assistant" | "girl";
 }
 
 const MessageBubble: React.FC<Props> = ({ text, role }) => {
-  const isGirl = role === "girl";
-  const isUser = role === "assistant" || role === "user";
+  const isMine = role === "assistant";
 
   return (
     <div
-      className={`flex mb-3 ${
-        isGirl ? "justify-start" : "justify-end"
-      }`}
+      className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fadeIn`}
     >
       <div
-        className="px-4 py-3 rounded-2xl max-w-[75%] text-sm font-medium"
-        style={
-          isGirl
-            ? {
-                background: "linear-gradient(135deg, #FFE6EC, #FFD4E0)",
-                color: "#5A1A2B",
-              }
-            : {
-                background: "linear-gradient(135deg, #4F7CFF, #6F95FF)",
-                color: "#FFFFFF",
-              }
-        }
+        className="max-w-[70%] px-4 py-3 rounded-2xl text-sm shadow-sm transition-all duration-300"
+        style={{
+          background: isMine
+            ? "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)"
+            : "linear-gradient(135deg,#F8D7DA 0%,#F5C2C7 100%)",
+          color: isMine ? "#FFFFFF" : "#5A2D35",
+        }}
       >
         {text}
       </div>

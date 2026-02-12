@@ -21,10 +21,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  /* ===========================
-     LOAD HISTORY
-  ============================ */
-
   useEffect(() => {
     getConversation(conversationId)
       .then((data) => {
@@ -38,10 +34,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, suggestions]);
-
-  /* ===========================
-     GENERATE NEXT STEP
-  ============================ */
 
   const handleGenerate = async (
     input: string | null,
@@ -62,10 +54,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     }
   };
 
-  /* ===========================
-     SELECT SUGGESTION
-  ============================ */
-
   const handleSelectSuggestion = async (text: string) => {
     const myMessage: Message = {
       id: crypto.randomUUID(),
@@ -83,10 +71,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
       await chatSave(conversationId, text);
     } catch {}
   };
-
-  /* ===========================
-     SAVE GIRL REPLY
-  ============================ */
 
   const handleSaveGirlReply = async () => {
     if (!draftGirlReply.trim()) return;
@@ -107,21 +91,17 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     } catch {}
   };
 
-  /* ===========================
-     RENDER
-  ============================ */
-
   return (
-    <div className="flex flex-col h-screen bg-[#F6F7FB]">
+    <div className="flex flex-col min-h-[100dvh] bg-[#F6F7FB]">
       {/* HEADER */}
-      <div className="flex items-center gap-3 px-4 py-3 bg-white border-b">
+      <div className="flex items-center gap-3 px-4 py-3 backdrop-blur-md bg-white/70 border-b border-white/40 shadow-sm">
         <button
           onClick={onBack}
-          className="text-sm font-medium text-[#4F7CFF]"
+          className="text-sm font-medium text-[#4F7CFF] active:scale-95 transition"
         >
           ← Назад
         </button>
-        <span className="font-semibold">Чат</span>
+        <span className="font-semibold text-[#1A1A1A]">Чат</span>
       </div>
 
       {/* MESSAGES */}
@@ -137,16 +117,18 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
           />
         ))}
 
-        {/* GIRL REPLY INPUT (ВСЕГДА ВИДЕН ЕСЛИ ПОСЛЕДНИЙ НЕ ОНА) */}
         {messages.length === 0 ||
         messages[messages.length - 1].role !== "girl" ? (
-          <div className="flex">
+          <div className="flex animate-fadeIn">
             <div className="max-w-[70%]">
               <textarea
                 value={draftGirlReply}
                 onChange={(e) => setDraftGirlReply(e.target.value)}
                 placeholder="Вставь её ответ..."
-                className="w-full px-4 py-3 rounded-2xl bg-pink-100 text-[#5A2D35] resize-none outline-none text-sm"
+                className="w-full px-4 py-3 rounded-2xl 
+                           bg-gradient-to-br from-pink-200 to-pink-300
+                           text-[#5A2D35] resize-none outline-none text-sm
+                           shadow-sm"
               />
             </div>
           </div>
@@ -155,24 +137,21 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
 
       {/* ACTION BUTTONS */}
       <div className="px-4 pb-2 flex gap-2">
-        <button
-          onClick={() => handleGenerate(null, "reengage")}
-          className="flex-1 py-2 rounded-xl bg-gray-200 text-sm"
-        >
-          Продолжить
-        </button>
-        <button
-          onClick={() => handleGenerate(null, "contact")}
-          className="flex-1 py-2 rounded-xl bg-gray-200 text-sm"
-        >
-          Контакт
-        </button>
-        <button
-          onClick={() => handleGenerate(null, "date")}
-          className="flex-1 py-2 rounded-xl bg-gray-200 text-sm"
-        >
-          Встреча
-        </button>
+        {["reengage", "contact", "date"].map((type, i) => (
+          <button
+            key={i}
+            onClick={() => handleGenerate(null, type as any)}
+            className="flex-1 py-2 rounded-xl bg-gray-200 text-sm
+                       transition-all duration-200 active:scale-95
+                       hover:bg-gray-300 shadow-sm"
+          >
+            {type === "reengage"
+              ? "Продолжить"
+              : type === "contact"
+              ? "Контакт"
+              : "Встреча"}
+          </button>
+        ))}
       </div>
 
       {/* SUGGESTIONS */}
@@ -192,7 +171,8 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
             }
           }}
           disabled={generating}
-          className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-medium"
+          className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-medium
+                     transition-all duration-200 active:scale-95 shadow-md"
           style={{
             background:
               "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",

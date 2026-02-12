@@ -6,7 +6,6 @@
 
 @layer base {
   :root {
-    /* Dark Telegram theme */
     --background: 210 15% 12%;
     --foreground: 0 0% 98%;
 
@@ -16,7 +15,6 @@
     --popover: 210 15% 16%;
     --popover-foreground: 0 0% 98%;
 
-    /* Telegram blue accent */
     --primary: 210 100% 52%;
     --primary-foreground: 0 0% 100%;
 
@@ -38,7 +36,6 @@
 
     --radius: 1rem;
 
-    /* Custom tokens */
     --chip-selected: 210 100% 52%;
     --chip-default: 210 15% 22%;
     --message-bg: 210 15% 20%;
@@ -70,6 +67,7 @@
 }
 
 @layer components {
+
   .chip {
     @apply px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200;
     @apply bg-secondary text-secondary-foreground;
@@ -81,14 +79,15 @@
   }
 
   .message-card {
-    @apply bg-muted rounded-2xl p-4 relative;
+    @apply bg-muted rounded-2xl p-4 relative shadow-sm;
   }
 
   .btn-primary {
     @apply w-full py-4 rounded-xl font-semibold text-base;
     @apply bg-primary text-primary-foreground;
-    @apply active:scale-[0.98] transition-transform duration-150;
+    @apply active:scale-[0.98] transition-all duration-200;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply shadow-md hover:shadow-lg;
   }
 
   .btn-copy {
@@ -106,6 +105,7 @@
     @apply text-foreground placeholder:text-muted-foreground;
     @apply focus:outline-none focus:ring-2 focus:ring-primary/50;
     @apply resize-none;
+    @apply transition-all duration-200;
   }
 
   .label-text {
@@ -114,6 +114,11 @@
 
   .section-gap {
     @apply mb-6;
+  }
+
+  /* Smooth appearing animation */
+  .animate-fadeIn {
+    animation: fadeIn 0.25s ease-out;
   }
 }
 
@@ -143,4 +148,16 @@
 
 .loader-dot:nth-child(3) {
   animation-delay: 0s;
+}
+
+/* Global smooth fade */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
