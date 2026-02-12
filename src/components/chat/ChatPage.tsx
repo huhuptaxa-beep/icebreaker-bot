@@ -21,19 +21,37 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  /* ===========================
+     LOAD HISTORY + AUTO SCROLL
+  ============================ */
+
   useEffect(() => {
     getConversation(conversationId)
       .then((data) => {
-        setMessages(data.messages || []);
+        const msgs = data.messages || [];
+        setMessages(msgs);
+
+        // 🔥 сразу вниз
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollTop =
+              scrollRef.current.scrollHeight;
+          }
+        }, 50);
       })
       .catch(() => {});
   }, [conversationId]);
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop =
+        scrollRef.current.scrollHeight;
     }
   }, [messages, suggestions]);
+
+  /* ===========================
+     GENERATE
+  ============================ */
 
   const handleGenerate = async (
     input: string | null,
@@ -54,11 +72,15 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
     }
   };
 
+  /* ===========================
+     SELECT SUGGESTION
+  ============================ */
+
   const handleSelectSuggestion = async (text: string) => {
     const myMessage: Message = {
       id: crypto.randomUUID(),
       conversation_id: conversationId,
-      role: "assistant",
+      role: "user", // 🔥 ВАЖНО — было assistant
       text,
       created_at: new Date().toISOString(),
     };
@@ -71,6 +93,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
       await chatSave(conversationId, text);
     } catch {}
   };
+
+  /* ===========================
+     SAVE GIRL MESSAGE
+  ============================ */
 
   const handleSaveGirlReply = async () => {
     if (!draftGirlReply.trim()) return;
@@ -92,19 +118,26 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-[#F6F7FB]">
-      {/* HEADER */}
-      <div className="flex items-center gap-3 px-4 py-3 backdrop-blur-md bg-white/70 border-b border-white/40 shadow-sm">
-        <button
-          onClick={onBack}
-          className="text-sm font-medium text-[#4F7CFF] active:scale-95 transition"
-        >
-          ← Назад
-        </button>
-        <span className="font-semibold text-[#1A1A1A]">Чат</span>
+    <div className="flex flex-col h-[100dvh] bg-[#F6F7FB]">
+
+      {/* ================= HEADER (STICKY) ================= */}
+      <div className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/40 shadow-sm">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button
+            onClick={onBack}
+            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB] 
+                       text-sm font-medium shadow-sm
+                       active:scale-95 transition-all"
+          >
+            ← Назад
+          </button>
+          <span className="font-semibold text-[#1A1A1A]">
+            Чат
+          </span>
+        </div>
       </div>
 
-      {/* MESSAGES */}
+      {/* ================= MESSAGES ================= */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
@@ -113,10 +146,11 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
           <MessageBubble
             key={msg.id}
             text={msg.text}
-            role={msg.role}
+            role={msg.role as any}
           />
         ))}
 
+        {/* Поле её ответа */}
         {messages.length === 0 ||
         messages[messages.length - 1].role !== "girl" ? (
           <div className="flex animate-fadeIn">
@@ -128,40 +162,48 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
                 className="w-full px-4 py-3 rounded-2xl 
                            bg-gradient-to-br from-pink-200 to-pink-300
                            text-[#5A2D35] resize-none outline-none text-sm
-                           shadow-sm"
+                           shadow-md transition-all duration-300"
               />
             </div>
           </div>
         ) : null}
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="px-4 pb-2 flex gap-2">
-        {["reengage", "contact", "date"].map((type, i) => (
+      {/* ================= ACTION BUTTONS ================= */}
+      <div className="px-4 pb-3 flex gap-2">
+        {[
+          { label: "Продолжить", action: "reengage" },
+          { label: "Контакт", action: "contact" },
+          { label: "Встреча", action: "date" },
+        ].map((btn) => (
           <button
-            key={i}
-            onClick={() => handleGenerate(null, type as any)}
-            className="flex-1 py-2 rounded-xl bg-gray-200 text-sm
-                       transition-all duration-200 active:scale-95
-                       hover:bg-gray-300 shadow-sm"
+            key={btn.label}
+            onClick={() =>
+              handleGenerate(null, btn.action as any)
+            }
+            className="flex-1 py-2 rounded-xl text-sm font-medium
+                       transition-all duration-200 active:scale-95"
+            style={{
+              background:
+                "linear-gradient(135deg,#E0E7FF 0%,#D0DAFF 100%)",
+              color: "#3B5BDB",
+              boxShadow:
+                "0 4px 10px rgba(59,91,219,0.15)",
+            }}
           >
-            {type === "reengage"
-              ? "Продолжить"
-              : type === "contact"
-              ? "Контакт"
-              : "Встреча"}
+            {btn.label}
           </button>
         ))}
       </div>
 
-      {/* SUGGESTIONS */}
+      {/* ================= SUGGESTIONS ================= */}
       <SuggestionsPanel
         suggestions={suggestions}
         onSelect={handleSelectSuggestion}
         loading={generating}
       />
 
-      {/* MAIN BUTTON */}
+      {/* ================= MAIN BUTTON ================= */}
       <div className="px-4 pb-4">
         <button
           onClick={() => {
@@ -172,7 +214,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ conversationId, onBack }) => {
           }}
           disabled={generating}
           className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-medium
-                     transition-all duration-200 active:scale-95 shadow-md"
+                     transition-all duration-200 active:scale-95 shadow-lg"
           style={{
             background:
               "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",
