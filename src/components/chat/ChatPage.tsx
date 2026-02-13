@@ -149,7 +149,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       {/* CONTENT */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
       >
         {messages.map((msg) => (
           <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
@@ -173,7 +173,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               </div>
             </div>
 
-            {/* СИНЕЕ — НА ВСЮ ШИРИНУ */}
+            {/* СИНЕЕ — БОЛЬШЕ И ЯРЧЕ */}
             <div className="w-full">
               <textarea
                 value={openerFacts}
@@ -181,10 +181,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setOpenerFacts(e.target.value)
                 }
                 placeholder="Напиши факты о девушке: интересы, вкусы, детали одежды или внешности, нажми «Сделать шаг», и я придумаю опенер для неё"
-                className="w-full px-5 py-4 rounded-2xl
+                className="w-full min-h-[120px] px-6 py-5 rounded-3xl
                            bg-gradient-to-r from-blue-600 to-indigo-600
-                           text-white text-sm font-medium
-                           shadow-lg resize-none outline-none"
+                           text-white text-base font-semibold
+                           leading-relaxed shadow-xl
+                           resize-none outline-none"
               />
             </div>
           </>
@@ -229,7 +230,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
         ))}
       </div>
 
-      {/* SUGGESTIONS */}
       <SuggestionsPanel
         suggestions={suggestions}
         onSelect={handleSelectSuggestion}
