@@ -24,6 +24,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [girlName, setGirlName] = useState<string>("Чат");
   const [toast, setToast] = useState<string | null>(null);
 
+  // 🔵 выбранный режим
+  const [selectedAction, setSelectedAction] = useState<
+    "normal" | "reengage" | "contact" | "date"
+  >("normal");
+
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const getTelegramId = (): number | null => {
@@ -60,8 +65,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     const telegramId = getTelegramId();
     if (!telegramId) return;
 
-    if (!input && action === "normal") return;
-
     setGenerating(true);
     setSuggestions([]);
 
@@ -73,17 +76,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
         telegramId
       );
 
-      // 🔴 Лимит исчерпан
       if (res.limit_reached) {
         setToast("Лимит бесплатных генераций исчерпан");
-        setTimeout(() => setToast(null), 5000);
+        setTimeout(() => setToast(null), 6000);
+        setGenerating(false);
         return;
       }
 
-      // 🟡 Осталось ровно 3
       if (res.remaining === 3) {
         setToast("Осталось 3 бесплатные генерации");
-        setTimeout(() => setToast(null), 4000);
+        setTimeout(() => setToast(null), 4500);
       }
 
       setSuggestions(res.suggestions || []);
@@ -140,7 +142,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideUp">
           <div
-            className="px-6 py-3 rounded-2xl shadow-xl text-white text-sm font-semibold tracking-wide"
+            className="px-6 py-4 rounded-2xl shadow-2xl text-white text-base font-bold tracking-wide"
             style={{
               background:
                 "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",
@@ -180,6 +182,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           />
         ))}
 
+        {/* Поле ответа девушки */}
         {(messages.length === 0 ||
           messages[messages.length - 1].role !== "girl") && (
           <div className="flex">
@@ -199,7 +202,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         )}
       </div>
 
-      {/* ACTION BUTTONS */}
+      {/* ACTION SELECT (без генерации) */}
       <div className="px-4 pb-3 flex gap-2">
         {[
           { label: "Продолжить", action: "reengage" },
@@ -209,14 +212,22 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <button
             key={btn.label}
             onClick={() =>
-              handleGenerate(null, btn.action as any)
+              setSelectedAction(btn.action as any)
             }
-            className="flex-1 py-2 rounded-xl text-sm font-medium active:scale-95"
-            style={{
-              background:
-                "linear-gradient(135deg,#E0E7FF 0%,#D0DAFF 100%)",
-              color: "#3B5BDB",
-            }}
+            className={`flex-1 py-2 rounded-xl text-sm font-medium active:scale-95 ${
+              selectedAction === btn.action
+                ? "bg-[#3B5BDB] text-white"
+                : ""
+            }`}
+            style={
+              selectedAction === btn.action
+                ? {}
+                : {
+                    background:
+                      "linear-gradient(135deg,#E0E7FF 0%,#D0DAFF 100%)",
+                    color: "#3B5BDB",
+                  }
+            }
           >
             {btn.label}
           </button>
@@ -238,10 +249,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
             if (!text) return;
 
             handleSaveGirlReply(text);
-            handleGenerate(text, "normal");
+            handleGenerate(text, selectedAction);
           }}
           disabled={generating}
-          className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-medium shadow-lg"
+          className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-semibold shadow-lg"
           style={{
             background:
               "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",
