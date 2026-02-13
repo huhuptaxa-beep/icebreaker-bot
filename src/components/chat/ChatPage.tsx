@@ -22,7 +22,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [generating, setGenerating] = useState(false);
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [girlName, setGirlName] = useState<string>("Чат");
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,11 +73,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
         telegramId
       );
 
-      setRemaining(res.remaining);
-
+      // 🔴 Лимит исчерпан
       if (res.limit_reached) {
-        alert("Лимит генераций достигнут");
+        setToast("Лимит бесплатных генераций исчерпан");
+        setTimeout(() => setToast(null), 3000);
         return;
+      }
+
+      // 🟡 Осталось ровно 3
+      if (res.remaining === 3) {
+        setToast("Осталось 3 бесплатные генерации");
+        setTimeout(() => setToast(null), 3000);
       }
 
       setSuggestions(res.suggestions || []);
@@ -128,14 +134,21 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#F6F7FB]">
+    <div className="flex flex-col h-[100dvh] bg-[#F6F7FB] relative">
+
+      {/* TOAST */}
+      {toast && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-black text-white text-sm px-4 py-2 rounded-full shadow-lg z-50">
+          {toast}
+        </div>
+      )}
 
       {/* HEADER */}
-      <div className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/40 shadow-sm">
+      <div className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-white/40 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={onBack}
-            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB] text-sm font-medium shadow-sm"
+            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB] text-sm font-medium"
           >
             ← Назад
           </button>
@@ -159,7 +172,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
           />
         ))}
 
-        {/* Поле ввода её ответа */}
         {(messages.length === 0 ||
           messages[messages.length - 1].role !== "girl") && (
           <div className="flex">
@@ -191,7 +203,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
             onClick={() =>
               handleGenerate(null, btn.action as any)
             }
-            className="flex-1 py-2 rounded-xl text-sm font-medium transition-all active:scale-95"
+            className="flex-1 py-2 rounded-xl text-sm font-medium active:scale-95"
             style={{
               background:
                 "linear-gradient(135deg,#E0E7FF 0%,#D0DAFF 100%)",
@@ -202,13 +214,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </button>
         ))}
       </div>
-
-      {/* REMAINING COUNTER */}
-      {remaining !== null && (
-        <div className="text-center text-xs text-gray-500 mb-2">
-          Осталось {remaining} бесплатных генераций
-        </div>
-      )}
 
       {/* SUGGESTIONS */}
       <SuggestionsPanel
