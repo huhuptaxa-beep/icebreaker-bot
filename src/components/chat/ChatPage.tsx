@@ -20,16 +20,19 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
-  const [draftGirlReply, setDraftGirlReply] = useState("");
   const [girlName, setGirlName] = useState<string>("Чат");
   const [toast, setToast] = useState<string | null>(null);
 
-  // режим может быть null
+  const [draftGirlReply, setDraftGirlReply] = useState("");
+  const [openerFacts, setOpenerFacts] = useState("");
+
   const [selectedAction, setSelectedAction] = useState<
     "reengage" | "contact" | "date" | null
   >(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const isNewDialog = messages.length === 0;
 
   const getTelegramId = (): number | null => {
     const tg = (window as any)?.Telegram?.WebApp;
@@ -62,10 +65,21 @@ const ChatPage: React.FC<ChatPageProps> = ({
     const telegramId = getTelegramId();
     if (!telegramId) return;
 
-    const text = draftGirlReply.trim();
-    if (!text) return;
+    const facts = openerFacts.trim();
+    const girlText = draftGirlReply.trim();
 
-    const action = selectedAction ?? "normal";
+    if (!facts && !girlText) return;
+
+    let action: any = "normal";
+    let input: string | null = null;
+
+    if (facts) {
+      action = "opener";
+      input = facts;
+    } else {
+      action = selectedAction ?? "normal";
+      input = girlText;
+    }
 
     setGenerating(true);
     setSuggestions([]);
@@ -73,8 +87,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
     try {
       const res = await chatGenerate(
         conversationId,
-        text,
-        action as any,
+        input,
+        action,
         telegramId
       );
 
@@ -89,21 +103,24 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setTimeout(() => setToast(null), 4500);
       }
 
-      // сохраняем сообщение девушки
-      await chatSave(conversationId, text, "girl");
+      // если это ответ на её сообщение — сохраняем её сообщение
+      if (!facts && girlText) {
+        await chatSave(conversationId, girlText, "girl");
 
-      const girlMsg: Message = {
-        id: crypto.randomUUID(),
-        conversation_id: conversationId,
-        role: "girl",
-        text,
-        created_at: new Date().toISOString(),
-      };
+        const girlMsg: Message = {
+          id: crypto.randomUUID(),
+          conversation_id: conversationId,
+          role: "girl",
+          text: girlText,
+          created_at: new Date().toISOString(),
+        };
 
-      setMessages((prev) => [...prev, girlMsg]);
-      setDraftGirlReply("");
+        setMessages((prev) => [...prev, girlMsg]);
+        setDraftGirlReply("");
+      }
 
       setSuggestions(res.suggestions || []);
+      setOpenerFacts("");
     } catch {
       setSuggestions(["Ошибка генерации"]);
     } finally {
@@ -130,11 +147,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
     } catch {}
   };
 
-  /* ================= MODE SELECT ================= */
-
   const toggleAction = (action: "reengage" | "contact" | "date") => {
     if (selectedAction === action) {
-      setSelectedAction(null); // снять выбор
+      setSelectedAction(null);
     } else {
       setSelectedAction(action);
     }
@@ -145,62 +160,60 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       {/* TOAST */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideUp">
-          <div
-            className="px-6 py-4 rounded-2xl shadow-2xl text-white text-base font-bold"
-            style={{
-              background:
-                "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",
-            }}
-          >
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="px-6 py-4 rounded-2xl shadow-2xl text-white text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-500">
             {toast}
           </div>
         </div>
       )}
 
       {/* HEADER */}
-      <div className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-white/40 shadow-sm">
+      <div className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
-          <button
-            onClick={onBack}
-            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB] text-sm font-medium"
-          >
+          <button onClick={onBack} className="text-blue-600 text-sm">
             ← Назад
           </button>
-
-          <span className="font-semibold text-[#1A1A1A]">
-            {girlName}
-          </span>
+          <span className="font-semibold">{girlName}</span>
         </div>
       </div>
 
       {/* MESSAGES */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+
         {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            text={msg.text}
-            role={msg.role}
-          />
+          <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
         ))}
 
-        <div className="flex">
-          <div className="max-w-[70%]">
+        {/* Новый диалог — оба облака */}
+        {isNewDialog && (
+          <>
+            {/* Розовое */}
             <textarea
               value={draftGirlReply}
-              onChange={(e) =>
-                setDraftGirlReply(e.target.value)
-              }
-              placeholder="Вставь её ответ..."
-              className="w-full px-4 py-3 rounded-2xl
-                         bg-gradient-to-br from-pink-200 to-pink-300
-                         text-[#5A2D35] resize-none outline-none text-sm shadow-md"
+              onChange={(e) => setDraftGirlReply(e.target.value)}
+              placeholder="Вставь её сообщение..."
+              className="w-full px-4 py-3 rounded-2xl bg-gradient-to-br from-pink-200 to-pink-300 text-sm shadow-md"
             />
-          </div>
-        </div>
+
+            {/* Голубое */}
+            <textarea
+              value={openerFacts}
+              onChange={(e) => setOpenerFacts(e.target.value)}
+              placeholder="Напиши факты о девушке — я придумаю опенер"
+              className="w-full px-4 py-3 rounded-2xl bg-gradient-to-br from-blue-200 to-blue-300 text-sm shadow-md"
+            />
+          </>
+        )}
+
+        {/* После первого сообщения остаётся только розовое */}
+        {!isNewDialog && (
+          <textarea
+            value={draftGirlReply}
+            onChange={(e) => setDraftGirlReply(e.target.value)}
+            placeholder="Вставь её ответ..."
+            className="w-full px-4 py-3 rounded-2xl bg-gradient-to-br from-pink-200 to-pink-300 text-sm shadow-md"
+          />
+        )}
       </div>
 
       {/* ACTION BUTTONS */}
@@ -212,13 +225,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
         ].map((btn) => (
           <button
             key={btn.label}
-            onClick={() =>
-              toggleAction(btn.action as any)
-            }
-            className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
+            onClick={() => toggleAction(btn.action as any)}
+            className={`flex-1 py-2 rounded-xl text-sm ${
               selectedAction === btn.action
-                ? "bg-[#3B5BDB] text-white"
-                : "bg-[#E0E7FF] text-[#3B5BDB]"
+                ? "bg-blue-600 text-white"
+                : "bg-blue-100 text-blue-700"
             }`}
           >
             {btn.label}
@@ -238,11 +249,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-semibold shadow-lg"
-          style={{
-            background:
-              "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",
-          }}
+          className="w-full py-3 rounded-2xl text-white font-semibold bg-gradient-to-r from-blue-600 to-indigo-500 shadow-lg"
         >
           Сделать шаг
         </button>
