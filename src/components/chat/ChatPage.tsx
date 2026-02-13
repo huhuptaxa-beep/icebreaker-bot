@@ -76,14 +76,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
       // 🔴 Лимит исчерпан
       if (res.limit_reached) {
         setToast("Лимит бесплатных генераций исчерпан");
-        setTimeout(() => setToast(null), 3000);
+        setTimeout(() => setToast(null), 5000);
         return;
       }
 
       // 🟡 Осталось ровно 3
       if (res.remaining === 3) {
         setToast("Осталось 3 бесплатные генерации");
-        setTimeout(() => setToast(null), 3000);
+        setTimeout(() => setToast(null), 4000);
       }
 
       setSuggestions(res.suggestions || []);
