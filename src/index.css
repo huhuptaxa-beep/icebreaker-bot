@@ -120,9 +120,17 @@
   .animate-fadeIn {
     animation: fadeIn 0.25s ease-out;
   }
+
+  /* 🔵 Premium bottom toast animation */
+  .animate-slideUp {
+    animation: slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 }
 
-/* Loader animation */
+/* ===========================
+   LOADER
+=========================== */
+
 @keyframes pulse-dot {
   0%, 80%, 100% {
     transform: scale(0.8);
@@ -150,7 +158,10 @@
   animation-delay: 0s;
 }
 
-/* Global smooth fade */
+/* ===========================
+   GLOBAL FADE
+=========================== */
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -159,5 +170,20 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ===========================
+   PREMIUM SLIDE UP
+=========================== */
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 30px);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
   }
 }

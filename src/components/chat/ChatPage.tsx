@@ -136,10 +136,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
   return (
     <div className="flex flex-col h-[100dvh] bg-[#F6F7FB] relative">
 
-      {/* TOAST */}
+      {/* 🔵 TOAST */}
       {toast && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-black text-white text-sm px-4 py-2 rounded-full shadow-lg z-50">
-          {toast}
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideUp">
+          <div
+            className="px-6 py-3 rounded-2xl shadow-xl text-white text-sm font-semibold tracking-wide"
+            style={{
+              background:
+                "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",
+            }}
+          >
+            {toast}
+          </div>
         </div>
       )}
 
