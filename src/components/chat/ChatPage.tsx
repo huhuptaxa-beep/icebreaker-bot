@@ -24,10 +24,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [girlName, setGirlName] = useState<string>("Чат");
   const [toast, setToast] = useState<string | null>(null);
 
-  // 🔵 выбранный режим
+  // режим может быть null
   const [selectedAction, setSelectedAction] = useState<
-    "normal" | "reengage" | "contact" | "date"
-  >("normal");
+    "reengage" | "contact" | "date" | null
+  >(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -58,12 +58,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   /* ================= GENERATE ================= */
 
-  const handleGenerate = async (
-    input: string | null,
-    action: "normal" | "reengage" | "contact" | "date"
-  ) => {
+  const handleGenerate = async () => {
     const telegramId = getTelegramId();
     if (!telegramId) return;
+
+    const text = draftGirlReply.trim();
+    if (!text) return;
+
+    const action = selectedAction ?? "normal";
 
     setGenerating(true);
     setSuggestions([]);
@@ -71,15 +73,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
     try {
       const res = await chatGenerate(
         conversationId,
-        input,
-        action,
+        text,
+        action as any,
         telegramId
       );
 
       if (res.limit_reached) {
         setToast("Лимит бесплатных генераций исчерпан");
         setTimeout(() => setToast(null), 6000);
-        setGenerating(false);
         return;
       }
 
@@ -87,6 +88,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setToast("Осталось 3 бесплатные генерации");
         setTimeout(() => setToast(null), 4500);
       }
+
+      // сохраняем сообщение девушки
+      await chatSave(conversationId, text, "girl");
+
+      const girlMsg: Message = {
+        id: crypto.randomUUID(),
+        conversation_id: conversationId,
+        role: "girl",
+        text,
+        created_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, girlMsg]);
+      setDraftGirlReply("");
 
       setSuggestions(res.suggestions || []);
     } catch {
@@ -109,40 +124,30 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
     setMessages((prev) => [...prev, myMessage]);
     setSuggestions([]);
-    setDraftGirlReply("");
 
     try {
       await chatSave(conversationId, text, "user");
     } catch {}
   };
 
-  /* ================= SAVE GIRL MESSAGE ================= */
+  /* ================= MODE SELECT ================= */
 
-  const handleSaveGirlReply = async (text: string) => {
-    const girlMsg: Message = {
-      id: crypto.randomUUID(),
-      conversation_id: conversationId,
-      role: "girl",
-      text,
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, girlMsg]);
-    setDraftGirlReply("");
-
-    try {
-      await chatSave(conversationId, text, "girl");
-    } catch {}
+  const toggleAction = (action: "reengage" | "contact" | "date") => {
+    if (selectedAction === action) {
+      setSelectedAction(null); // снять выбор
+    } else {
+      setSelectedAction(action);
+    }
   };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#F6F7FB] relative">
 
-      {/* 🔵 TOAST */}
+      {/* TOAST */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-slideUp">
           <div
-            className="px-6 py-4 rounded-2xl shadow-2xl text-white text-base font-bold tracking-wide"
+            className="px-6 py-4 rounded-2xl shadow-2xl text-white text-base font-bold"
             style={{
               background:
                 "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)",
@@ -182,27 +187,23 @@ const ChatPage: React.FC<ChatPageProps> = ({
           />
         ))}
 
-        {/* Поле ответа девушки */}
-        {(messages.length === 0 ||
-          messages[messages.length - 1].role !== "girl") && (
-          <div className="flex">
-            <div className="max-w-[70%]">
-              <textarea
-                value={draftGirlReply}
-                onChange={(e) =>
-                  setDraftGirlReply(e.target.value)
-                }
-                placeholder="Вставь её ответ..."
-                className="w-full px-4 py-3 rounded-2xl
-                           bg-gradient-to-br from-pink-200 to-pink-300
-                           text-[#5A2D35] resize-none outline-none text-sm shadow-md"
-              />
-            </div>
+        <div className="flex">
+          <div className="max-w-[70%]">
+            <textarea
+              value={draftGirlReply}
+              onChange={(e) =>
+                setDraftGirlReply(e.target.value)
+              }
+              placeholder="Вставь её ответ..."
+              className="w-full px-4 py-3 rounded-2xl
+                         bg-gradient-to-br from-pink-200 to-pink-300
+                         text-[#5A2D35] resize-none outline-none text-sm shadow-md"
+            />
           </div>
-        )}
+        </div>
       </div>
 
-      {/* ACTION SELECT (без генерации) */}
+      {/* ACTION BUTTONS */}
       <div className="px-4 pb-3 flex gap-2">
         {[
           { label: "Продолжить", action: "reengage" },
@@ -212,22 +213,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <button
             key={btn.label}
             onClick={() =>
-              setSelectedAction(btn.action as any)
+              toggleAction(btn.action as any)
             }
-            className={`flex-1 py-2 rounded-xl text-sm font-medium active:scale-95 ${
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition ${
               selectedAction === btn.action
                 ? "bg-[#3B5BDB] text-white"
-                : ""
+                : "bg-[#E0E7FF] text-[#3B5BDB]"
             }`}
-            style={
-              selectedAction === btn.action
-                ? {}
-                : {
-                    background:
-                      "linear-gradient(135deg,#E0E7FF 0%,#D0DAFF 100%)",
-                    color: "#3B5BDB",
-                  }
-            }
           >
             {btn.label}
           </button>
@@ -244,13 +236,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       {/* MAIN BUTTON */}
       <div className="px-4 pb-4">
         <button
-          onClick={() => {
-            const text = draftGirlReply.trim();
-            if (!text) return;
-
-            handleSaveGirlReply(text);
-            handleGenerate(text, selectedAction);
-          }}
+          onClick={handleGenerate}
           disabled={generating}
           className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-semibold shadow-lg"
           style={{
