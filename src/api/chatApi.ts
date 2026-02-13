@@ -117,8 +117,9 @@ export const getConversation = async (
 export const chatGenerate = async (
   conversation_id: string,
   incoming_message: string | null,
-  action_type: "normal" | "reengage" | "contact" | "date",
-  telegram_id: number
+  action_type: "normal" | "reengage" | "contact" | "date" | "opener",
+  telegram_id: number,
+  facts?: string // 👈 добавили
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
     method: "POST",
@@ -128,6 +129,7 @@ export const chatGenerate = async (
       incoming_message,
       action_type,
       telegram_id,
+      facts: facts || null, // 👈 передаём
     }),
   });
 

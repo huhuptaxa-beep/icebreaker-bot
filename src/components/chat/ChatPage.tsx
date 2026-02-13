@@ -53,6 +53,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }
   }, [messages, suggestions]);
 
+  /* ================= GENERATE ================= */
+
   const handleGenerate = async () => {
     const telegramId = getTelegramId();
     if (!telegramId) return;
@@ -62,29 +64,34 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
     if (!facts && !girlText) return;
 
-    let action: any = "normal";
-    let input: string | null = null;
-
-    if (facts) {
-      action = "opener";
-      input = facts;
-    } else {
-      action = selectedAction ?? "normal";
-      input = girlText;
-    }
-
     setGenerating(true);
     setSuggestions([]);
 
     try {
-      const res = await chatGenerate(
-        conversationId,
-        input,
-        action,
-        telegramId
-      );
+      let res;
 
-      if (!facts && girlText) {
+      // 🔵 OPENER режим
+      if (facts) {
+        res = await chatGenerate(
+          conversationId,
+          null,              // incoming_message
+          "opener",          // action_type
+          telegramId,
+          facts              // 👈 передаём факты
+        );
+      } 
+      // 🔴 Ответ на её сообщение
+      else {
+        const action = selectedAction ?? "normal";
+
+        res = await chatGenerate(
+          conversationId,
+          girlText,
+          action,
+          telegramId
+        );
+
+        // сохраняем её сообщение
         await chatSave(conversationId, girlText, "girl");
 
         const girlMsg: Message = {
@@ -101,12 +108,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       setSuggestions(res.suggestions || []);
       setOpenerFacts("");
-    } catch {
+    } catch (err) {
+      console.error(err);
       setSuggestions(["Ошибка генерации"]);
     } finally {
       setGenerating(false);
     }
   };
+
+  /* ================= SELECT SUGGESTION ================= */
 
   const handleSelectSuggestion = async (text: string) => {
     const myMessage: Message = {
@@ -157,7 +167,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
         {isNewDialog && (
           <>
-            {/* РОЗОВОЕ — НЕ ТРОГАЕМ */}
+            {/* РОЗОВОЕ */}
             <div className="flex">
               <div className="max-w-[70%]">
                 <textarea
@@ -173,7 +183,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               </div>
             </div>
 
-            {/* СИНЕЕ — БОЛЬШЕ И ЯРЧЕ */}
+            {/* СИНЕЕ OPENER */}
             <div className="w-full">
               <textarea
                 value={openerFacts}
