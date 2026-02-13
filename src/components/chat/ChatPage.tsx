@@ -183,7 +183,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 placeholder="Напиши факты о девушке: интересы, вкусы, детали одежды или внешности, нажми «Сделать шаг», и я придумаю опенер для неё"
                 className="w-full min-h-[120px] px-6 py-5 rounded-3xl
                            bg-gradient-to-r from-blue-600 to-indigo-600
-                           text-white text-base font-semibold
+                           text-white text-sm font-semibold
                            leading-relaxed shadow-xl
                            resize-none outline-none"
               />
