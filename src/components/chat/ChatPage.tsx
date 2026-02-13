@@ -30,7 +30,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
   >(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const isNewDialog = messages.length === 0;
 
   const getTelegramId = (): number | null => {
@@ -152,15 +151,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
       >
-
         {messages.map((msg) => (
           <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
         ))}
 
-        {/* Новый диалог */}
         {isNewDialog && (
           <>
-            {/* Розовое облачко (узкое) */}
+            {/* РОЗОВОЕ — НЕ ТРОГАЕМ */}
             <div className="flex">
               <div className="max-w-[70%]">
                 <textarea
@@ -176,25 +173,23 @@ const ChatPage: React.FC<ChatPageProps> = ({
               </div>
             </div>
 
-            {/* Голубое облачко (в стиле диалогового) */}
-            <div className="flex">
-              <div className="max-w-[70%]">
-                <textarea
-                  value={openerFacts}
-                  onChange={(e) =>
-                    setOpenerFacts(e.target.value)
-                  }
-                  placeholder="Напиши факты о девушке: интересы, вкусы, детали одежды или внешности и нажми сделать шаг — я придумаю опенер для неё"
-                  className="w-full px-4 py-3 rounded-2xl
-                             bg-gradient-to-br from-blue-400 to-indigo-500
-                             text-white/70 text-sm shadow-md resize-none outline-none"
-                />
-              </div>
+            {/* СИНЕЕ — НА ВСЮ ШИРИНУ */}
+            <div className="w-full">
+              <textarea
+                value={openerFacts}
+                onChange={(e) =>
+                  setOpenerFacts(e.target.value)
+                }
+                placeholder="Напиши факты о девушке: интересы, вкусы, детали одежды или внешности, нажми «Сделать шаг», и я придумаю опенер для неё"
+                className="w-full px-5 py-4 rounded-2xl
+                           bg-gradient-to-r from-blue-600 to-indigo-600
+                           text-white text-sm font-medium
+                           shadow-lg resize-none outline-none"
+              />
             </div>
           </>
         )}
 
-        {/* После первого сообщения только розовое */}
         {!isNewDialog && (
           <div className="flex">
             <div className="max-w-[70%]">
