@@ -24,6 +24,9 @@ export interface Message {
 export interface GenerateResponse {
   suggestions: string[];
   limit_reached: boolean;
+  weekly_used: number;
+  weekly_limit: number;
+  remaining: number;
 }
 
 /* ===========================
@@ -108,7 +111,7 @@ export const getConversation = async (
 };
 
 /* ===========================
-   GENERATE SUGGESTIONS
+   GENERATE
 =========================== */
 
 export const chatGenerate = async (
@@ -124,7 +127,7 @@ export const chatGenerate = async (
       conversation_id,
       incoming_message,
       action_type,
-      telegram_id, // 🔥 ОБЯЗАТЕЛЬНО
+      telegram_id,
     }),
   });
 
@@ -164,11 +167,5 @@ export const chatSave = async (
 
   const data = await res.json();
 
-  return {
-    ...data.message,
-    role:
-      data.message.role === "assistant"
-        ? "user"
-        : data.message.role,
-  };
+  return data.message;
 };
