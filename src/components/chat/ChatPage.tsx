@@ -26,18 +26,24 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   /* ===========================
-     LOAD HISTORY + GIRL NAME
+     TELEGRAM ID SAFE GET
+  ============================ */
+
+  const getTelegramId = (): number | null => {
+    const tg = (window as any)?.Telegram?.WebApp;
+    return tg?.initDataUnsafe?.user?.id ?? null;
+  };
+
+  /* ===========================
+     LOAD HISTORY
   ============================ */
 
   useEffect(() => {
     getConversation(conversationId)
       .then((data) => {
-        const msgs = data.messages || [];
-
         setGirlName(data.girl_name || "Чат");
-        setMessages(msgs);
+        setMessages(data.messages || []);
 
-        // автоскролл вниз после загрузки
         setTimeout(() => {
           if (scrollRef.current) {
             scrollRef.current.scrollTop =
@@ -49,7 +55,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   }, [conversationId]);
 
   /* ===========================
-     AUTO SCROLL ON UPDATE
+     AUTO SCROLL
   ============================ */
 
   useEffect(() => {
@@ -67,6 +73,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
     input: string | null,
     action: "normal" | "reengage" | "contact" | "date"
   ) => {
+    const telegramId = getTelegramId();
+
+    if (!telegramId) {
+      alert("Telegram ID не получен. Открой Mini App через Telegram.");
+      return;
+    }
+
     if (!input && action === "normal") return;
 
     setGenerating(true);
@@ -76,8 +89,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
       const res = await chatGenerate(
         conversationId,
         input,
-        action
+        action,
+        telegramId
       );
+
+      if (res.limit_reached) {
+        alert("Лимит генераций достигнут");
+        return;
+      }
 
       setSuggestions(res.suggestions || []);
     } catch {
@@ -105,7 +124,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     setDraftGirlReply("");
 
     try {
-      await chatSave(conversationId, text);
+      await chatSave(conversationId, text, "user");
     } catch {}
   };
 
@@ -128,14 +147,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
     setDraftGirlReply("");
 
     try {
-      await chatSave(conversationId, draftGirlReply);
+      await chatSave(conversationId, draftGirlReply, "girl");
     } catch {}
   };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-[#F6F7FB]">
 
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <div className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/40 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
@@ -153,7 +172,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       </div>
 
-      {/* ================= MESSAGES ================= */}
+      {/* MESSAGES */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
@@ -162,13 +181,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <MessageBubble
             key={msg.id}
             text={msg.text}
-            role={msg.role as "user" | "girl"}
+            role={msg.role}
           />
         ))}
 
-        {/* Поле её ответа */}
-        {messages.length === 0 ||
-        messages[messages.length - 1].role !== "girl" ? (
+        {(messages.length === 0 ||
+          messages[messages.length - 1].role !== "girl") && (
           <div className="flex animate-fadeIn">
             <div className="max-w-[70%]">
               <textarea
@@ -184,10 +202,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
               />
             </div>
           </div>
-        ) : null}
+        )}
       </div>
 
-      {/* ================= ACTION BUTTONS ================= */}
+      {/* ACTION BUTTONS */}
       <div className="px-4 pb-3 flex gap-2">
         {[
           { label: "Продолжить", action: "reengage" },
@@ -214,14 +232,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
         ))}
       </div>
 
-      {/* ================= SUGGESTIONS ================= */}
+      {/* SUGGESTIONS */}
       <SuggestionsPanel
         suggestions={suggestions}
         onSelect={handleSelectSuggestion}
         loading={generating}
       />
 
-      {/* ================= MAIN BUTTON ================= */}
+      {/* MAIN BUTTON */}
       <div className="px-4 pb-4">
         <button
           onClick={() => {

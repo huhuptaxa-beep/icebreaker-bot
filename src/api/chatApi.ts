@@ -13,11 +13,6 @@ export interface Conversation {
   created_at: string;
 }
 
-/* 
-  🔥 ВАЖНО:
-  В UI теперь используем только:
-  role: "user" | "girl"
-*/
 export interface Message {
   id: string;
   conversation_id: string;
@@ -99,7 +94,6 @@ export const getConversation = async (
 
   const data = await res.json();
 
-  // 🔥 НОРМАЛИЗАЦИЯ РОЛЕЙ
   const normalizedMessages: Message[] = (data.messages || []).map(
     (msg: any) => ({
       ...msg,
@@ -120,7 +114,8 @@ export const getConversation = async (
 export const chatGenerate = async (
   conversation_id: string,
   incoming_message: string | null,
-  action_type: "normal" | "reengage" | "contact" | "date"
+  action_type: "normal" | "reengage" | "contact" | "date",
+  telegram_id: number
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
     method: "POST",
@@ -129,6 +124,7 @@ export const chatGenerate = async (
       conversation_id,
       incoming_message,
       action_type,
+      telegram_id, // 🔥 ОБЯЗАТЕЛЬНО
     }),
   });
 
