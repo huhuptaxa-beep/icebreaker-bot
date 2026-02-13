@@ -31,6 +31,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return tg?.initDataUnsafe?.user?.id ?? null;
   };
 
+  /* ================= LOAD HISTORY ================= */
+
   useEffect(() => {
     getConversation(conversationId)
       .then((data) => {
@@ -40,12 +42,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
       .catch(() => {});
   }, [conversationId]);
 
+  /* ================= AUTO SCROLL ================= */
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop =
         scrollRef.current.scrollHeight;
     }
   }, [messages, suggestions]);
+
+  /* ================= GENERATE ================= */
 
   const handleGenerate = async (
     input: string | null,
@@ -82,6 +88,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }
   };
 
+  /* ================= SELECT SUGGESTION ================= */
+
   const handleSelectSuggestion = async (text: string) => {
     const myMessage: Message = {
       id: crypto.randomUUID(),
@@ -99,6 +107,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
       await chatSave(conversationId, text, "user");
     } catch {}
   };
+
+  /* ================= SAVE GIRL MESSAGE ================= */
 
   const handleSaveGirlReply = async (text: string) => {
     const girlMsg: Message = {
@@ -120,12 +130,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
   return (
     <div className="flex flex-col h-[100dvh] bg-[#F6F7FB]">
 
+      {/* HEADER */}
       <div className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-white/40 shadow-sm">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={onBack}
-            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB]
-                       text-sm font-medium shadow-sm"
+            className="px-3 py-1.5 rounded-lg bg-blue-50 text-[#3B5BDB] text-sm font-medium shadow-sm"
           >
             ← Назад
           </button>
@@ -136,6 +146,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       </div>
 
+      {/* MESSAGES */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
@@ -147,21 +158,66 @@ const ChatPage: React.FC<ChatPageProps> = ({
             role={msg.role}
           />
         ))}
+
+        {/* Поле ввода её ответа */}
+        {(messages.length === 0 ||
+          messages[messages.length - 1].role !== "girl") && (
+          <div className="flex">
+            <div className="max-w-[70%]">
+              <textarea
+                value={draftGirlReply}
+                onChange={(e) =>
+                  setDraftGirlReply(e.target.value)
+                }
+                placeholder="Вставь её ответ..."
+                className="w-full px-4 py-3 rounded-2xl
+                           bg-gradient-to-br from-pink-200 to-pink-300
+                           text-[#5A2D35] resize-none outline-none text-sm shadow-md"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Remaining Counter */}
+      {/* ACTION BUTTONS */}
+      <div className="px-4 pb-3 flex gap-2">
+        {[
+          { label: "Продолжить", action: "reengage" },
+          { label: "Контакт", action: "contact" },
+          { label: "Встреча", action: "date" },
+        ].map((btn) => (
+          <button
+            key={btn.label}
+            onClick={() =>
+              handleGenerate(null, btn.action as any)
+            }
+            className="flex-1 py-2 rounded-xl text-sm font-medium transition-all active:scale-95"
+            style={{
+              background:
+                "linear-gradient(135deg,#E0E7FF 0%,#D0DAFF 100%)",
+              color: "#3B5BDB",
+            }}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
+      {/* REMAINING COUNTER */}
       {remaining !== null && (
         <div className="text-center text-xs text-gray-500 mb-2">
           Осталось {remaining} бесплатных генераций
         </div>
       )}
 
+      {/* SUGGESTIONS */}
       <SuggestionsPanel
         suggestions={suggestions}
         onSelect={handleSelectSuggestion}
         loading={generating}
       />
 
+      {/* MAIN BUTTON */}
       <div className="px-4 pb-4">
         <button
           onClick={() => {
