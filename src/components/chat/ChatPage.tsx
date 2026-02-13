@@ -21,7 +21,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [generating, setGenerating] = useState(false);
   const [girlName, setGirlName] = useState<string>("Чат");
-  const [toast, setToast] = useState<string | null>(null);
 
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [openerFacts, setOpenerFacts] = useState("");
@@ -39,8 +38,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return tg?.initDataUnsafe?.user?.id ?? null;
   };
 
-  /* ================= LOAD HISTORY ================= */
-
   useEffect(() => {
     getConversation(conversationId)
       .then((data) => {
@@ -50,16 +47,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
       .catch(() => {});
   }, [conversationId]);
 
-  /* ================= AUTO SCROLL ================= */
-
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop =
         scrollRef.current.scrollHeight;
     }
   }, [messages, suggestions]);
-
-  /* ================= GENERATE ================= */
 
   const handleGenerate = async () => {
     const telegramId = getTelegramId();
@@ -92,18 +85,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
         telegramId
       );
 
-      if (res.limit_reached) {
-        setToast("Лимит бесплатных генераций исчерпан");
-        setTimeout(() => setToast(null), 6000);
-        return;
-      }
-
-      if (res.remaining === 3) {
-        setToast("Осталось 3 бесплатные генерации");
-        setTimeout(() => setToast(null), 4500);
-      }
-
-      // если это ответ на её сообщение — сохраняем её сообщение
       if (!facts && girlText) {
         await chatSave(conversationId, girlText, "girl");
 
@@ -127,8 +108,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
       setGenerating(false);
     }
   };
-
-  /* ================= SELECT SUGGESTION ================= */
 
   const handleSelectSuggestion = async (text: string) => {
     const myMessage: Message = {
@@ -156,16 +135,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#F6F7FB] relative">
-
-      {/* TOAST */}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-          <div className="px-6 py-4 rounded-2xl shadow-2xl text-white text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-500">
-            {toast}
-          </div>
-        </div>
-      )}
+    <div className="flex flex-col h-[100dvh] bg-[#F6F7FB]">
 
       {/* HEADER */}
       <div className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b shadow-sm">
@@ -177,42 +147,69 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       </div>
 
-      {/* MESSAGES */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      {/* CONTENT */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
+      >
 
         {messages.map((msg) => (
           <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
         ))}
 
-        {/* Новый диалог — оба облака */}
+        {/* Новый диалог */}
         {isNewDialog && (
           <>
-            {/* Розовое */}
-            <textarea
-              value={draftGirlReply}
-              onChange={(e) => setDraftGirlReply(e.target.value)}
-              placeholder="Вставь её сообщение..."
-              className="w-full px-4 py-3 rounded-2xl bg-gradient-to-br from-pink-200 to-pink-300 text-sm shadow-md"
-            />
+            {/* Розовое облачко (узкое) */}
+            <div className="flex">
+              <div className="max-w-[70%]">
+                <textarea
+                  value={draftGirlReply}
+                  onChange={(e) =>
+                    setDraftGirlReply(e.target.value)
+                  }
+                  placeholder="Вставь её сообщение, если написала первая"
+                  className="w-full px-4 py-3 rounded-2xl
+                             bg-gradient-to-br from-pink-200 to-pink-300
+                             text-[#5A2D35] text-sm shadow-md resize-none outline-none"
+                />
+              </div>
+            </div>
 
-            {/* Голубое */}
-            <textarea
-              value={openerFacts}
-              onChange={(e) => setOpenerFacts(e.target.value)}
-              placeholder="Напиши факты о девушке — я придумаю опенер"
-              className="w-full px-4 py-3 rounded-2xl bg-gradient-to-br from-blue-200 to-blue-300 text-sm shadow-md"
-            />
+            {/* Голубое облачко (в стиле диалогового) */}
+            <div className="flex">
+              <div className="max-w-[70%]">
+                <textarea
+                  value={openerFacts}
+                  onChange={(e) =>
+                    setOpenerFacts(e.target.value)
+                  }
+                  placeholder="Напиши факты о девушке: интересы, вкусы, детали одежды или внешности и нажми сделать шаг — я придумаю опенер для неё"
+                  className="w-full px-4 py-3 rounded-2xl
+                             bg-gradient-to-br from-blue-400 to-indigo-500
+                             text-white/70 text-sm shadow-md resize-none outline-none"
+                />
+              </div>
+            </div>
           </>
         )}
 
-        {/* После первого сообщения остаётся только розовое */}
+        {/* После первого сообщения только розовое */}
         {!isNewDialog && (
-          <textarea
-            value={draftGirlReply}
-            onChange={(e) => setDraftGirlReply(e.target.value)}
-            placeholder="Вставь её ответ..."
-            className="w-full px-4 py-3 rounded-2xl bg-gradient-to-br from-pink-200 to-pink-300 text-sm shadow-md"
-          />
+          <div className="flex">
+            <div className="max-w-[70%]">
+              <textarea
+                value={draftGirlReply}
+                onChange={(e) =>
+                  setDraftGirlReply(e.target.value)
+                }
+                placeholder="Вставь её ответ..."
+                className="w-full px-4 py-3 rounded-2xl
+                           bg-gradient-to-br from-pink-200 to-pink-300
+                           text-[#5A2D35] text-sm shadow-md resize-none outline-none"
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -249,7 +246,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="w-full py-3 rounded-2xl text-white font-semibold bg-gradient-to-r from-blue-600 to-indigo-500 shadow-lg"
+          className="w-full py-3 rounded-2xl text-white font-semibold
+                     bg-gradient-to-r from-blue-600 to-indigo-500 shadow-lg"
         >
           Сделать шаг
         </button>
