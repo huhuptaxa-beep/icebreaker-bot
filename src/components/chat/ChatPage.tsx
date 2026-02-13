@@ -26,7 +26,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   /* ===========================
-     TELEGRAM ID SAFE GET
+     TELEGRAM ID
   ============================ */
 
   const getTelegramId = (): number | null => {
@@ -74,11 +74,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     action: "normal" | "reengage" | "contact" | "date"
   ) => {
     const telegramId = getTelegramId();
-
-    if (!telegramId) {
-      alert("Telegram ID не получен. Открой Mini App через Telegram.");
-      return;
-    }
+    if (!telegramId) return;
 
     if (!input && action === "normal") return;
 
@@ -129,17 +125,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   /* ===========================
-     SAVE GIRL MESSAGE
+     SAVE GIRL MESSAGE (FIXED)
   ============================ */
 
-  const handleSaveGirlReply = async () => {
-    if (!draftGirlReply.trim()) return;
-
+  const handleSaveGirlReply = async (text: string) => {
     const girlMsg: Message = {
       id: crypto.randomUUID(),
       conversation_id: conversationId,
       role: "girl",
-      text: draftGirlReply,
+      text,
       created_at: new Date().toISOString(),
     };
 
@@ -147,7 +141,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     setDraftGirlReply("");
 
     try {
-      await chatSave(conversationId, draftGirlReply, "girl");
+      await chatSave(conversationId, text, "girl");
     } catch {}
   };
 
@@ -239,14 +233,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
         loading={generating}
       />
 
-      {/* MAIN BUTTON */}
+      {/* MAIN BUTTON (FIXED) */}
       <div className="px-4 pb-4">
         <button
           onClick={() => {
-            if (draftGirlReply.trim()) {
-              handleSaveGirlReply();
-              handleGenerate(draftGirlReply, "normal");
-            }
+            const text = draftGirlReply.trim();
+            if (!text) return;
+
+            handleSaveGirlReply(text);
+            handleGenerate(text, "normal");
           }}
           disabled={generating}
           className="w-2/3 mx-auto block py-3 rounded-2xl text-white font-medium
