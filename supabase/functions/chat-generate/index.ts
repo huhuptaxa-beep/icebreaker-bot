@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-import { openerPrompt } from "./opener.ts"
-import { replyPrompt } from "./reply.ts"
+import { OPENER_SYSTEM_PROMPT } from "./openerSystem.ts"
+import { REPLY_SYSTEM_PROMPT } from "./replySystem.ts"
+import { buildOpenerUserPrompt } from "./openerUser.ts"
+import { buildReplyUserPrompt } from "./replyUser.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,12 +45,15 @@ serve(async (req) => {
 
     /* ================= PROMPT ROUTER ================= */
 
+    let systemPrompt = ""
     let userPrompt = ""
 
     if (action_type === "opener") {
-      userPrompt = openerPrompt(facts || "")
+      systemPrompt = OPENER_SYSTEM_PROMPT
+      userPrompt = buildOpenerUserPrompt(facts || "")
     } else {
-      userPrompt = replyPrompt(incoming_message || "")
+      systemPrompt = REPLY_SYSTEM_PROMPT
+      userPrompt = buildReplyUserPrompt(incoming_message || "")
     }
 
     /* ================= CLAUDE REQUEST ================= */
@@ -67,6 +72,10 @@ serve(async (req) => {
           max_tokens: 600,
           temperature: 0.9,
           messages: [
+            {
+              role: "system",
+              content: systemPrompt,
+            },
             {
               role: "user",
               content: userPrompt,
