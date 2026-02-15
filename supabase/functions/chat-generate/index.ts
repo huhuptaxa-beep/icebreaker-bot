@@ -71,11 +71,12 @@ serve(async (req) => {
           model: "claude-sonnet-4-5-20250929",
           max_tokens: 600,
           temperature: 0.9,
+
+          // ✅ ВАЖНО: system теперь отдельный параметр
+          system: systemPrompt,
+
+          // ✅ messages только user/assistant
           messages: [
-            {
-              role: "system",
-              content: systemPrompt,
-            },
             {
               role: "user",
               content: userPrompt,
@@ -92,7 +93,11 @@ serve(async (req) => {
       throw new Error("Anthropic request failed")
     }
 
-    const rawText = anthropicData.content?.[0]?.text || ""
+    const rawText =
+      anthropicData.content
+        ?.filter((block: any) => block.type === "text")
+        .map((block: any) => block.text)
+        .join("\n") || ""
 
     /* ================= § PARSE ================= */
 
