@@ -70,7 +70,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "claude-sonnet-4-5-20250929",
           max_tokens: 600,
-          temperature: 1.1,
+          temperature: 1.0,
 
           // ✅ ВАЖНО: system теперь отдельный параметр
           system: systemPrompt,
