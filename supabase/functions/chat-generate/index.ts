@@ -46,7 +46,7 @@ serve(async (req) => {
       userPrompt = buildOpenerUserPrompt(facts || "")
     }
 
-    /* ================= REPLY (WITH CONTEXT) ================= */
+    /* ================= REPLY (MEMORY-AWARE) ================= */
 
     else {
       systemPrompt = REPLY_SYSTEM_PROMPT
@@ -64,26 +64,43 @@ serve(async (req) => {
         })
       }
 
-      /* 2️⃣ Получаем 20 последних сообщений */
+      /* 2️⃣ Получаем 20 последних сообщений (старые → новые) */
       const { data: history } = await supabase
         .from("messages")
         .select("role, text, created_at")
         .eq("conversation_id", conversation_id)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: true })
         .limit(20)
 
-      const orderedHistory = (history || []).reverse()
+      const messages = history || []
 
-      /* 3️⃣ Формируем текст диалога */
-      const historyText = orderedHistory
+      if (messages.length === 0) {
+        throw new Error("No messages found for conversation")
+      }
+
+      /* 3️⃣ Последнее сообщение девушки */
+      const lastMessage = messages[messages.length - 1]
+
+      /* 4️⃣ История БЕЗ последнего сообщения */
+      const previousMessages = messages.slice(0, -1)
+
+      const historyText = previousMessages
         .map((msg) => {
           const prefix = msg.role === "user" ? "Ты" : "Она"
           return `${prefix}: ${msg.text}`
         })
         .join("\n")
 
-      /* 4️⃣ Передаём историю в prompt */
-      userPrompt = buildReplyUserPrompt(historyText)
+      const lastGirlText =
+        lastMessage.role === "girl"
+          ? lastMessage.text
+          : incoming_message || ""
+
+      /* 5️⃣ Передаём structured контекст */
+      userPrompt = buildReplyUserPrompt(
+        historyText,
+        lastGirlText
+      )
     }
 
     /* ================= CLAUDE ================= */
