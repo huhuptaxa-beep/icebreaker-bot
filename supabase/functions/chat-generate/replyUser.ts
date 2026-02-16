@@ -1,11 +1,11 @@
-export const buildReplyUserPrompt = (incomingMessage: string) => {
+export function buildReplyUserPrompt(historyText: string) {
   return `
-Сообщение девушки:
-${incomingMessage}
+Диалог:
+${historyText}
 
-Задача:
-Сгенерируй 20 ответов на сообщения девушки. Выбери три лучших из них.
-Каждое сообщение начинай с символа §
-Никаких пояснений.
+Сгенерируй 3 варианта следующего сообщения от меня.
+Используй стиль живого, уверенного общения.
+Разделяй варианты символом §.
 `
 }
+

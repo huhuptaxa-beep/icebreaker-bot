@@ -28,35 +28,65 @@ serve(async (req) => {
       facts,
     } = body
 
-    console.log("CHAT-GENERATE INVOKED")
-    console.log("USER:", telegram_id)
-    console.log("ACTION:", action_type)
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
 
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
-
-    if (!ANTHROPIC_KEY) {
-      throw new Error("ANTHROPIC_API_KEY missing")
-    }
-
-    /* ================= PROMPT ROUTER ================= */
+    if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY missing")
 
     let systemPrompt = ""
     let userPrompt = ""
 
+    /* ================= OPENER ================= */
+
     if (action_type === "opener") {
       systemPrompt = OPENER_SYSTEM_PROMPT
       userPrompt = buildOpenerUserPrompt(facts || "")
-    } else {
-      systemPrompt = REPLY_SYSTEM_PROMPT
-      userPrompt = buildReplyUserPrompt(incoming_message || "")
     }
 
-    /* ================= CLAUDE REQUEST ================= */
+    /* ================= REPLY (WITH CONTEXT) ================= */
+
+    else {
+      systemPrompt = REPLY_SYSTEM_PROMPT
+
+      if (!conversation_id) {
+        throw new Error("conversation_id missing")
+      }
+
+      /* 1️⃣ Сохраняем сообщение девушки */
+      if (incoming_message) {
+        await supabase.from("messages").insert({
+          conversation_id,
+          role: "girl",
+          text: incoming_message,
+        })
+      }
+
+      /* 2️⃣ Получаем 20 последних сообщений */
+      const { data: history } = await supabase
+        .from("messages")
+        .select("role, text, created_at")
+        .eq("conversation_id", conversation_id)
+        .order("created_at", { ascending: false })
+        .limit(20)
+
+      const orderedHistory = (history || []).reverse()
+
+      /* 3️⃣ Формируем текст диалога */
+      const historyText = orderedHistory
+        .map((msg) => {
+          const prefix = msg.role === "user" ? "Ты" : "Она"
+          return `${prefix}: ${msg.text}`
+        })
+        .join("\n")
+
+      /* 4️⃣ Передаём историю в prompt */
+      userPrompt = buildReplyUserPrompt(historyText)
+    }
+
+    /* ================= CLAUDE ================= */
 
     const anthropicRes = await fetch(
       "https://api.anthropic.com/v1/messages",
@@ -69,13 +99,9 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-5-20250929",
-          max_tokens: 600,
-          temperature: 0.9,
-
-          // ✅ ВАЖНО: system теперь отдельный параметр
+          max_tokens: 450,
+          temperature: 0.85,
           system: systemPrompt,
-
-          // ✅ messages только user/assistant
           messages: [
             {
               role: "user",
@@ -99,44 +125,19 @@ serve(async (req) => {
         .map((block: any) => block.text)
         .join("\n") || ""
 
-    /* ================= § PARSE ================= */
-
     let suggestions = rawText
       .split("§")
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0)
 
-    /* ================= FALLBACK CLEAN ================= */
-
     if (suggestions.length === 0) {
       suggestions = rawText
         .split("\n")
-        .map((line: string) =>
-          line
-            .replace(/^#+\s*/g, "")
-            .replace(/^\d+\.\s*/g, "")
-            .replace(/\*\*/g, "")
-            .replace(/^-\s*/g, "")
-            .trim()
-        )
-        .filter((line: string) => {
-          const lower = line.toLowerCase()
-
-          return (
-            line.length > 8 &&
-            !lower.includes("вариант") &&
-            !lower.includes("сообщен") &&
-            !lower.includes("генерац") &&
-            !lower.includes("анализ") &&
-            !lower.includes("лучших") &&
-            !lower.includes("ответ:")
-          )
-        })
+        .map((line: string) => line.trim())
+        .filter((line: string) => line.length > 8)
     }
 
     suggestions = suggestions.slice(0, 3)
-
-    console.log("FINAL SUGGESTIONS:", suggestions)
 
     return new Response(
       JSON.stringify({
