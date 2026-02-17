@@ -25,7 +25,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [openerFacts, setOpenerFacts] = useState("");
 
-  const [selectedAction, setSelectedAction] = useState<
+  const [selectedAction, setSelectedAction] = useState
     "reengage" | "contact" | "date" | null
   >(null);
 
@@ -33,6 +33,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   // Ref для мгновенной блокировки двойного клика
   const isGeneratingRef = useRef(false);
+  const isSavingRef = useRef(false);
 
   const isNewDialog = messages.length === 0;
 
@@ -74,7 +75,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
     const facts = openerFacts.trim();
     const girlText = draftGirlReply.trim();
 
-    if (!facts && !girlText) {
+    // Разрешаем генерацию без текста, если последнее сообщение в истории от девушки
+    const lastMsg = messages[messages.length - 1];
+    const hasUnansweredGirl = lastMsg?.role === "girl";
+
+    if (!facts && !girlText && !hasUnansweredGirl) {
       isGeneratingRef.current = false;
       return;
     }
@@ -102,7 +107,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
         res = await chatGenerate(
           conversationId,
-          girlText,
+          girlText || null,
           action,
           telegramId
         );
@@ -135,18 +140,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
   /* ================= SELECT SUGGESTION ================= */
 
   const handleSelectSuggestion = async (text: string) => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+
     try {
       const telegramId = getTelegramId();
       if (!telegramId) return;
 
       await chatSave(conversationId, text, "user", telegramId);
-
-      // Обновляем историю после сохранения
-      await refreshConversation();
-
       setSuggestions([]);
+      await refreshConversation();
     } catch (err) {
       console.error(err);
+    } finally {
+      isSavingRef.current = false;
     }
   };
 
