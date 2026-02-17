@@ -22,7 +22,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
 
     setLoading(true);
     try {
-      const data = await getConversations(telegramId);
+      const data = await getConversations();
 
       const safeData = Array.isArray(data)
         ? data.filter((c) => c && c.id)
@@ -54,10 +54,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
 
     setLoading(true);
     try {
-      const conv = await createConversation(
-        telegramId,
-        girlName.trim()
-      );
+      const conv = await createConversation(girlName.trim());
 
       if (!conv || !conv.id) {
         console.error("Invalid conversation response:", conv);

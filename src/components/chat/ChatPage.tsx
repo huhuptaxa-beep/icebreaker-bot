@@ -37,11 +37,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   const isNewDialog = messages.length === 0;
 
-  const getTelegramId = (): number | null => {
-    const tg = (window as any)?.Telegram?.WebApp;
-    return tg?.initDataUnsafe?.user?.id ?? null;
-  };
-
   const refreshConversation = async () => {
     const data = await getConversation(conversationId);
     setGirlName(data.girl_name || "Чат");
@@ -65,12 +60,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     // Мгновенная блокировка через ref (useState асинхронный — не спасает от двойного клика)
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
-
-    const telegramId = getTelegramId();
-    if (!telegramId) {
-      isGeneratingRef.current = false;
-      return;
-    }
 
     const facts = openerFacts.trim();
     const girlText = draftGirlReply.trim();
@@ -96,7 +85,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
           conversationId,
           null,
           "opener",
-          telegramId,
           facts
         );
       }
@@ -108,8 +96,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         res = await chatGenerate(
           conversationId,
           girlText || null,
-          action,
-          telegramId
+          action
         );
 
         setDraftGirlReply("");
@@ -144,10 +131,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     isSavingRef.current = true;
 
     try {
-      const telegramId = getTelegramId();
-      if (!telegramId) return;
-
-      await chatSave(conversationId, text, "user", telegramId);
+      await chatSave(conversationId, text, "user");
       setSuggestions([]);
       await refreshConversation();
     } catch (err) {

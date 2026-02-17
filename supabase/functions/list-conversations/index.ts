@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { validateInitData } from "../_shared/validateTelegram.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +13,19 @@ serve(async (req) => {
   }
 
   try {
-    const { telegram_id } = await req.json()
+    const { init_data } = await req.json()
+
+    // Validate Telegram initData
+    const BOT_TOKEN = Deno.env.get("BOT_TOKEN")
+    if (!BOT_TOKEN) throw new Error("BOT_TOKEN missing")
+
+    const { valid, telegram_id } = await validateInitData(init_data || "", BOT_TOKEN)
+    if (!valid || !telegram_id) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      )
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -29,19 +42,14 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(data ?? []),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )
 
   } catch (error) {
+    console.error("list-conversations error:", error)
     return new Response(
       JSON.stringify([]),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     )
   }
 })

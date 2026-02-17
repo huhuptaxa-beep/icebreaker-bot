@@ -31,17 +31,24 @@ export interface GenerateResponse {
 }
 
 /* ===========================
+   TELEGRAM INIT DATA
+=========================== */
+
+export const getInitData = (): string => {
+  return (window as any)?.Telegram?.WebApp?.initData ?? "";
+};
+
+/* ===========================
    CREATE CONVERSATION
 =========================== */
 
 export const createConversation = async (
-  telegram_id: number,
   girl_name: string
 ): Promise<Conversation> => {
   const res = await fetch(`${BASE_URL}/functions/v1/create-conversation`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ telegram_id, girl_name }),
+    body: JSON.stringify({ girl_name, init_data: getInitData() }),
   });
 
   if (!res.ok) {
@@ -58,13 +65,11 @@ export const createConversation = async (
    LIST CONVERSATIONS
 =========================== */
 
-export const getConversations = async (
-  telegram_id: number
-): Promise<Conversation[]> => {
+export const getConversations = async (): Promise<Conversation[]> => {
   const res = await fetch(`${BASE_URL}/functions/v1/list-conversations`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ telegram_id }),
+    body: JSON.stringify({ init_data: getInitData() }),
   });
 
   if (!res.ok) {
@@ -87,7 +92,7 @@ export const getConversation = async (
   const res = await fetch(`${BASE_URL}/functions/v1/get-conversation`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ conversation_id }),
+    body: JSON.stringify({ conversation_id, init_data: getInitData() }),
   });
 
   if (!res.ok) {
@@ -119,7 +124,6 @@ export const chatGenerate = async (
   conversation_id: string,
   incoming_message: string | null,
   action_type: "normal" | "reengage" | "contact" | "date" | "opener",
-  telegram_id: number,
   facts?: string
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
@@ -129,13 +133,11 @@ export const chatGenerate = async (
       conversation_id,
       incoming_message,
       action_type,
-      telegram_id,
+      init_data: getInitData(),
       facts: facts || null,
     }),
   });
 
-  // Вместо throw — возвращаем объект с error
-  // Чтобы ChatPage мог проверить res.error и не показывать ошибку как suggestion
   if (!res.ok) {
     let errorMsg = "Failed to generate response";
     try {
@@ -163,8 +165,7 @@ export const chatGenerate = async (
 export const chatSave = async (
   conversation_id: string,
   selected_text: string,
-  role: "user" | "girl",
-  telegram_id: number
+  role: "user" | "girl"
 ): Promise<Message> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-save`, {
     method: "POST",
@@ -173,7 +174,7 @@ export const chatSave = async (
       conversation_id,
       selected_text,
       role,
-      telegram_id,
+      init_data: getInitData(),
     }),
   });
 

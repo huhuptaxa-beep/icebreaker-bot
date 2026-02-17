@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { validateInitData } from "../_shared/validateTelegram.ts"
 
 import { OPENER_SYSTEM_PROMPT } from "./openerSystem.ts"
 import { REPLY_SYSTEM_PROMPT } from "./replySystem.ts"
@@ -24,14 +25,19 @@ serve(async (req) => {
       conversation_id,
       incoming_message,
       action_type,
-      telegram_id,
+      init_data,
       facts,
     } = body
 
-    if (!telegram_id) {
+    // Validate Telegram initData
+    const BOT_TOKEN = Deno.env.get("BOT_TOKEN")
+    if (!BOT_TOKEN) throw new Error("BOT_TOKEN missing")
+
+    const { valid, telegram_id } = await validateInitData(init_data || "", BOT_TOKEN)
+    if (!valid || !telegram_id) {
       return new Response(
-        JSON.stringify({ error: "telegram_id missing" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        JSON.stringify({ error: "Unauthorized" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
       )
     }
 
@@ -79,9 +85,7 @@ serve(async (req) => {
         )
       }
 
-      // ❌ УБРАЛИ INSERT девушки здесь — перенесён ПОСЛЕ Claude
-
-      // Получаем ПОСЛЕДНИЕ 20 сообщений
+      // Получаем ПОСЛЕДНИЕ 20 сообщений (новые → старые), затем разворачиваем
       const { data: historyDesc } = await supabase
         .from("messages")
         .select("role, text, created_at")
@@ -89,7 +93,6 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(20)
 
-      // Разворачиваем в хронологический порядок (старые → новые)
       const history = (historyDesc || []).reverse()
 
       // Добавляем incoming_message в контекст (но ещё НЕ в БД)
@@ -108,10 +111,7 @@ serve(async (req) => {
         )
       }
 
-      // Последнее сообщение девушки
       const lastMessage = history[history.length - 1]
-
-      // История БЕЗ последнего сообщения
       const previousMessages = history.slice(0, -1)
 
       const historyText = previousMessages
@@ -132,7 +132,7 @@ serve(async (req) => {
     /* ================= CLAUDE ================= */
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000) // 30 сек таймаут
+    const timeout = setTimeout(() => controller.abort(), 30000)
 
     let anthropicRes
     try {
