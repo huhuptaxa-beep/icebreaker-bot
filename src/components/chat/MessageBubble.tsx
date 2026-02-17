@@ -15,12 +15,12 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
       } animate-fadeIn`}
     >
       <div
-        className="max-w-[70%] px-4 py-3 rounded-2xl text-sm shadow-md transition-all duration-300"
+        className="max-w-[70%] px-4 py-3 rounded-2xl text-sm shadow-md"
         style={{
           background: isMine
-            ? "linear-gradient(135deg,#3B5BDB 0%,#5C7CFA 100%)"
-            : "linear-gradient(135deg,#F8D7DA 0%,#F5C2C7 100%)",
-          color: isMine ? "#FFFFFF" : "#5A2D35",
+            ? "linear-gradient(135deg, #EF4444 0%, #F43F5E 100%)"
+            : "#1E1E1E",
+          color: "#FFFFFF",
         }}
       >
         {text}

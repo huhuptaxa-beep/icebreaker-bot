@@ -154,15 +154,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#F6F7FB]">
+    <div className="flex flex-col h-[100dvh] bg-[#0A0A0A]">
 
       {/* HEADER */}
-      <div className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b shadow-sm">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button onClick={onBack} className="text-blue-600 text-sm">
+      <div className="sticky top-0 z-40 bg-[#111111] border-b border-white/8">
+        <div className="flex items-center gap-3 px-4 py-3"
+          style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
+        >
+          <button onClick={onBack} className="text-gray-400 text-sm">
             ← Назад
           </button>
-          <span className="font-semibold">{girlName}</span>
+          <span className="font-semibold text-white">{girlName}</span>
         </div>
       </div>
 
@@ -185,9 +187,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     setDraftGirlReply(e.target.value)
                   }
                   placeholder="Вставь её сообщение, если написала первая"
-                  className="w-full px-4 py-3 rounded-2xl
-                             bg-gradient-to-br from-pink-200 to-pink-300
-                             text-[#5A2D35] text-sm shadow-md resize-none outline-none"
+                  className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
+                  style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
                 />
               </div>
             </div>
@@ -199,11 +200,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setOpenerFacts(e.target.value)
                 }
                 placeholder="Напиши факты о девушке..."
-                className="w-full min-h-[120px] px-6 py-5 rounded-3xl
-                           bg-gradient-to-r from-blue-600 to-indigo-600
-                           text-white text-sm font-semibold
-                           leading-relaxed shadow-xl
-                           resize-none outline-none"
+                className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none placeholder:text-red-400/40"
+                style={{ background: "linear-gradient(135deg, #7F1D1D, #991B1B)", color: "#FFFFFF", border: "1px solid rgba(239,68,68,0.3)" }}
               />
             </div>
           </>
@@ -218,9 +216,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setDraftGirlReply(e.target.value)
                 }
                 placeholder="Вставь её ответ..."
-                className="w-full px-4 py-3 rounded-2xl
-                           bg-gradient-to-br from-pink-200 to-pink-300
-                           text-[#5A2D35] text-sm shadow-md resize-none outline-none"
+                className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
+                style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
               />
             </div>
           </div>
@@ -237,11 +234,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <button
             key={btn.label}
             onClick={() => toggleAction(btn.action as any)}
-            className={`flex-1 py-2 rounded-xl text-sm ${
-              selectedAction === btn.action
-                ? "bg-blue-600 text-white"
-                : "bg-blue-100 text-blue-700"
+            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+              selectedAction === btn.action ? "text-white" : "text-gray-400"
             }`}
+            style={{
+              background: selectedAction === btn.action
+                ? "linear-gradient(135deg, #EF4444, #F43F5E)"
+                : "#1A1A1A",
+            }}
           >
             {btn.label}
           </button>
@@ -254,14 +254,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
         loading={generating}
       />
 
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
         <button
           onClick={handleGenerate}
           disabled={generating}
           className="w-full py-3 rounded-2xl text-white font-semibold
-                     bg-gradient-to-r from-blue-600 to-indigo-500 shadow-lg"
+                     shadow-lg active:scale-[0.98] transition-transform disabled:opacity-50"
+          style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
         >
-          Сделать шаг
+          {generating ? "Генерирую..." : "Сделать шаг"}
         </button>
       </div>
     </div>

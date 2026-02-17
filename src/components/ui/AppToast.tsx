@@ -82,7 +82,7 @@ export const AppToastProvider: React.FC<{ children: React.ReactNode }> = ({
 const STYLES: Record<ToastType, { bg: string; icon: string }> = {
   success: { bg: "linear-gradient(135deg,#16a34a,#15803d)", icon: "✓" },
   error:   { bg: "linear-gradient(135deg,#dc2626,#b91c1c)", icon: "✕" },
-  info:    { bg: "linear-gradient(135deg,#2563eb,#1d4ed8)", icon: "i" },
+  info:    { bg: "linear-gradient(135deg,#2A2A2A,#1A1A1A)", icon: "i" },
 };
 
 const ToastBubble: React.FC<{

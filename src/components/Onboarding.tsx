@@ -6,7 +6,6 @@ import React, { useState } from "react";
 
 const slides = [
   {
-    gradient: "from-blue-600 to-indigo-500",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-12 h-12">
         <path strokeLinecap="round" strokeLinejoin="round"
@@ -17,7 +16,6 @@ const slides = [
     desc: "AI создаёт уникальные первые сообщения на основе профиля девушки — смешные, интригующие, цепляющие.",
   },
   {
-    gradient: "from-violet-600 to-purple-500",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-12 h-12">
         <path strokeLinecap="round" strokeLinejoin="round"
@@ -28,7 +26,6 @@ const slides = [
     desc: "Вставь её ответ — получи 3 варианта следующего шага. Реакции, провокации, флирт — по ситуации.",
   },
   {
-    gradient: "from-pink-500 to-rose-500",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-12 h-12">
         <path strokeLinecap="round" strokeLinejoin="round"
@@ -67,22 +64,25 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-[#F6F7FB]"
+      className="min-h-screen flex flex-col bg-[#0A0A0A]"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       {/* Slide content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8">
         {/* Icon */}
         <div
-          className={`w-28 h-28 rounded-3xl bg-gradient-to-br ${slide.gradient} flex items-center justify-center text-white shadow-2xl mb-10`}
-          style={{ transition: "all 0.4s cubic-bezier(0.22,1,0.36,1)" }}
+          className="w-28 h-28 rounded-3xl flex items-center justify-center text-white shadow-2xl mb-10"
+          style={{
+            background: "linear-gradient(135deg, #EF4444, #F43F5E)",
+            transition: "all 0.4s cubic-bezier(0.22,1,0.36,1)",
+          }}
         >
           {slide.icon}
         </div>
 
         {/* Text — re-mounts on slide change for animation */}
         <div key={animKey} className="text-center animate-slideContent">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4 leading-tight">
+          <h1 className="text-2xl font-bold text-white mb-4 leading-tight">
             {slide.title}
           </h1>
           <p className="text-gray-500 text-base leading-relaxed max-w-xs mx-auto">
@@ -103,7 +103,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
               style={{
                 width: i === current ? "28px" : "8px",
                 height: "8px",
-                background: i === current ? "#3B5BDB" : "#CBD5E1",
+                background: i === current ? "#EF4444" : "#2A2A2A",
               }}
             />
           ))}
@@ -113,11 +113,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
         <button
           onClick={next}
           className="w-full py-4 rounded-2xl text-white font-semibold text-base shadow-lg active:scale-[0.98] transition-transform"
-          style={{
-            background: isLast
-              ? "linear-gradient(135deg, #E11D48, #F43F5E)"
-              : "linear-gradient(135deg, #3B5BDB, #4F46E5)",
-          }}
+          style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
         >
           {isLast ? "Начать →" : "Далее"}
         </button>
@@ -126,7 +122,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onStart }) => {
         {!isLast && (
           <button
             onClick={onStart}
-            className="text-sm text-gray-400 py-1 active:opacity-60 transition-opacity"
+            className="text-sm text-gray-600 py-1 active:opacity-60 transition-opacity"
           >
             Пропустить
           </button>
