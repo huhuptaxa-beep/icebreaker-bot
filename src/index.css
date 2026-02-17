@@ -125,6 +125,18 @@
   .animate-slideUp {
     animation: slideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
+
+  /* Onboarding slide content pop-in */
+  .animate-slideContent {
+    animation: slideContent 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Skeleton shimmer */
+  .animate-shimmer {
+    animation: shimmer 1.4s ease-in-out infinite;
+    background: linear-gradient(90deg, #E9ECF8 25%, #F3F5FF 50%, #E9ECF8 75%);
+    background-size: 200% 100%;
+  }
 }
 
 /* ===========================
@@ -186,4 +198,28 @@
     transform: translate(-50%, 0);
     opacity: 1;
   }
+}
+
+/* ===========================
+   ONBOARDING SLIDE CONTENT
+=========================== */
+
+@keyframes slideContent {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===========================
+   SKELETON SHIMMER
+=========================== */
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
