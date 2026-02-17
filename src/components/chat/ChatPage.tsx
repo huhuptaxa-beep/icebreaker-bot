@@ -37,13 +37,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return tg?.initDataUnsafe?.user?.id ?? null;
   };
 
+  const refreshConversation = async () => {
+    const data = await getConversation(conversationId);
+    setGirlName(data.girl_name || "Чат");
+    setMessages(data.messages || []);
+  };
+
   useEffect(() => {
-    getConversation(conversationId)
-      .then((data) => {
-        setGirlName(data.girl_name || "Чат");
-        setMessages(data.messages || []);
-      })
-      .catch(() => {});
+    refreshConversation().catch(() => {});
   }, [conversationId]);
 
   useEffect(() => {
@@ -70,17 +71,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
     try {
       let res;
 
-      // 🔵 OPENER режим
+      // 🔵 OPENER
       if (facts) {
         res = await chatGenerate(
           conversationId,
-          null,              // incoming_message
-          "opener",          // action_type
+          null,
+          "opener",
           telegramId,
-          facts              // 👈 передаём факты
+          facts
         );
-      } 
-      // 🔴 Ответ на её сообщение
+      }
+
+      // 🔴 REPLY
       else {
         const action = selectedAction ?? "normal";
 
@@ -91,23 +93,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
           telegramId
         );
 
-        // сохраняем её сообщение
-        await chatSave(conversationId, girlText, "girl");
+        // ⚠️ НЕ сохраняем сообщение девушки на фронте
+        // Оно уже сохраняется внутри chat-generate (Edge Function)
 
-        const girlMsg: Message = {
-          id: crypto.randomUUID(),
-          conversation_id: conversationId,
-          role: "girl",
-          text: girlText,
-          created_at: new Date().toISOString(),
-        };
-
-        setMessages((prev) => [...prev, girlMsg]);
         setDraftGirlReply("");
       }
 
       setSuggestions(res.suggestions || []);
       setOpenerFacts("");
+
+      // ✅ Всегда подтягиваем актуальную историю из БД
+      await refreshConversation();
+
     } catch (err) {
       console.error(err);
       setSuggestions(["Ошибка генерации"]);
@@ -119,20 +116,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
   /* ================= SELECT SUGGESTION ================= */
 
   const handleSelectSuggestion = async (text: string) => {
-    const myMessage: Message = {
-      id: crypto.randomUUID(),
-      conversation_id: conversationId,
-      role: "user",
-      text,
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, myMessage]);
-    setSuggestions([]);
-
     try {
       await chatSave(conversationId, text, "user");
-    } catch {}
+
+      // Обновляем историю после сохранения
+      await refreshConversation();
+
+      setSuggestions([]);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const toggleAction = (action: "reengage" | "contact" | "date") => {
@@ -167,7 +160,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
         {isNewDialog && (
           <>
-            {/* РОЗОВОЕ */}
             <div className="flex">
               <div className="max-w-[70%]">
                 <textarea
@@ -183,14 +175,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
               </div>
             </div>
 
-            {/* СИНЕЕ OPENER */}
             <div className="w-full">
               <textarea
                 value={openerFacts}
                 onChange={(e) =>
                   setOpenerFacts(e.target.value)
                 }
-                placeholder="Напиши факты о девушке: интересы, вкусы, детали одежды или внешности, нажми «Сделать шаг», и я придумаю опенер для неё"
+                placeholder="Напиши факты о девушке..."
                 className="w-full min-h-[120px] px-6 py-5 rounded-3xl
                            bg-gradient-to-r from-blue-600 to-indigo-600
                            text-white text-sm font-semibold
@@ -246,7 +237,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
         loading={generating}
       />
 
-      {/* MAIN BUTTON */}
       <div className="px-4 pb-4">
         <button
           onClick={handleGenerate}
