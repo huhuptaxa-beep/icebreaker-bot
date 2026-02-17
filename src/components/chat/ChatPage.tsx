@@ -5,6 +5,7 @@ import {
   chatSave,
   getConversation,
 } from "@/api/chatApi";
+import { useAppToast } from "@/components/ui/AppToast";
 import MessageBubble from "./MessageBubble";
 import SuggestionsPanel from "./SuggestionsPanel";
 
@@ -29,6 +30,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     "reengage" | "contact" | "date" | null
   >(null);
 
+  const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Ref для мгновенной блокировки двойного клика
@@ -105,7 +107,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       // Проверяем что ответ не ошибка
       if (res.error) {
         setSuggestions([]);
-        console.error("Generate error:", res.error);
+        showToast("Не удалось сгенерировать ответ", "error");
       } else {
         setSuggestions(res.suggestions || []);
       }
@@ -118,6 +120,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     } catch (err) {
       console.error(err);
       setSuggestions([]);
+      showToast("Не удалось сгенерировать ответ", "error");
     } finally {
       setGenerating(false);
       isGeneratingRef.current = false;
@@ -136,6 +139,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       await refreshConversation();
     } catch (err) {
       console.error(err);
+      showToast("Не удалось сохранить сообщение", "error");
     } finally {
       isSavingRef.current = false;
     }

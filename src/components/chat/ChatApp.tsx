@@ -3,34 +3,37 @@ import {
   Conversation,
   createConversation,
   getConversations,
+  deleteConversation,
 } from "@/api/chatApi";
+import { useAppToast } from "@/components/ui/AppToast";
 import ConversationsPage from "./ConversationsPage";
 import ChatPage from "./ChatPage";
+import SubscriptionPage from "@/components/SubscriptionPage";
+
+type View = "list" | "chat" | "subscription";
 
 interface ChatAppProps {
   telegramId: number | null;
+  onHapticFeedback?: (type: string) => void;
+  onHapticSuccess?: () => void;
 }
 
 const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
-  const [view, setView] = useState<"list" | "chat">("list");
+  const { showToast } = useAppToast();
+  const [view, setView] = useState<View>("list");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchConversations = useCallback(async () => {
     if (!telegramId) return;
-
     setLoading(true);
     try {
       const data = await getConversations();
-
-      const safeData = Array.isArray(data)
-        ? data.filter((c) => c && c.id)
-        : [];
-
-      setConversations(safeData);
-    } catch (e) {
-      console.error("Failed to fetch conversations:", e);
+      setConversations(
+        Array.isArray(data) ? data.filter((c) => c && c.id) : []
+      );
+    } catch {
       setConversations([]);
     } finally {
       setLoading(false);
@@ -42,38 +45,49 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   }, [fetchConversations]);
 
   /* ===========================
-     CREATE WITH GIRL NAME INPUT
-  ============================ */
+     CREATE
+  =========================== */
 
   const handleCreate = async () => {
     if (!telegramId) return;
 
     const girlName = window.prompt("Введите имя девушки");
-
     if (!girlName || girlName.trim().length === 0) return;
 
     setLoading(true);
     try {
       const conv = await createConversation(girlName.trim());
-
       if (!conv || !conv.id) {
-        console.error("Invalid conversation response:", conv);
+        showToast("Не удалось создать диалог", "error");
         return;
       }
-
-      setConversations((prev) => [
-        conv,
-        ...prev.filter((c) => c && c.id),
-      ]);
-
+      setConversations((prev) => [conv, ...prev.filter((c) => c && c.id)]);
       setActiveConversationId(conv.id);
       setView("chat");
-    } catch (e) {
-      console.error("Failed to create conversation:", e);
+    } catch {
+      showToast("Не удалось создать диалог", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  /* ===========================
+     DELETE
+  =========================== */
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteConversation(id);
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      showToast("Диалог удалён", "success");
+    } catch {
+      showToast("Не удалось удалить диалог", "error");
+    }
+  };
+
+  /* ===========================
+     NAVIGATION
+  =========================== */
 
   const handleSelect = (id: string) => {
     if (!id) return;
@@ -87,22 +101,33 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     fetchConversations();
   };
 
+  /* ===========================
+     RENDER
+  =========================== */
+
+  if (view === "subscription") {
+    return <SubscriptionPage onBack={() => setView("list")} />;
+  }
+
   if (view === "chat" && activeConversationId) {
     return (
-      <ChatPage
-        conversationId={activeConversationId}
-        onBack={handleBack}
-      />
+      <div key="chat" className="animate-fadeIn">
+        <ChatPage conversationId={activeConversationId} onBack={handleBack} />
+      </div>
     );
   }
 
   return (
-    <ConversationsPage
-      conversations={conversations}
-      onSelect={handleSelect}
-      onCreate={handleCreate}
-      loading={loading}
-    />
+    <div key="list" className="animate-fadeIn">
+      <ConversationsPage
+        conversations={conversations}
+        onSelect={handleSelect}
+        onCreate={handleCreate}
+        onDelete={handleDelete}
+        onSubscribe={() => setView("subscription")}
+        loading={loading}
+      />
+    </div>
   );
 };
 
