@@ -25,7 +25,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [openerFacts, setOpenerFacts] = useState("");
 
-  const [selectedAction, setSelectedAction] = useState
+  const [selectedAction, setSelectedAction] = useState<
     "reengage" | "contact" | "date" | null
   >(null);
 
