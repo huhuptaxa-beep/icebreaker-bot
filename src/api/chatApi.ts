@@ -159,6 +159,26 @@ export const chatGenerate = async (
 };
 
 /* ===========================
+   DELETE CONVERSATION
+=========================== */
+
+export const deleteConversation = async (
+  conversation_id: string
+): Promise<void> => {
+  const res = await fetch(`${BASE_URL}/functions/v1/delete-conversation`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ conversation_id, init_data: getInitData() }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("deleteConversation error:", text);
+    throw new Error("Failed to delete conversation");
+  }
+};
+
+/* ===========================
    SAVE MESSAGE
 =========================== */
 
