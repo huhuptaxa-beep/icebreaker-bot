@@ -28,6 +28,13 @@ serve(async (req) => {
       facts,
     } = body
 
+    if (!telegram_id) {
+      return new Response(
+        JSON.stringify({ error: "telegram_id missing" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      )
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -52,37 +59,60 @@ serve(async (req) => {
       systemPrompt = REPLY_SYSTEM_PROMPT
 
       if (!conversation_id) {
-        throw new Error("conversation_id missing")
+        return new Response(
+          JSON.stringify({ error: "conversation_id missing" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        )
       }
 
-      /* 1️⃣ Сохраняем сообщение девушки */
-      if (incoming_message) {
-        await supabase.from("messages").insert({
-          conversation_id,
-          role: "girl",
-          text: incoming_message,
-        })
+      // Проверяем владельца диалога
+      const { data: conv } = await supabase
+        .from("conversations")
+        .select("user_id")
+        .eq("id", conversation_id)
+        .single()
+
+      if (!conv || String(conv.user_id) !== String(telegram_id)) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+        )
       }
 
-      /* 2️⃣ Получаем 20 последних сообщений (старые → новые) */
-      const { data: history } = await supabase
+      // ❌ УБРАЛИ INSERT девушки здесь — перенесён ПОСЛЕ Claude
+
+      // Получаем ПОСЛЕДНИЕ 20 сообщений
+      const { data: historyDesc } = await supabase
         .from("messages")
         .select("role, text, created_at")
         .eq("conversation_id", conversation_id)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(20)
 
-      const messages = history || []
+      // Разворачиваем в хронологический порядок (старые → новые)
+      const history = (historyDesc || []).reverse()
 
-      if (messages.length === 0) {
-        throw new Error("No messages found for conversation")
+      // Добавляем incoming_message в контекст (но ещё НЕ в БД)
+      if (incoming_message) {
+        history.push({
+          role: "girl",
+          text: incoming_message,
+          created_at: new Date().toISOString(),
+        })
       }
 
-      /* 3️⃣ Последнее сообщение девушки */
-      const lastMessage = messages[messages.length - 1]
+      if (history.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "No messages" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        )
+      }
 
-      /* 4️⃣ История БЕЗ последнего сообщения */
-      const previousMessages = messages.slice(0, -1)
+      // Последнее сообщение девушки
+      const lastMessage = history[history.length - 1]
+
+      // История БЕЗ последнего сообщения
+      const previousMessages = history.slice(0, -1)
 
       const historyText = previousMessages
         .map((msg) => {
@@ -96,44 +126,47 @@ serve(async (req) => {
           ? lastMessage.text
           : incoming_message || ""
 
-      /* 5️⃣ Передаём structured контекст */
-      userPrompt = buildReplyUserPrompt(
-        historyText,
-        lastGirlText
-      )
+      userPrompt = buildReplyUserPrompt(historyText, lastGirlText)
     }
 
     /* ================= CLAUDE ================= */
 
-    const anthropicRes = await fetch(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": ANTHROPIC_KEY,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-5-20250929",
-          max_tokens: 450,
-          temperature: 0.85,
-          system: systemPrompt,
-          messages: [
-            {
-              role: "user",
-              content: userPrompt,
-            },
-          ],
-        }),
-      }
-    )
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000) // 30 сек таймаут
+
+    let anthropicRes
+    try {
+      anthropicRes = await fetch(
+        "https://api.anthropic.com/v1/messages",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_KEY,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-5-20250929",
+            max_tokens: 450,
+            temperature: 0.85,
+            system: systemPrompt,
+            messages: [{ role: "user", content: userPrompt }],
+          }),
+          signal: controller.signal,
+        }
+      )
+    } finally {
+      clearTimeout(timeout)
+    }
 
     const anthropicData = await anthropicRes.json()
 
     if (!anthropicRes.ok) {
-      console.log("ANTHROPIC ERROR:", anthropicData)
-      throw new Error("Anthropic request failed")
+      console.error("ANTHROPIC ERROR:", anthropicData)
+      return new Response(
+        JSON.stringify({ error: "Claude API failed" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 }
+      )
     }
 
     const rawText =
@@ -156,6 +189,15 @@ serve(async (req) => {
 
     suggestions = suggestions.slice(0, 3)
 
+    // ✅ Claude ответил успешно — ТЕПЕРЬ сохраняем сообщение девушки
+    if (action_type !== "opener" && incoming_message && conversation_id) {
+      await supabase.from("messages").insert({
+        conversation_id,
+        role: "girl",
+        text: incoming_message,
+      })
+    }
+
     return new Response(
       JSON.stringify({
         suggestions,
@@ -170,19 +212,13 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.log("ERROR:", error)
+    console.error("chat-generate ERROR:", error)
 
     return new Response(
-      JSON.stringify({
-        suggestions: ["Ошибка генерации"],
-        limit_reached: false,
-        weekly_used: 0,
-        weekly_limit: 0,
-        remaining: 0,
-      }),
+      JSON.stringify({ error: "Generation failed" }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+        status: 500,
       }
     )
   }
