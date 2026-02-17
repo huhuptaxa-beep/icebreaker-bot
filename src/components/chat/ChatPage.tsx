@@ -25,11 +25,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [openerFacts, setOpenerFacts] = useState("");
 
-  const [selectedAction, setSelectedAction] = useState<
+  const [selectedAction, setSelectedAction] = useState
     "reengage" | "contact" | "date" | null
   >(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Ref для мгновенной блокировки двойного клика
+  const isGeneratingRef = useRef(false);
+
   const isNewDialog = messages.length === 0;
 
   const getTelegramId = (): number | null => {
@@ -57,13 +61,23 @@ const ChatPage: React.FC<ChatPageProps> = ({
   /* ================= GENERATE ================= */
 
   const handleGenerate = async () => {
+    // Мгновенная блокировка через ref (useState асинхронный — не спасает от двойного клика)
+    if (isGeneratingRef.current) return;
+    isGeneratingRef.current = true;
+
     const telegramId = getTelegramId();
-    if (!telegramId) return;
+    if (!telegramId) {
+      isGeneratingRef.current = false;
+      return;
+    }
 
     const facts = openerFacts.trim();
     const girlText = draftGirlReply.trim();
 
-    if (!facts && !girlText) return;
+    if (!facts && !girlText) {
+      isGeneratingRef.current = false;
+      return;
+    }
 
     setGenerating(true);
     setSuggestions([]);
@@ -93,23 +107,28 @@ const ChatPage: React.FC<ChatPageProps> = ({
           telegramId
         );
 
-        // ⚠️ НЕ сохраняем сообщение девушки на фронте
-        // Оно уже сохраняется внутри chat-generate (Edge Function)
-
         setDraftGirlReply("");
       }
 
-      setSuggestions(res.suggestions || []);
+      // Проверяем что ответ не ошибка
+      if (res.error) {
+        setSuggestions([]);
+        console.error("Generate error:", res.error);
+      } else {
+        setSuggestions(res.suggestions || []);
+      }
+
       setOpenerFacts("");
 
-      // ✅ Всегда подтягиваем актуальную историю из БД
+      // Подтягиваем актуальную историю из БД
       await refreshConversation();
 
     } catch (err) {
       console.error(err);
-      setSuggestions(["Ошибка генерации"]);
+      setSuggestions([]);
     } finally {
       setGenerating(false);
+      isGeneratingRef.current = false;
     }
   };
 
@@ -117,7 +136,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   const handleSelectSuggestion = async (text: string) => {
     try {
-      await chatSave(conversationId, text, "user");
+      const telegramId = getTelegramId();
+      if (!telegramId) return;
+
+      await chatSave(conversationId, text, "user", telegramId);
 
       // Обновляем историю после сохранения
       await refreshConversation();

@@ -27,6 +27,7 @@ export interface GenerateResponse {
   weekly_used: number;
   weekly_limit: number;
   remaining: number;
+  error?: string;
 }
 
 /* ===========================
@@ -119,7 +120,7 @@ export const chatGenerate = async (
   incoming_message: string | null,
   action_type: "normal" | "reengage" | "contact" | "date" | "opener",
   telegram_id: number,
-  facts?: string // 👈 добавили
+  facts?: string
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
     method: "POST",
@@ -129,14 +130,27 @@ export const chatGenerate = async (
       incoming_message,
       action_type,
       telegram_id,
-      facts: facts || null, // 👈 передаём
+      facts: facts || null,
     }),
   });
 
+  // Вместо throw — возвращаем объект с error
+  // Чтобы ChatPage мог проверить res.error и не показывать ошибку как suggestion
   if (!res.ok) {
-    const text = await res.text();
-    console.error("chatGenerate error:", text);
-    throw new Error("Failed to generate response");
+    let errorMsg = "Failed to generate response";
+    try {
+      const errData = await res.json();
+      errorMsg = errData.error || errorMsg;
+    } catch {}
+    console.error("chatGenerate error:", errorMsg);
+    return {
+      suggestions: [],
+      limit_reached: false,
+      weekly_used: 0,
+      weekly_limit: 0,
+      remaining: 0,
+      error: errorMsg,
+    };
   }
 
   return res.json();
@@ -149,7 +163,8 @@ export const chatGenerate = async (
 export const chatSave = async (
   conversation_id: string,
   selected_text: string,
-  role: "user" | "girl"
+  role: "user" | "girl",
+  telegram_id: number
 ): Promise<Message> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-save`, {
     method: "POST",
@@ -158,6 +173,7 @@ export const chatSave = async (
       conversation_id,
       selected_text,
       role,
+      telegram_id,
     }),
   });
 
@@ -168,6 +184,5 @@ export const chatSave = async (
   }
 
   const data = await res.json();
-
   return data.message;
 };
