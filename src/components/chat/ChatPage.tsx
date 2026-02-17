@@ -12,11 +12,13 @@ import SuggestionsPanel from "./SuggestionsPanel";
 interface ChatPageProps {
   conversationId: string;
   onBack: () => void;
+  onSubscribe?: () => void;
 }
 
 const ChatPage: React.FC<ChatPageProps> = ({
   conversationId,
   onBack,
+  onSubscribe,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -104,8 +106,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setDraftGirlReply("");
       }
 
-      // Проверяем что ответ не ошибка
-      if (res.error) {
+      if (res.limit_reached) {
+        setSuggestions([]);
+        showToast("Генерации закончились. Купи пакет!", "error");
+        onSubscribe?.();
+      } else if (res.error) {
         setSuggestions([]);
         showToast("Не удалось сгенерировать ответ", "error");
       } else {

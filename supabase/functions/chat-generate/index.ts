@@ -13,6 +13,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 }
 
+const FREE_WEEKLY_LIMIT = 7
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -20,14 +22,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json()
-
-    const {
-      conversation_id,
-      incoming_message,
-      action_type,
-      init_data,
-      facts,
-    } = body
+    const { conversation_id, incoming_message, action_type, init_data, facts } = body
 
     // Validate Telegram initData
     const BOT_TOKEN = Deno.env.get("BOT_TOKEN")
@@ -46,22 +41,55 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
 
+    /* =====================
+       LIMIT CHECK
+    ===================== */
+
+    const { data: user } = await supabase
+      .from("users")
+      .select("weekly_used, weekly_limit, week_started_at, generations_balance")
+      .eq("telegram_id", telegram_id)
+      .maybeSingle()
+
+    const now = new Date()
+
+    // Reset weekly counter if 7+ days have passed
+    const weekStarted = user?.week_started_at ? new Date(user.week_started_at) : now
+    const weekExpired = now.getTime() - weekStarted.getTime() >= 7 * 86400 * 1000
+
+    const weeklyLimit = user?.weekly_limit ?? FREE_WEEKLY_LIMIT
+    const weeklyUsed = weekExpired ? 0 : (user?.weekly_used ?? 0)
+    const paidBalance = user?.generations_balance ?? 0
+
+    const hasFree = weeklyUsed < weeklyLimit
+    const hasPaid = paidBalance > 0
+
+    if (!hasFree && !hasPaid) {
+      return new Response(
+        JSON.stringify({
+          suggestions: [],
+          limit_reached: true,
+          free_remaining: 0,
+          paid_remaining: paidBalance,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      )
+    }
+
+    /* =====================
+       BUILD PROMPTS
+    ===================== */
+
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
     if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY missing")
 
     let systemPrompt = ""
     let userPrompt = ""
 
-    /* ================= OPENER ================= */
-
     if (action_type === "opener") {
       systemPrompt = OPENER_SYSTEM_PROMPT
       userPrompt = buildOpenerUserPrompt(facts || "")
-    }
-
-    /* ================= REPLY (MEMORY-AWARE) ================= */
-
-    else {
+    } else {
       systemPrompt = REPLY_SYSTEM_PROMPT
 
       if (!conversation_id) {
@@ -71,7 +99,7 @@ serve(async (req) => {
         )
       }
 
-      // Проверяем владельца диалога
+      // Ownership check
       const { data: conv } = await supabase
         .from("conversations")
         .select("user_id")
@@ -85,7 +113,7 @@ serve(async (req) => {
         )
       }
 
-      // Получаем ПОСЛЕДНИЕ 20 сообщений (новые → старые), затем разворачиваем
+      // Last 20 messages (newest first → reverse for chronological order)
       const { data: historyDesc } = await supabase
         .from("messages")
         .select("role, text, created_at")
@@ -95,13 +123,8 @@ serve(async (req) => {
 
       const history = (historyDesc || []).reverse()
 
-      // Добавляем incoming_message в контекст (но ещё НЕ в БД)
       if (incoming_message) {
-        history.push({
-          role: "girl",
-          text: incoming_message,
-          created_at: new Date().toISOString(),
-        })
+        history.push({ role: "girl", text: incoming_message, created_at: now.toISOString() })
       }
 
       if (history.length === 0) {
@@ -113,48 +136,40 @@ serve(async (req) => {
 
       const lastMessage = history[history.length - 1]
       const previousMessages = history.slice(0, -1)
-
       const historyText = previousMessages
-        .map((msg) => {
-          const prefix = msg.role === "user" ? "Ты" : "Она"
-          return `${prefix}: ${msg.text}`
-        })
+        .map((msg) => `${msg.role === "user" ? "Ты" : "Она"}: ${msg.text}`)
         .join("\n")
-
       const lastGirlText =
-        lastMessage.role === "girl"
-          ? lastMessage.text
-          : incoming_message || ""
+        lastMessage.role === "girl" ? lastMessage.text : incoming_message || ""
 
       userPrompt = buildReplyUserPrompt(historyText, lastGirlText)
     }
 
-    /* ================= CLAUDE ================= */
+    /* =====================
+       CLAUDE API
+    ===================== */
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 30000)
 
     let anthropicRes
     try {
-      anthropicRes = await fetch(
-        "https://api.anthropic.com/v1/messages",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": ANTHROPIC_KEY,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-5-20250929",
-            max_tokens: 450,
-            temperature: 0.85,
-            system: systemPrompt,
-            messages: [{ role: "user", content: userPrompt }],
-          }),
-          signal: controller.signal,
-        }
-      )
+      anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-5-20250929",
+          max_tokens: 450,
+          temperature: 0.85,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userPrompt }],
+        }),
+        signal: controller.signal,
+      })
     } finally {
       clearTimeout(timeout)
     }
@@ -189,7 +204,11 @@ serve(async (req) => {
 
     suggestions = suggestions.slice(0, 3)
 
-    // ✅ Claude ответил успешно — ТЕПЕРЬ сохраняем сообщение девушки
+    /* =====================
+       POST-SUCCESS WRITES
+    ===================== */
+
+    // Save girl's incoming message to DB
     if (action_type !== "opener" && incoming_message && conversation_id) {
       await supabase.from("messages").insert({
         conversation_id,
@@ -198,28 +217,43 @@ serve(async (req) => {
       })
     }
 
+    // Deduct generation from the right bucket: free first, then paid
+    let newWeeklyUsed = weeklyUsed
+    let newPaidBalance = paidBalance
+
+    if (hasFree) {
+      newWeeklyUsed = weeklyUsed + 1
+      await supabase
+        .from("users")
+        .update({
+          weekly_used: newWeeklyUsed,
+          ...(weekExpired ? { week_started_at: now.toISOString() } : {}),
+        })
+        .eq("telegram_id", telegram_id)
+    } else {
+      // Deduct from paid balance atomically
+      newPaidBalance = paidBalance - 1
+      await supabase.rpc("increment_generations_balance", {
+        p_telegram_id: telegram_id,
+        p_amount: -1,
+      })
+    }
+
     return new Response(
       JSON.stringify({
         suggestions,
         limit_reached: false,
-        weekly_used: 0,
-        weekly_limit: 0,
-        remaining: 0,
+        free_remaining: Math.max(0, weeklyLimit - newWeeklyUsed),
+        paid_remaining: newPaidBalance,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )
+
   } catch (error) {
     console.error("chat-generate ERROR:", error)
-
     return new Response(
       JSON.stringify({ error: "Generation failed" }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     )
   }
 })

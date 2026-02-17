@@ -112,7 +112,11 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   if (view === "chat" && activeConversationId) {
     return (
       <div key="chat" className="animate-fadeIn">
-        <ChatPage conversationId={activeConversationId} onBack={handleBack} />
+        <ChatPage
+          conversationId={activeConversationId}
+          onBack={handleBack}
+          onSubscribe={() => setView("subscription")}
+        />
       </div>
     );
   }

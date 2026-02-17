@@ -24,9 +24,8 @@ export interface Message {
 export interface GenerateResponse {
   suggestions: string[];
   limit_reached: boolean;
-  weekly_used: number;
-  weekly_limit: number;
-  remaining: number;
+  free_remaining: number;
+  paid_remaining: number;
   error?: string;
 }
 
@@ -148,9 +147,8 @@ export const chatGenerate = async (
     return {
       suggestions: [],
       limit_reached: false,
-      weekly_used: 0,
-      weekly_limit: 0,
-      remaining: 0,
+      free_remaining: 0,
+      paid_remaining: 0,
       error: errorMsg,
     };
   }
@@ -176,6 +174,58 @@ export const deleteConversation = async (
     console.error("deleteConversation error:", text);
     throw new Error("Failed to delete conversation");
   }
+};
+
+/* ===========================
+   CREATE INVOICE
+=========================== */
+
+export interface SubscriptionInfo {
+  free_remaining: number;
+  paid_remaining: number;
+  free_reset_at: string;
+}
+
+export const createInvoice = async (
+  plan: "pack_30" | "pack_100" | "pack_200"
+): Promise<{ invoice_link: string }> => {
+  const res = await fetch(`${BASE_URL}/functions/v1/create-invoice`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ plan, init_data: getInitData() }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("createInvoice error:", text);
+    throw new Error("Failed to create invoice");
+  }
+
+  return res.json();
+};
+
+/* ===========================
+   GET SUBSCRIPTION
+=========================== */
+
+export const getSubscription = async (): Promise<SubscriptionInfo> => {
+  const res = await fetch(`${BASE_URL}/functions/v1/get-subscription`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ init_data: getInitData() }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("getSubscription error:", text);
+    return {
+      free_remaining: 7,
+      paid_remaining: 0,
+      free_reset_at: new Date(Date.now() + 7 * 86400 * 1000).toISOString(),
+    };
+  }
+
+  return res.json();
 };
 
 /* ===========================
