@@ -182,32 +182,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       </div>
 
-      {/* STYLE TABS */}
-      <div className="px-4 py-2 flex gap-2 bg-[#0A0A0A]">
-        {STYLES.map((s) => (
-          <button
-            key={s.key}
-            onClick={() => setStyle(s.key)}
-            className="flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150"
-            style={{
-              background: style === s.key
-                ? "linear-gradient(135deg, #EF4444, #F43F5E)"
-                : "#1A1A1A",
-              color: style === s.key ? "#FFFFFF" : "#9CA3AF",
-            }}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-
       {/* CONTENT */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
       >
         {messages.map((msg) => (
-          <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
+          <MessageBubble
+            key={msg.id}
+            text={msg.text}
+            role={msg.role}
+            onPaste={msg.role === "girl" ? (t) => setDraftGirlReply(t) : undefined}
+          />
         ))}
 
         {isNewDialog && (
@@ -280,6 +266,25 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </button>
         </div>
       )}
+
+      {/* STYLE TABS */}
+      <div className="px-4 py-2 flex gap-2">
+        {STYLES.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setStyle(s.key)}
+            className="flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+            style={{
+              background: style === s.key
+                ? "linear-gradient(135deg, #EF4444, #F43F5E)"
+                : "#1A1A1A",
+              color: style === s.key ? "#FFFFFF" : "#9CA3AF",
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
 
       <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
         <button
