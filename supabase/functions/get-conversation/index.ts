@@ -55,14 +55,17 @@ serve(async (req) => {
       )
     }
 
-    // Получаем сообщения
-    const { data: messages, error: msgError } = await supabase
+    // Получаем сообщения (последние 50, в хронологическом порядке)
+    const { data: messagesDesc, error: msgError } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", conversation_id)
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
+      .limit(50)
 
     if (msgError) throw msgError
+
+    const messages = (messagesDesc || []).reverse()
 
     return new Response(
       JSON.stringify({

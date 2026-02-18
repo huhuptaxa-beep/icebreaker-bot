@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { validateInitData } from "../_shared/validateTelegram.ts"
+import { generateSummary } from "../_shared/generateSummary.ts"
 
 import { OPENER_SYSTEM_PROMPT } from "./openerSystem.ts"
 import { REPLY_SYSTEM_PROMPT } from "./replySystem.ts"
@@ -14,6 +15,16 @@ const corsHeaders = {
 }
 
 const FREE_WEEKLY_LIMIT = 7
+
+// Extra instructions appended to REPLY_SYSTEM_PROMPT based on action_type
+const ACTION_INSTRUCTIONS: Record<string, string> = {
+  reengage:
+    "\n\nДОПОЛНИТЕЛЬНАЯ ЗАДАЧА: Девушка давно не отвечала. Напиши сообщение, которое ненавязчиво возобновит диалог — интригующее, без нужды и давления.",
+  contact:
+    "\n\nДОПОЛНИТЕЛЬНАЯ ЗАДАЧА: Пора попросить контакт (телефон/Инстаграм). Сделай это непринуждённо, как бы между делом, не оказывая давления.",
+  date:
+    "\n\nДОПОЛНИТЕЛЬНАЯ ЗАДАЧА: Пора звать на свидание. Предложи конкретную активность и день недели. Уверенно, без нытья.",
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -90,7 +101,8 @@ serve(async (req) => {
       systemPrompt = OPENER_SYSTEM_PROMPT
       userPrompt = buildOpenerUserPrompt(facts || "")
     } else {
-      systemPrompt = REPLY_SYSTEM_PROMPT
+      const actionInstruction = ACTION_INSTRUCTIONS[action_type] ?? ""
+      systemPrompt = REPLY_SYSTEM_PROMPT + actionInstruction
 
       if (!conversation_id) {
         return new Response(
@@ -99,10 +111,10 @@ serve(async (req) => {
         )
       }
 
-      // Ownership check
+      // Ownership check + fetch summary
       const { data: conv } = await supabase
         .from("conversations")
-        .select("user_id")
+        .select("user_id, summary")
         .eq("id", conversation_id)
         .single()
 
@@ -134,19 +146,44 @@ serve(async (req) => {
         )
       }
 
-      const lastMessage = history[history.length - 1]
-      const previousMessages = history.slice(0, -1)
+      /* ---- Memory V2: use summary + last 8 when history > 12 ---- */
+      let conversationSummary: string | undefined
+
+      if (history.length > 12) {
+        conversationSummary = conv.summary || undefined
+
+        if (!conversationSummary) {
+          // Generate summary from the older portion of the history
+          const olderMessages = history.slice(0, history.length - 8)
+          const generated = await generateSummary(olderMessages, ANTHROPIC_KEY)
+          if (generated) {
+            conversationSummary = generated
+            // Persist summary (fire-and-forget)
+            supabase
+              .from("conversations")
+              .update({ summary: generated, summary_updated_at: now.toISOString() })
+              .eq("id", conversation_id)
+              .then(() => {})
+          }
+        }
+      }
+
+      // Slice to recent context window
+      const contextMessages = conversationSummary ? history.slice(-8) : history
+      const lastMessage = contextMessages[contextMessages.length - 1]
+      const previousMessages = contextMessages.slice(0, -1)
+
       const historyText = previousMessages
         .map((msg) => `${msg.role === "user" ? "Ты" : "Она"}: ${msg.text}`)
         .join("\n")
       const lastGirlText =
         lastMessage.role === "girl" ? lastMessage.text : incoming_message || ""
 
-      userPrompt = buildReplyUserPrompt(historyText, lastGirlText)
+      userPrompt = buildReplyUserPrompt(historyText, lastGirlText, conversationSummary)
     }
 
     /* =====================
-       CLAUDE API
+       CLAUDE API (with prompt caching)
     ===================== */
 
     const controller = new AbortController()
@@ -160,12 +197,15 @@ serve(async (req) => {
           "Content-Type": "application/json",
           "x-api-key": ANTHROPIC_KEY,
           "anthropic-version": "2023-06-01",
+          "anthropic-beta": "prompt-caching-2024-07-31",
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-5-20250929",
           max_tokens: 450,
           temperature: 0.85,
-          system: systemPrompt,
+          system: [
+            { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
+          ],
           messages: [{ role: "user", content: userPrompt }],
         }),
         signal: controller.signal,
@@ -216,6 +256,20 @@ serve(async (req) => {
         text: incoming_message,
       })
     }
+
+    // Log usage (fire-and-forget)
+    supabase
+      .from("usage_logs")
+      .insert({
+        telegram_id,
+        conversation_id: action_type !== "opener" ? conversation_id : null,
+        action_type: action_type ?? null,
+        input_tokens: anthropicData.usage?.input_tokens ?? 0,
+        output_tokens: anthropicData.usage?.output_tokens ?? 0,
+        cache_read_input_tokens: anthropicData.usage?.cache_read_input_tokens ?? 0,
+        cache_creation_input_tokens: anthropicData.usage?.cache_creation_input_tokens ?? 0,
+      })
+      .then(() => {})
 
     // Deduct generation from the right bucket: free first, then paid
     let newWeeklyUsed = weeklyUsed

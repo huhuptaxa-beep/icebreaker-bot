@@ -1,9 +1,27 @@
 export function buildReplyUserPrompt(
   historyText: string,
-  lastGirlMessage: string
+  lastGirlMessage: string,
+  summary?: string
 ) {
-  return `
-История переписки (от старых к новым):
+  if (summary) {
+    return `Краткое резюме предыдущей переписки:
+${summary}
+
+Последние сообщения:
+${historyText}
+
+Последнее сообщение девушки:
+${lastGirlMessage}
+
+Твоя задача — ответить именно на её последнее сообщение.
+Используй резюме и историю как контекст.
+Не анализируй вслух.
+Выведи только 3 варианта ответа.
+Каждый вариант начинай с символа §.
+`
+  }
+
+  return `История переписки (от старых к новым):
 ${historyText}
 
 Последнее сообщение девушки:
