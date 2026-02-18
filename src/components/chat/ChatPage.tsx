@@ -232,7 +232,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     background: "#161616",
                     color: "rgba(255,255,255,0.45)",
                     textAlign: "center",
-                    clipPath: "polygon(0% 0%, 65% 0%, 100% 100%, 0% 100%)",
+                    clipPath: "polygon(0% 0%, 100% 0%, 65% 100%, 0% 100%)",
                   }}
                 >
                   {pasteLabel ?? "Вставить"}
@@ -281,7 +281,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   background: "#161616",
                   color: "rgba(255,255,255,0.45)",
                   textAlign: "center",
-                  clipPath: "polygon(0% 0%, 65% 0%, 100% 100%, 0% 100%)",
+                  clipPath: "polygon(0% 0%, 100% 0%, 65% 100%, 0% 100%)",
                 }}
               >
                 {pasteLabel ?? "Вставить"}

@@ -46,7 +46,7 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
               background: "#B91C1C",
               color: "rgba(255,255,255,0.7)",
               textAlign: "center",
-              clipPath: "polygon(100% 0%, 100% 100%, 0% 100%, 25% 0%)",
+              clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 35% 100%)",
             }}
           >
             {actionLabel ?? "Скопировать"}
