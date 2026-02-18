@@ -224,7 +224,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   className="relative z-0 text-xs rounded-bl-lg transition-colors"
                   style={{
                     display: "block",
-                    width: "50%",
+                    width: "40%",
                     height: 34,
                     marginTop: -16,
                     paddingTop: 18,
@@ -232,8 +232,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     background: "#161616",
                     color: "rgba(255,255,255,0.45)",
                     textAlign: "left",
-                    paddingLeft: 8,
-                    clipPath: "polygon(0% 0%, 100% 0%,80% 100%, 0% 100%)",
+                    paddingLeft: 10,
+                    clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
                   }}
                 >
                   {pasteLabel ?? "Вставить"}
@@ -274,7 +274,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 className="relative z-0 text-xs rounded-bl-lg transition-colors"
                 style={{
                   display: "block",
-                  width: "50%",
+                  width: "40%",
                   height: 34,
                   marginTop: -16,
                   paddingTop: 18,
@@ -282,7 +282,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   background: "#161616",
                   color: "rgba(255,255,255,0.45)",
                   textAlign: "left",
-                  paddingLeft: 8,
+                  paddingLeft: 10,
                   clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
                 }}
               >

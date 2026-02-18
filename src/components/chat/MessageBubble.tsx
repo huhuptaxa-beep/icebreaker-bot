@@ -37,7 +37,7 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
             className="relative z-0 text-xs rounded-br-lg transition-colors"
             style={{
               display: "block",
-              width: "60%",
+              width: "50%",
               height: 34,
               marginTop: -16,
               paddingTop: 18,
@@ -46,8 +46,8 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
               background: "#B91C1C",
               color: "rgba(255,255,255,0.7)",
               textAlign: "right",
-              paddingRight: 8,
-              clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 10% 100%)",
+              paddingRight: 10,
+              clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 20% 100%)",
             }}
           >
             {actionLabel ?? "Скопировать"}
