@@ -7,6 +7,10 @@ import { OPENER_SYSTEM_PROMPT } from "./openerSystem.ts"
 import { REPLY_SYSTEM_PROMPT } from "./replySystem.ts"
 import { buildOpenerUserPrompt } from "./openerUser.ts"
 import { buildReplyUserPrompt } from "./replyUser.ts"
+import { DATE_INSTRUCTIONS } from "./dateInstructions.ts"
+import { CONTACT_INSTRUCTIONS } from "./contactInstructions.ts"
+import { REENGAGE_INSTRUCTIONS } from "./reengageInstructions.ts"
+import { STYLE_PROMPTS } from "./styles.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,16 +20,6 @@ const corsHeaders = {
 
 const FREE_WEEKLY_LIMIT = 7
 
-// Extra instructions appended to REPLY_SYSTEM_PROMPT based on action_type
-const ACTION_INSTRUCTIONS: Record<string, string> = {
-  reengage:
-    "\n\nДОПОЛНИТЕЛЬНАЯ ЗАДАЧА: Девушка давно не отвечала. Напиши сообщение, которое ненавязчиво возобновит диалог — интригующее, без нужды и давления.",
-  contact:
-    "\n\nДОПОЛНИТЕЛЬНАЯ ЗАДАЧА: Пора попросить контакт (телефон/Инстаграм). Сделай это непринуждённо, как бы между делом, не оказывая давления.",
-  date:
-    "\n\nДОПОЛНИТЕЛЬНАЯ ЗАДАЧА: Пора звать на свидание. Предложи конкретную активность и день недели. Уверенно, без нытья.",
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -33,7 +27,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json()
-    const { conversation_id, incoming_message, action_type, init_data, facts } = body
+    const { conversation_id, incoming_message, action_type, init_data, facts, style } = body
 
     // Validate Telegram initData
     const BOT_TOKEN = Deno.env.get("BOT_TOKEN")
@@ -64,7 +58,6 @@ serve(async (req) => {
 
     const now = new Date()
 
-    // Reset weekly counter if 7+ days have passed
     const weekStarted = user?.week_started_at ? new Date(user.week_started_at) : now
     const weekExpired = now.getTime() - weekStarted.getTime() >= 7 * 86400 * 1000
 
@@ -94,15 +87,21 @@ serve(async (req) => {
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
     if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY missing")
 
+    const styleText = STYLE_PROMPTS[style] || STYLE_PROMPTS["funny"]
+
     let systemPrompt = ""
     let userPrompt = ""
 
     if (action_type === "opener") {
       systemPrompt = OPENER_SYSTEM_PROMPT
-      userPrompt = buildOpenerUserPrompt(facts || "")
+      userPrompt = buildOpenerUserPrompt(facts || "", styleText)
     } else {
-      const actionInstruction = ACTION_INSTRUCTIONS[action_type] ?? ""
-      systemPrompt = REPLY_SYSTEM_PROMPT + actionInstruction
+      // Build system prompt with action-specific instructions
+      let fullSystemPrompt = REPLY_SYSTEM_PROMPT
+      if (action_type === "date") fullSystemPrompt += "\n\n" + DATE_INSTRUCTIONS
+      if (action_type === "contact") fullSystemPrompt += "\n\n" + CONTACT_INSTRUCTIONS
+      if (action_type === "reengage") fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
+      systemPrompt = fullSystemPrompt
 
       if (!conversation_id) {
         return new Response(
@@ -153,12 +152,10 @@ serve(async (req) => {
         conversationSummary = conv.summary || undefined
 
         if (!conversationSummary) {
-          // Generate summary from the older portion of the history
           const olderMessages = history.slice(0, history.length - 8)
           const generated = await generateSummary(olderMessages, ANTHROPIC_KEY)
           if (generated) {
             conversationSummary = generated
-            // Persist summary (fire-and-forget)
             supabase
               .from("conversations")
               .update({ summary: generated, summary_updated_at: now.toISOString() })
@@ -168,7 +165,6 @@ serve(async (req) => {
         }
       }
 
-      // Slice to recent context window
       const contextMessages = conversationSummary ? history.slice(-8) : history
       const lastMessage = contextMessages[contextMessages.length - 1]
       const previousMessages = contextMessages.slice(0, -1)
@@ -179,7 +175,7 @@ serve(async (req) => {
       const lastGirlText =
         lastMessage.role === "girl" ? lastMessage.text : incoming_message || ""
 
-      userPrompt = buildReplyUserPrompt(historyText, lastGirlText, conversationSummary)
+      userPrompt = buildReplyUserPrompt(historyText, lastGirlText, conversationSummary, styleText)
     }
 
     /* =====================
@@ -224,11 +220,19 @@ serve(async (req) => {
       )
     }
 
-    const rawText =
+    let rawText =
       anthropicData.content
         ?.filter((block: any) => block.type === "text")
         .map((block: any) => block.text)
         .join("\n") || ""
+
+    // Parse HINT from response
+    let hint = "none"
+    const hintMatch = rawText.match(/\[HINT:(date|contact|reengage|none)\]/)
+    if (hintMatch) {
+      hint = hintMatch[1]
+      rawText = rawText.replace(/\[HINT:(date|contact|reengage|none)\]/, "").trim()
+    }
 
     let suggestions = rawText
       .split("§")
@@ -271,7 +275,7 @@ serve(async (req) => {
       })
       .then(() => {})
 
-    // Deduct generation from the right bucket: free first, then paid
+    // Deduct generation: free first, then paid
     let newWeeklyUsed = weeklyUsed
     let newPaidBalance = paidBalance
 
@@ -285,7 +289,6 @@ serve(async (req) => {
         })
         .eq("telegram_id", telegram_id)
     } else {
-      // Deduct from paid balance atomically
       newPaidBalance = paidBalance - 1
       await supabase.rpc("increment_generations_balance", {
         p_telegram_id: telegram_id,
@@ -296,6 +299,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         suggestions,
+        hint,
         limit_reached: false,
         free_remaining: Math.max(0, weeklyLimit - newWeeklyUsed),
         paid_remaining: newPaidBalance,

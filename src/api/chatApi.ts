@@ -23,6 +23,7 @@ export interface Message {
 
 export interface GenerateResponse {
   suggestions: string[];
+  hint?: string;
   limit_reached: boolean;
   free_remaining: number;
   paid_remaining: number;
@@ -123,7 +124,8 @@ export const chatGenerate = async (
   conversation_id: string,
   incoming_message: string | null,
   action_type: "normal" | "reengage" | "contact" | "date" | "opener",
-  facts?: string
+  facts?: string,
+  style?: "bold" | "romantic" | "funny"
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
     method: "POST",
@@ -134,6 +136,7 @@ export const chatGenerate = async (
       action_type,
       init_data: getInitData(),
       facts: facts || null,
+      style: style || "funny",
     }),
   });
 

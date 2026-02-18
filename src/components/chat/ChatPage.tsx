@@ -15,6 +15,20 @@ interface ChatPageProps {
   onSubscribe?: () => void;
 }
 
+type Style = "bold" | "romantic" | "funny";
+
+const STYLES: { key: Style; label: string }[] = [
+  { key: "bold", label: "Дерзкий" },
+  { key: "romantic", label: "Романтик" },
+  { key: "funny", label: "Весельчак" },
+];
+
+const HINT_CONFIG: Record<string, { text: string; button: string; action: "date" | "contact" | "reengage" }> = {
+  date: { text: "Она готова к встрече", button: "Предложить свидание", action: "date" },
+  contact: { text: "Пора обменяться контактами", button: "Взять контакт", action: "contact" },
+  reengage: { text: "Диалог затух", button: "Оживить беседу", action: "reengage" },
+};
+
 const ChatPage: React.FC<ChatPageProps> = ({
   conversationId,
   onBack,
@@ -28,14 +42,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [openerFacts, setOpenerFacts] = useState("");
 
-  const [selectedAction, setSelectedAction] = useState<
-    "reengage" | "contact" | "date" | null
-  >(null);
+  const [style, setStyle] = useState<Style>("funny");
+  const [hint, setHint] = useState<string | null>(null);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Ref для мгновенной блокировки двойного клика
   const isGeneratingRef = useRef(false);
   const isSavingRef = useRef(false);
 
@@ -60,50 +72,48 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   /* ================= GENERATE ================= */
 
-  const handleGenerate = async () => {
-    // Мгновенная блокировка через ref (useState асинхронный — не спасает от двойного клика)
+  const handleGenerate = async (actionOverride?: "date" | "contact" | "reengage") => {
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
 
     const facts = openerFacts.trim();
     const girlText = draftGirlReply.trim();
 
-    // Разрешаем генерацию без текста, если последнее сообщение в истории от девушки
     const lastMsg = messages[messages.length - 1];
     const hasUnansweredGirl = lastMsg?.role === "girl";
 
-    if (!facts && !girlText && !hasUnansweredGirl) {
+    if (!facts && !girlText && !hasUnansweredGirl && !actionOverride) {
       isGeneratingRef.current = false;
       return;
     }
 
     setGenerating(true);
     setSuggestions([]);
+    setHint(null);
 
     try {
       let res;
 
-      // 🔵 OPENER
-      if (facts) {
+      if (facts && !actionOverride) {
         res = await chatGenerate(
           conversationId,
           null,
           "opener",
-          facts
+          facts,
+          style
         );
-      }
-
-      // 🔴 REPLY
-      else {
-        const action = selectedAction ?? "normal";
+      } else {
+        const action = actionOverride ?? "normal";
 
         res = await chatGenerate(
           conversationId,
           girlText || null,
-          action
+          action,
+          undefined,
+          style
         );
 
-        setDraftGirlReply("");
+        if (!actionOverride) setDraftGirlReply("");
       }
 
       if (res.limit_reached) {
@@ -115,11 +125,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
         showToast("Не удалось сгенерировать ответ", "error");
       } else {
         setSuggestions(res.suggestions || []);
+        if (res.hint && res.hint !== "none") {
+          setHint(res.hint);
+        }
       }
 
       setOpenerFacts("");
-
-      // Подтягиваем актуальную историю из БД
       await refreshConversation();
 
     } catch (err) {
@@ -141,6 +152,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     try {
       await chatSave(conversationId, text, "user");
       setSuggestions([]);
+      setHint(null);
       await refreshConversation();
     } catch (err) {
       console.error(err);
@@ -150,12 +162,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }
   };
 
-  const toggleAction = (action: "reengage" | "contact" | "date") => {
-    if (selectedAction === action) {
-      setSelectedAction(null);
-    } else {
-      setSelectedAction(action);
-    }
+  const handleHintAction = (action: "date" | "contact" | "reengage") => {
+    setHint(null);
+    handleGenerate(action);
   };
 
   return (
@@ -171,6 +180,25 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </button>
           <span className="font-semibold text-white">{girlName}</span>
         </div>
+      </div>
+
+      {/* STYLE TABS */}
+      <div className="px-4 py-2 flex gap-2 bg-[#0A0A0A]">
+        {STYLES.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setStyle(s.key)}
+            className="flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150"
+            style={{
+              background: style === s.key
+                ? "linear-gradient(135deg, #EF4444, #F43F5E)"
+                : "#1A1A1A",
+              color: style === s.key ? "#FFFFFF" : "#9CA3AF",
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
       {/* CONTENT */}
@@ -229,39 +257,33 @@ const ChatPage: React.FC<ChatPageProps> = ({
         )}
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="px-4 pb-3 flex gap-2">
-        {[
-          { label: "Продолжить", action: "reengage" },
-          { label: "Контакт", action: "contact" },
-          { label: "Встреча", action: "date" },
-        ].map((btn) => (
-          <button
-            key={btn.label}
-            onClick={() => toggleAction(btn.action as any)}
-            className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-              selectedAction === btn.action ? "text-white" : "text-gray-400"
-            }`}
-            style={{
-              background: selectedAction === btn.action
-                ? "linear-gradient(135deg, #EF4444, #F43F5E)"
-                : "#1A1A1A",
-            }}
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
-
       <SuggestionsPanel
         suggestions={suggestions}
         onSelect={handleSelectSuggestion}
         loading={generating}
       />
 
+      {/* HINT BANNER */}
+      {hint && HINT_CONFIG[hint] && !generating && (
+        <div
+          className="mx-4 mb-2 px-4 py-3 rounded-2xl flex items-center gap-3"
+          style={{ background: "#1A1A1A", border: "1px solid rgba(251,191,36,0.3)" }}
+        >
+          <span className="text-lg">💡</span>
+          <span className="flex-1 text-sm text-gray-300">{HINT_CONFIG[hint].text}</span>
+          <button
+            onClick={() => handleHintAction(HINT_CONFIG[hint].action)}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
+            style={{ background: "rgba(251,191,36,0.15)", color: "#FBBF24" }}
+          >
+            {HINT_CONFIG[hint].button}
+          </button>
+        </div>
+      )}
+
       <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
         <button
-          onClick={handleGenerate}
+          onClick={() => handleGenerate()}
           disabled={generating}
           className="w-full py-3 rounded-2xl text-white font-semibold
                      shadow-lg active:scale-[0.98] transition-transform disabled:opacity-50"

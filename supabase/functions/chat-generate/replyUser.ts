@@ -1,10 +1,13 @@
 export function buildReplyUserPrompt(
   historyText: string,
   lastGirlMessage: string,
-  summary?: string
+  summary?: string,
+  styleText?: string
 ) {
+  const styleBlock = styleText ? `Стиль общения:\n${styleText}\n\n` : ""
+
   if (summary) {
-    return `Краткое резюме предыдущей переписки:
+    return `${styleBlock}Краткое резюме предыдущей переписки:
 ${summary}
 
 Последние сообщения:
@@ -21,7 +24,7 @@ ${lastGirlMessage}
 `
   }
 
-  return `История переписки (от старых к новым):
+  return `${styleBlock}История переписки (от старых к новым):
 ${historyText}
 
 Последнее сообщение девушки:
