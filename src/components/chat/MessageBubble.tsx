@@ -37,7 +37,7 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
             className="relative z-0 text-xs rounded-br-lg transition-colors"
             style={{
               display: "block",
-              width: "40%",
+              width: "50%",
               height: 34,
               marginTop: -16,
               paddingTop: 18,
