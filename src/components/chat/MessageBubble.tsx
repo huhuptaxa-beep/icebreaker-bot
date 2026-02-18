@@ -4,10 +4,12 @@ interface Props {
   text: string;
   role: "user" | "girl";
   onPaste?: (text: string) => void;
+  showPaste?: boolean;
 }
 
-const MessageBubble: React.FC<Props> = ({ text, role, onPaste }) => {
+const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
   const isMine = role === "user";
+  const showButton = isMine || showPaste;
   const [actionLabel, setActionLabel] = useState<string | null>(null);
 
   const handleCopy = async () => {
@@ -35,7 +37,7 @@ const MessageBubble: React.FC<Props> = ({ text, role, onPaste }) => {
     >
       <div className="max-w-[70%]">
         <div
-          className="px-4 py-3 rounded-2xl text-sm shadow-md"
+          className={`px-4 py-3 text-sm shadow-md rounded-2xl ${showButton ? "rounded-b-none" : ""}`}
           style={{
             background: isMine
               ? "linear-gradient(135deg, #EF4444 0%, #F43F5E 100%)"
@@ -45,21 +47,20 @@ const MessageBubble: React.FC<Props> = ({ text, role, onPaste }) => {
         >
           {text}
         </div>
-        <button
-          onClick={isMine ? handleCopy : handlePaste}
-          className={`text-xs px-3 py-1 rounded-b-lg transition-colors ${
-            isMine ? "ml-auto" : ""
-          }`}
-          style={{
-            display: "block",
-            background: isMine ? "rgba(185,28,28,0.5)" : "rgba(30,30,30,0.7)",
-            color: isMine ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.45)",
-            marginLeft: isMine ? "auto" : undefined,
-            marginTop: "-2px",
-          }}
-        >
-          {actionLabel ?? (isMine ? "Скопировать" : "Вставить")}
-        </button>
+        {showButton && (
+          <button
+            onClick={isMine ? handleCopy : handlePaste}
+            className="text-xs px-3 py-1 rounded-b-lg transition-colors"
+            style={{
+              display: "block",
+              background: isMine ? "#B91C1C" : "#161616",
+              color: isMine ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.45)",
+              marginLeft: isMine ? "auto" : undefined,
+            }}
+          >
+            {actionLabel ?? (isMine ? "Скопировать" : "Вставить")}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -187,14 +187,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
       >
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            text={msg.text}
-            role={msg.role}
-            onPaste={msg.role === "girl" ? (t) => setDraftGirlReply(t) : undefined}
-          />
-        ))}
+        {messages.map((msg, idx) => {
+          const isLastGirl =
+            msg.role === "girl" &&
+            idx === messages.reduce((last, m, i) => (m.role === "girl" ? i : last), -1);
+          return (
+            <MessageBubble
+              key={msg.id}
+              text={msg.text}
+              role={msg.role}
+              onPaste={isLastGirl ? (t) => setDraftGirlReply(t) : undefined}
+              showPaste={isLastGirl}
+            />
+          );
+        })}
 
         {isNewDialog && (
           <>
