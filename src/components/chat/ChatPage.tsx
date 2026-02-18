@@ -232,15 +232,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 </div>
                 <button
                   onClick={handleTextareaPaste}
-                  className="relative z-0 w-full text-xs transition-colors"
+                  className="relative z-0 text-xs transition-colors"
                   style={{
-                    height: 30,
+                    display: "block",
+                    width: "50%",
+                    height: 26,
                     marginTop: -12,
-                    paddingTop: 16,
+                    paddingTop: 14,
                     paddingBottom: 2,
-                    clipPath: "polygon(5% 0%, 95% 0%, 80% 100%, 20% 100%)",
+                    clipPath: "polygon(0% 0%, 90% 0%, 75% 100%, 0% 100%)",
                     background: "#161616",
                     color: "rgba(255,255,255,0.45)",
+                    textAlign: "center",
                   }}
                 >
                   {pasteLabel ?? "Вставить"}

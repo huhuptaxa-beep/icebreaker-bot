@@ -7,7 +7,8 @@ interface Props {
   showPaste?: boolean;
 }
 
-const TRAPEZOID_CLIP = "polygon(5% 0%, 95% 0%, 80% 100%, 20% 100%)";
+const CLIP_RIGHT = "polygon(10% 0%, 100% 0%, 100% 100%, 25% 100%)";
+const CLIP_LEFT = "polygon(0% 0%, 90% 0%, 75% 100%, 0% 100%)";
 
 const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
   const isMine = role === "user";
@@ -50,15 +51,20 @@ const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
         {showButton && (
           <button
             onClick={isMine ? handleCopy : handlePaste}
-            className="relative z-0 w-full text-xs transition-colors"
+            className="relative z-0 text-xs transition-colors"
             style={{
-              height: 30,
+              display: "block",
+              width: "50%",
+              height: 26,
               marginTop: -12,
-              paddingTop: 16,
+              paddingTop: 14,
               paddingBottom: 2,
-              clipPath: TRAPEZOID_CLIP,
+              marginLeft: isMine ? "auto" : undefined,
+              marginRight: isMine ? undefined : "auto",
+              clipPath: isMine ? CLIP_RIGHT : CLIP_LEFT,
               background: isMine ? "#B91C1C" : "#161616",
               color: isMine ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.45)",
+              textAlign: "center",
             }}
           >
             {actionLabel ?? (isMine ? "Скопировать" : "Вставить")}
