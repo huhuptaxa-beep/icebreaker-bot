@@ -7,6 +7,8 @@ interface Props {
   showPaste?: boolean;
 }
 
+const TRAPEZOID_CLIP = "polygon(5% 0%, 95% 0%, 80% 100%, 20% 100%)";
+
 const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
   const isMine = role === "user";
   const showButton = isMine || showPaste;
@@ -32,12 +34,10 @@ const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
   };
 
   return (
-    <div
-      className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fadeIn`}
-    >
+    <div className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fadeIn`}>
       <div className="max-w-[70%]">
         <div
-          className={`px-4 py-3 text-sm shadow-md rounded-2xl ${showButton ? "rounded-b-none" : ""}`}
+          className="relative z-10 px-4 py-3 rounded-2xl text-sm shadow-md"
           style={{
             background: isMine
               ? "linear-gradient(135deg, #EF4444 0%, #F43F5E 100%)"
@@ -50,12 +50,15 @@ const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
         {showButton && (
           <button
             onClick={isMine ? handleCopy : handlePaste}
-            className="text-xs px-3 py-1 rounded-b-lg transition-colors"
+            className="relative z-0 w-full text-xs transition-colors"
             style={{
-              display: "block",
+              height: 30,
+              marginTop: -12,
+              paddingTop: 16,
+              paddingBottom: 2,
+              clipPath: TRAPEZOID_CLIP,
               background: isMine ? "#B91C1C" : "#161616",
-              color: isMine ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.45)",
-              marginLeft: isMine ? "auto" : undefined,
+              color: isMine ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.45)",
             }}
           >
             {actionLabel ?? (isMine ? "Скопировать" : "Вставить")}

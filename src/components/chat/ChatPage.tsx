@@ -51,7 +51,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const isGeneratingRef = useRef(false);
   const isSavingRef = useRef(false);
 
+  const [pasteLabel, setPasteLabel] = useState<string | null>(null);
+
   const isNewDialog = messages.length === 0;
+
+  const handleTextareaPaste = async () => {
+    try {
+      const clipText = await navigator.clipboard.readText();
+      if (clipText) {
+        setDraftGirlReply(clipText);
+        setPasteLabel("Вставлено ✓");
+        setTimeout(() => setPasteLabel(null), 1500);
+      }
+    } catch {}
+  };
 
   const refreshConversation = async () => {
     const data = await getConversation(conversationId);
@@ -206,15 +219,32 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <>
             <div className="flex">
               <div className="max-w-[70%]">
-                <textarea
-                  value={draftGirlReply}
-                  onChange={(e) =>
-                    setDraftGirlReply(e.target.value)
-                  }
-                  placeholder="Вставь её сообщение, если написала первая"
-                  className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
-                  style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
-                />
+                <div className="relative z-10">
+                  <textarea
+                    value={draftGirlReply}
+                    onChange={(e) =>
+                      setDraftGirlReply(e.target.value)
+                    }
+                    placeholder="Вставь её сообщение, если написала первая"
+                    className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
+                    style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
+                  />
+                </div>
+                <button
+                  onClick={handleTextareaPaste}
+                  className="relative z-0 w-full text-xs transition-colors"
+                  style={{
+                    height: 30,
+                    marginTop: -12,
+                    paddingTop: 16,
+                    paddingBottom: 2,
+                    clipPath: "polygon(5% 0%, 95% 0%, 80% 100%, 20% 100%)",
+                    background: "#161616",
+                    color: "rgba(255,255,255,0.45)",
+                  }}
+                >
+                  {pasteLabel ?? "Вставить"}
+                </button>
               </div>
             </div>
 
@@ -235,15 +265,32 @@ const ChatPage: React.FC<ChatPageProps> = ({
         {!isNewDialog && (
           <div className="flex">
             <div className="max-w-[70%]">
-              <textarea
-                value={draftGirlReply}
-                onChange={(e) =>
-                  setDraftGirlReply(e.target.value)
-                }
-                placeholder="Вставь её ответ..."
-                className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
-                style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
-              />
+              <div className="relative z-10">
+                <textarea
+                  value={draftGirlReply}
+                  onChange={(e) =>
+                    setDraftGirlReply(e.target.value)
+                  }
+                  placeholder="Вставь её ответ..."
+                  className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
+                  style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
+                />
+              </div>
+              <button
+                onClick={handleTextareaPaste}
+                className="relative z-0 w-full text-xs transition-colors"
+                style={{
+                  height: 30,
+                  marginTop: -12,
+                  paddingTop: 16,
+                  paddingBottom: 2,
+                  clipPath: "polygon(5% 0%, 95% 0%, 80% 100%, 20% 100%)",
+                  background: "#161616",
+                  color: "rgba(255,255,255,0.45)",
+                }}
+              >
+                {pasteLabel ?? "Вставить"}
+              </button>
             </div>
           </div>
         )}
