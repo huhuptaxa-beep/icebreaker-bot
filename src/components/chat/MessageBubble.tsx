@@ -3,16 +3,10 @@ import React, { useState } from "react";
 interface Props {
   text: string;
   role: "user" | "girl";
-  onPaste?: (text: string) => void;
-  showPaste?: boolean;
 }
 
-const CLIP_RIGHT = "polygon(10% 0%, 100% 0%, 100% 100%, 25% 100%)";
-const CLIP_LEFT = "polygon(0% 0%, 90% 0%, 75% 100%, 0% 100%)";
-
-const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
+const MessageBubble: React.FC<Props> = ({ text, role }) => {
   const isMine = role === "user";
-  const showButton = isMine || showPaste;
   const [actionLabel, setActionLabel] = useState<string | null>(null);
 
   const handleCopy = async () => {
@@ -20,17 +14,6 @@ const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
       await navigator.clipboard.writeText(text);
       setActionLabel("Скопировано ✓");
       setTimeout(() => setActionLabel(null), 1500);
-    } catch {}
-  };
-
-  const handlePaste = async () => {
-    try {
-      const clipText = await navigator.clipboard.readText();
-      if (clipText && onPaste) {
-        onPaste(clipText);
-        setActionLabel("Вставлено ✓");
-        setTimeout(() => setActionLabel(null), 1500);
-      }
     } catch {}
   };
 
@@ -48,26 +31,24 @@ const MessageBubble: React.FC<Props> = ({ text, role, onPaste, showPaste }) => {
         >
           {text}
         </div>
-        {showButton && (
+        {isMine && (
           <button
-            onClick={isMine ? handleCopy : handlePaste}
-            className="relative z-0 text-xs transition-colors"
+            onClick={handleCopy}
+            className="relative z-0 text-xs rounded-b-lg transition-colors"
             style={{
               display: "block",
-              width: "50%",
-              height: 26,
+              width: "60%",
+              height: 34,
               marginTop: -12,
-              paddingTop: 14,
-              paddingBottom: 2,
-              marginLeft: isMine ? "auto" : undefined,
-              marginRight: isMine ? undefined : "auto",
-              clipPath: isMine ? CLIP_RIGHT : CLIP_LEFT,
-              background: isMine ? "#B91C1C" : "#161616",
-              color: isMine ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.45)",
+              paddingTop: 16,
+              paddingBottom: 4,
+              marginLeft: "auto",
+              background: "#B91C1C",
+              color: "rgba(255,255,255,0.7)",
               textAlign: "center",
             }}
           >
-            {actionLabel ?? (isMine ? "Скопировать" : "Вставить")}
+            {actionLabel ?? "Скопировать"}
           </button>
         )}
       </div>

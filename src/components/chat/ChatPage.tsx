@@ -200,20 +200,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
       >
-        {messages.map((msg, idx) => {
-          const isLastGirl =
-            msg.role === "girl" &&
-            idx === messages.reduce((last, m, i) => (m.role === "girl" ? i : last), -1);
-          return (
-            <MessageBubble
-              key={msg.id}
-              text={msg.text}
-              role={msg.role}
-              onPaste={isLastGirl ? (t) => setDraftGirlReply(t) : undefined}
-              showPaste={isLastGirl}
-            />
-          );
-        })}
+        {messages.map((msg) => (
+          <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
+        ))}
 
         {isNewDialog && (
           <>
@@ -232,15 +221,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 </div>
                 <button
                   onClick={handleTextareaPaste}
-                  className="relative z-0 text-xs transition-colors"
+                  className="relative z-0 text-xs rounded-b-lg transition-colors"
                   style={{
                     display: "block",
-                    width: "50%",
-                    height: 26,
+                    width: "60%",
+                    height: 34,
                     marginTop: -12,
-                    paddingTop: 14,
-                    paddingBottom: 2,
-                    clipPath: "polygon(0% 0%, 90% 0%, 75% 100%, 0% 100%)",
+                    paddingTop: 16,
+                    paddingBottom: 4,
                     background: "#161616",
                     color: "rgba(255,255,255,0.45)",
                     textAlign: "center",
@@ -281,15 +269,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
               </div>
               <button
                 onClick={handleTextareaPaste}
-                className="relative z-0 w-full text-xs transition-colors"
+                className="relative z-0 text-xs rounded-b-lg transition-colors"
                 style={{
-                  height: 30,
+                  display: "block",
+                  width: "60%",
+                  height: 34,
                   marginTop: -12,
                   paddingTop: 16,
-                  paddingBottom: 2,
-                  clipPath: "polygon(5% 0%, 95% 0%, 80% 100%, 20% 100%)",
+                  paddingBottom: 4,
                   background: "#161616",
                   color: "rgba(255,255,255,0.45)",
+                  textAlign: "center",
                 }}
               >
                 {pasteLabel ?? "Вставить"}
