@@ -221,17 +221,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 </div>
                 <button
                   onClick={handleTextareaPaste}
-                  className="relative z-0 text-xs rounded-b-lg transition-colors"
+                  className="relative z-0 text-xs rounded-bl-lg transition-colors"
                   style={{
                     display: "block",
-                    width: "60%",
+                    width: "40%",
                     height: 34,
-                    marginTop: -12,
-                    paddingTop: 16,
+                    marginTop: -16,
+                    paddingTop: 18,
                     paddingBottom: 4,
                     background: "#161616",
                     color: "rgba(255,255,255,0.45)",
                     textAlign: "center",
+                    clipPath: "polygon(0% 0%, 75% 0%, 100% 100%, 0% 100%)",
                   }}
                 >
                   {pasteLabel ?? "Вставить"}
@@ -269,17 +270,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
               </div>
               <button
                 onClick={handleTextareaPaste}
-                className="relative z-0 text-xs rounded-b-lg transition-colors"
+                className="relative z-0 text-xs rounded-bl-lg transition-colors"
                 style={{
                   display: "block",
-                  width: "60%",
+                  width: "40%",
                   height: 34,
-                  marginTop: -12,
-                  paddingTop: 16,
+                  marginTop: -16,
+                  paddingTop: 18,
                   paddingBottom: 4,
                   background: "#161616",
                   color: "rgba(255,255,255,0.45)",
                   textAlign: "center",
+                  clipPath: "polygon(0% 0%, 75% 0%, 100% 100%, 0% 100%)",
                 }}
               >
                 {pasteLabel ?? "Вставить"}

@@ -34,18 +34,19 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
         {isMine && (
           <button
             onClick={handleCopy}
-            className="relative z-0 text-xs rounded-b-lg transition-colors"
+            className="relative z-0 text-xs rounded-br-lg transition-colors"
             style={{
               display: "block",
-              width: "60%",
+              width: "40%",
               height: 34,
-              marginTop: -12,
-              paddingTop: 16,
+              marginTop: -16,
+              paddingTop: 18,
               paddingBottom: 4,
               marginLeft: "auto",
               background: "#B91C1C",
               color: "rgba(255,255,255,0.7)",
               textAlign: "center",
+              clipPath: "polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%)",
             }}
           >
             {actionLabel ?? "Скопировать"}
