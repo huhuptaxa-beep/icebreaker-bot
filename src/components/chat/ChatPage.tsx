@@ -224,14 +224,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   className="relative z-0 text-xs rounded-bl-lg transition-colors"
                   style={{
                     display: "block",
-                    width: "70%",
+                    width: "50%",
                     height: 34,
                     marginTop: -16,
                     paddingTop: 18,
                     paddingBottom: 4,
                     background: "#161616",
                     color: "rgba(255,255,255,0.45)",
-                    textAlign: "center",
+                    textAlign: "left",
+                    paddingLeft: 8,
                     clipPath: "polygon(0% 0%, 100% 0%, 65% 100%, 0% 100%)",
                   }}
                 >
@@ -273,14 +274,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 className="relative z-0 text-xs rounded-bl-lg transition-colors"
                 style={{
                   display: "block",
-                  width: "70%",
+                  width: "50%",
                   height: 34,
                   marginTop: -16,
                   paddingTop: 18,
                   paddingBottom: 4,
                   background: "#161616",
                   color: "rgba(255,255,255,0.45)",
-                  textAlign: "center",
+                  textAlign: "left",
+                  paddingLeft: 8,
                   clipPath: "polygon(0% 0%, 100% 0%, 65% 100%, 0% 100%)",
                 }}
               >
