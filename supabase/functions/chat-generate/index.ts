@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { validateInitData } from "../_shared/validateTelegram.ts"
 import { generateSummary } from "../_shared/generateSummary.ts"
 
-import { SYSTEM_PROMPT } from "./systemPrompt.ts"
+import { OPENER_SYSTEM_PROMPT } from "./openerSystemPrompt.ts"
+import { REPLY_SYSTEM_PROMPT } from "./replySystemPrompt.ts"
 import { STYLE_BOLD } from "./styleBold.ts"
 import { STYLE_ROMANTIC } from "./styleRomantic.ts"
 import { STYLE_BADGUY } from "./stylebadguy.ts"
@@ -95,8 +96,15 @@ serve(async (req) => {
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
     if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY missing")
 
-    // System prompt with action-specific instructions
-    let fullSystemPrompt = SYSTEM_PROMPT
+    // System prompt: opener vs reply
+    let baseSystemPrompt: string
+    if (action_type === "opener") {
+      baseSystemPrompt = OPENER_SYSTEM_PROMPT
+    } else {
+      baseSystemPrompt = REPLY_SYSTEM_PROMPT
+    }
+
+    let fullSystemPrompt = baseSystemPrompt
     if (action_type === "date") fullSystemPrompt += "\n\n" + DATE_INSTRUCTIONS
     if (action_type === "contact") fullSystemPrompt += "\n\n" + CONTACT_INSTRUCTIONS
     if (action_type === "reengage") fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
@@ -213,7 +221,7 @@ serve(async (req) => {
           temperature: 0.85,
           system: [
             { type: "text", text: fullSystemPrompt, cache_control: { type: "ephemeral" } },
-            { type: "text", text: styleText },
+            { type: "text", text: styleText, cache_control: { type: "ephemeral" } },
           ],
           messages: [{ role: "user", content: userPrompt }],
         }),

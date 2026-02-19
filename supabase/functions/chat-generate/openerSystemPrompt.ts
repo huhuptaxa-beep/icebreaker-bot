@@ -1,0 +1,1 @@
+export const OPENER_SYSTEM_PROMPT = `OPENER_SYSTEM_PROMPT_PLACEHOLDER — заменить вручную`
