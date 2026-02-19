@@ -3,14 +3,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { validateInitData } from "../_shared/validateTelegram.ts"
 import { generateSummary } from "../_shared/generateSummary.ts"
 
-import { OPENER_SYSTEM_PROMPT } from "./openerSystem.ts"
-import { REPLY_SYSTEM_PROMPT } from "./replySystem.ts"
-import { buildOpenerUserPrompt } from "./openerUser.ts"
-import { buildReplyUserPrompt } from "./replyUser.ts"
+import { SYSTEM_PROMPT } from "./systemPrompt.ts"
+import { STYLE_BOLD } from "./styleBold.ts"
+import { STYLE_ROMANTIC } from "./styleRomantic.ts"
+import { STYLE_BADGUY } from "./stylebadguy.ts"
+import { STYLE_DEFAULT } from "./styleDefault.ts"
+import { buildUserPrompt } from "./userPrompt.ts"
 import { DATE_INSTRUCTIONS } from "./dateInstructions.ts"
 import { CONTACT_INSTRUCTIONS } from "./contactInstructions.ts"
 import { REENGAGE_INSTRUCTIONS } from "./reengageInstructions.ts"
-import { STYLE_PROMPTS } from "./styles.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,13 @@ const corsHeaders = {
 }
 
 const FREE_WEEKLY_LIMIT = 7
+
+const STYLE_MAP: Record<string, string> = {
+  bold: STYLE_BOLD,
+  romantic: STYLE_ROMANTIC,
+  badguy: STYLE_BADGUY,
+  default: STYLE_DEFAULT,
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -87,22 +95,28 @@ serve(async (req) => {
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
     if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY missing")
 
-    const styleText = STYLE_PROMPTS[style] || STYLE_PROMPTS["funny"]
+    // System prompt with action-specific instructions
+    let fullSystemPrompt = SYSTEM_PROMPT
+    if (action_type === "date") fullSystemPrompt += "\n\n" + DATE_INSTRUCTIONS
+    if (action_type === "contact") fullSystemPrompt += "\n\n" + CONTACT_INSTRUCTIONS
+    if (action_type === "reengage") fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
 
-    let systemPrompt = ""
-    let userPrompt = ""
+    // Style
+    const styleText = STYLE_MAP[style] || STYLE_DEFAULT
 
-    if (action_type === "opener") {
-      systemPrompt = OPENER_SYSTEM_PROMPT
-      userPrompt = buildOpenerUserPrompt(facts || "", styleText)
+    // Message type
+    const messageType = (action_type === "opener") ? "first_message" as const : "reply" as const
+
+    let profileInfo = ""
+    let conversationContext = ""
+    let lastMessage = ""
+    let conversationSummary: string | undefined
+
+    if (messageType === "first_message") {
+      profileInfo = facts || ""
+      lastMessage = incoming_message || ""
     } else {
-      // Build system prompt with action-specific instructions
-      let fullSystemPrompt = REPLY_SYSTEM_PROMPT
-      if (action_type === "date") fullSystemPrompt += "\n\n" + DATE_INSTRUCTIONS
-      if (action_type === "contact") fullSystemPrompt += "\n\n" + CONTACT_INSTRUCTIONS
-      if (action_type === "reengage") fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
-      systemPrompt = fullSystemPrompt
-
+      // Reply mode — need conversation_id
       if (!conversation_id) {
         return new Response(
           JSON.stringify({ error: "conversation_id missing" }),
@@ -146,8 +160,6 @@ serve(async (req) => {
       }
 
       /* ---- Memory V2: use summary + last 8 when history > 12 ---- */
-      let conversationSummary: string | undefined
-
       if (history.length > 12) {
         conversationSummary = conv.summary || undefined
 
@@ -166,17 +178,17 @@ serve(async (req) => {
       }
 
       const contextMessages = conversationSummary ? history.slice(-8) : history
-      const lastMessage = contextMessages[contextMessages.length - 1]
+      const lastMsg = contextMessages[contextMessages.length - 1]
       const previousMessages = contextMessages.slice(0, -1)
 
-      const historyText = previousMessages
+      conversationContext = previousMessages
         .map((msg) => `${msg.role === "user" ? "Ты" : "Она"}: ${msg.text}`)
         .join("\n")
-      const lastGirlText =
-        lastMessage.role === "girl" ? lastMessage.text : incoming_message || ""
-
-      userPrompt = buildReplyUserPrompt(historyText, lastGirlText, conversationSummary, styleText)
+      lastMessage =
+        lastMsg.role === "girl" ? lastMsg.text : incoming_message || ""
     }
+
+    const userPrompt = buildUserPrompt(messageType, profileInfo, conversationContext, lastMessage, conversationSummary)
 
     /* =====================
        CLAUDE API (with prompt caching)
@@ -196,11 +208,12 @@ serve(async (req) => {
           "anthropic-beta": "prompt-caching-2024-07-31",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-5-20250929",
+          model: "claude-sonnet-4-6",
           max_tokens: 450,
           temperature: 0.85,
           system: [
-            { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
+            { type: "text", text: fullSystemPrompt, cache_control: { type: "ephemeral" } },
+            { type: "text", text: styleText },
           ],
           messages: [{ role: "user", content: userPrompt }],
         }),

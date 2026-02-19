@@ -15,13 +15,15 @@ interface ChatPageProps {
   onSubscribe?: () => void;
 }
 
-type Style = "bold" | "romantic" | "funny";
+type Style = "bold" | "romantic" | "badguy";
 
 const STYLES: { key: Style; label: string }[] = [
   { key: "bold", label: "Дерзкий" },
   { key: "romantic", label: "Романтик" },
-  { key: "funny", label: "Весельчак" },
+  { key: "badguy", label: "bad guy" },
 ];
+
+type ActiveStyle = Style | null;
 
 const HINT_CONFIG: Record<string, { text: string; button: string; action: "date" | "contact" | "reengage" }> = {
   date: { text: "Она готова к встрече", button: "Предложить свидание", action: "date" },
@@ -42,7 +44,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [openerFacts, setOpenerFacts] = useState("");
 
-  const [style, setStyle] = useState<Style>("funny");
+  const [style, setStyle] = useState<ActiveStyle>(null);
   const [hint, setHint] = useState<string | null>(null);
 
   const { showToast } = useAppToast();
@@ -113,7 +115,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           null,
           "opener",
           facts,
-          style
+          style ?? "default"
         );
       } else {
         const action = actionOverride ?? "normal";
@@ -123,7 +125,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           girlText || null,
           action,
           undefined,
-          style
+          style ?? "default"
         );
 
         if (!actionOverride) setDraftGirlReply("");
@@ -322,7 +324,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         {STYLES.map((s) => (
           <button
             key={s.key}
-            onClick={() => setStyle(s.key)}
+            onClick={() => setStyle(style === s.key ? null : s.key)}
             className="flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150"
             style={{
               background: style === s.key
