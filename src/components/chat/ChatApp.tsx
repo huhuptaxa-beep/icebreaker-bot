@@ -25,6 +25,9 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [newGirlName, setNewGirlName] = useState("");
+
   const fetchConversations = useCallback(async () => {
     if (!telegramId) return;
     setLoading(true);
@@ -48,15 +51,19 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
      CREATE
   =========================== */
 
-  const handleCreate = async () => {
-    if (!telegramId) return;
+  const handleCreate = () => {
+    setNewGirlName("");
+    setShowNameModal(true);
+  };
 
-    const girlName = window.prompt("Введите имя девушки");
-    if (!girlName || girlName.trim().length === 0) return;
+  const handleConfirmCreate = async () => {
+    const name = newGirlName.trim();
+    if (!name || !telegramId) return;
 
+    setShowNameModal(false);
     setLoading(true);
     try {
-      const conv = await createConversation(girlName.trim());
+      const conv = await createConversation(name);
       if (!conv || !conv.id) {
         showToast("Не удалось создать диалог", "error");
         return;
@@ -122,16 +129,60 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   }
 
   return (
-    <div key="list" className="animate-fadeIn">
-      <ConversationsPage
-        conversations={conversations}
-        onSelect={handleSelect}
-        onCreate={handleCreate}
-        onDelete={handleDelete}
-        onSubscribe={() => setView("subscription")}
-        loading={loading}
-      />
-    </div>
+    <>
+      <div key="list" className="animate-fadeIn">
+        <ConversationsPage
+          conversations={conversations}
+          onSelect={handleSelect}
+          onCreate={handleCreate}
+          onDelete={handleDelete}
+          onSubscribe={() => setView("subscription")}
+          loading={loading}
+        />
+      </div>
+
+      {showNameModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setShowNameModal(false)}
+        >
+          <div
+            className="mx-6 w-full max-w-sm rounded-2xl p-6"
+            style={{ background: "#1A1A1A" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-white font-semibold text-lg mb-4">Имя девушки</h2>
+            <input
+              type="text"
+              value={newGirlName}
+              onChange={(e) => setNewGirlName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleConfirmCreate()}
+              placeholder="Введи имя..."
+              autoFocus
+              className="w-full px-4 py-3 rounded-xl text-sm outline-none text-white placeholder:text-gray-600"
+              style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.08)" }}
+            />
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setShowNameModal(false)}
+                className="flex-1 py-3 rounded-xl text-sm font-medium text-gray-400"
+                style={{ background: "#111111" }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleConfirmCreate}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
+                style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
+              >
+                Создать
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
