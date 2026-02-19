@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Conversation } from "@/api/chatApi";
+import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
 
 /* ==============================
    HELPERS
@@ -150,6 +151,7 @@ interface ConversationsPageProps {
   onDelete: (id: string) => void;
   onSubscribe: () => void;
   loading?: boolean;
+  balance?: number;
 }
 
 const ConversationsPage: React.FC<ConversationsPageProps> = ({
@@ -159,8 +161,17 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
   onDelete,
   onSubscribe,
   loading,
+  balance,
 }) => {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [showTutorial, setShowTutorial] = useState(
+    () => localStorage.getItem("tutorial_list_done") !== "true"
+  );
+
+  const LIST_TUTORIAL_STEPS: TutorialStep[] = [
+    { targetId: "btn-new-dialog", text: "Нажми, чтобы создать диалог.\nВпиши имя девушки", position: "bottom" },
+    { targetId: "btn-balance", text: "Твой баланс генераций.\nБесплатные обновляются каждую неделю", position: "bottom" },
+  ];
 
   const safeConvs = Array.isArray(conversations)
     ? conversations.filter((c) => c && c.id)
@@ -181,14 +192,16 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              id="btn-balance"
               onClick={(e) => { e.stopPropagation(); onSubscribe(); }}
-              className="w-9 h-9 rounded-xl bg-white/8 flex items-center justify-center text-gray-400 active:scale-95 transition-transform"
-              title="Подписка"
+              className="px-3 py-2 rounded-xl text-sm font-semibold text-white active:scale-95 transition-transform"
+              style={{ background: "#1A1A1A" }}
             >
-              ⭐
+              ⭐ {balance ?? "—"}
             </button>
 
             <button
+              id="btn-new-dialog"
               onClick={(e) => { e.stopPropagation(); onCreate(); }}
               disabled={loading}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white active:scale-95 transition-transform disabled:opacity-50 shadow-lg"
@@ -252,6 +265,14 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
           </div>
         )}
       </div>
+
+      {showTutorial && (
+        <TutorialOverlay
+          steps={LIST_TUTORIAL_STEPS}
+          storageKey="tutorial_list_done"
+          onComplete={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 };

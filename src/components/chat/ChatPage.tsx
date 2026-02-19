@@ -8,6 +8,7 @@ import {
 import { useAppToast } from "@/components/ui/AppToast";
 import MessageBubble from "./MessageBubble";
 import SuggestionsPanel from "./SuggestionsPanel";
+import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
 
 interface ChatPageProps {
   conversationId: string;
@@ -56,6 +57,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [pasteLabel, setPasteLabel] = useState<string | null>(null);
 
   const isNewDialog = messages.length === 0;
+
+  const [showTutorial, setShowTutorial] = useState(
+    () => localStorage.getItem("tutorial_chat_done") !== "true"
+  );
+
+  const CHAT_TUTORIAL_STEPS: TutorialStep[] = [
+    { targetId: "field-facts", text: "Опиши девушку: хобби, интересы, факты\nиз описания, детали фото.\nЧем больше напишешь — тем лучше", position: "top" },
+    { targetId: "field-girl-message", text: "Если она написала первая —\nвставь её сообщение сюда", position: "top" },
+    { targetId: "btn-generate", text: "Нажми и получи 3 варианта сообщений", position: "top" },
+    { targetId: "style-tabs", text: "Если хочешь разнообразить стиль общения:\nРомантик — нежный. Дерзкий — провокатор.\nBad guy — только для избранных 😈", position: "top" },
+    { text: "Комбинируй стили для лучшей конверсии.\nЯ подскажу когда взять контакт\nили позвать на свидание.\nУдачи! 🔥", position: "top" },
+  ];
 
   const handleTextareaPaste = async () => {
     try {
@@ -216,6 +229,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     onChange={(e) =>
                       setDraftGirlReply(e.target.value)
                     }
+                    id="field-girl-message"
                     placeholder="Вставь её сообщение, если написала первая"
                     className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
                     style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
@@ -249,6 +263,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 onChange={(e) =>
                   setOpenerFacts(e.target.value)
                 }
+                id="field-facts"
                 placeholder="Напиши факты о девушке..."
                 className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none placeholder:text-red-400/40"
                 style={{ background: "linear-gradient(135deg, #7F1D1D, #991B1B)", color: "#FFFFFF", border: "1px solid rgba(239,68,68,0.3)" }}
@@ -320,7 +335,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       )}
 
       {/* STYLE TABS */}
-      <div className="px-4 py-2 flex gap-2">
+      <div id="style-tabs" className="px-4 py-2 flex gap-2">
         {STYLES.map((s) => (
           <button
             key={s.key}
@@ -340,6 +355,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
         <button
+          id="btn-generate"
           onClick={() => handleGenerate()}
           disabled={generating}
           className="w-full py-3 rounded-2xl text-white font-semibold
@@ -349,6 +365,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
           {generating ? "Генерирую..." : "Сделать шаг"}
         </button>
       </div>
+
+      {showTutorial && isNewDialog && (
+        <TutorialOverlay
+          steps={CHAT_TUTORIAL_STEPS}
+          storageKey="tutorial_chat_done"
+          onComplete={() => setShowTutorial(false)}
+        />
+      )}
     </div>
   );
 };

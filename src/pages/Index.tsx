@@ -1,7 +1,6 @@
 // src/pages/Index.tsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useTelegram } from "../hooks/useTelegram";
-import Onboarding from "../components/Onboarding";
 import ChatApp from "../components/chat/ChatApp";
 import ErrorScreen from "../components/ErrorScreen";
 
@@ -14,21 +13,7 @@ const Index: React.FC = () => {
     hapticSuccess,
   } = useTelegram();
 
-  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const isDev = import.meta.env.DEV;
-
-  useEffect(() => {
-    const completed = localStorage.getItem("onboardingCompleted");
-    if (completed === "true") {
-      setOnboardingCompleted(true);
-    }
-  }, []);
-
-  const handleOnboardingComplete = () => {
-    hapticFeedback("medium");
-    setOnboardingCompleted(true);
-    localStorage.setItem("onboardingCompleted", "true");
-  };
 
   if (!isReady) {
     return (
@@ -44,15 +29,11 @@ const Index: React.FC = () => {
 
   return (
     <div className="min-h-screen px-4 pb-8 safe-area-inset">
-      {!onboardingCompleted ? (
-        <Onboarding onStart={handleOnboardingComplete} />
-      ) : (
-        <ChatApp
-          telegramId={userId}
-          onHapticFeedback={hapticFeedback}
-          onHapticSuccess={hapticSuccess}
-        />
-      )}
+      <ChatApp
+        telegramId={userId}
+        onHapticFeedback={hapticFeedback}
+        onHapticSuccess={hapticSuccess}
+      />
     </div>
   );
 };

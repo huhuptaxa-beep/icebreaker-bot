@@ -4,6 +4,7 @@ import {
   createConversation,
   getConversations,
   deleteConversation,
+  getSubscription,
 } from "@/api/chatApi";
 import { useAppToast } from "@/components/ui/AppToast";
 import ConversationsPage from "./ConversationsPage";
@@ -25,6 +26,8 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [balance, setBalance] = useState<number | undefined>(undefined);
+
   const [showNameModal, setShowNameModal] = useState(false);
   const [newGirlName, setNewGirlName] = useState("");
 
@@ -43,9 +46,17 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     }
   }, [telegramId]);
 
+  const fetchBalance = useCallback(async () => {
+    try {
+      const sub = await getSubscription();
+      setBalance(sub.free_remaining + sub.paid_remaining);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     fetchConversations();
-  }, [fetchConversations]);
+    fetchBalance();
+  }, [fetchConversations, fetchBalance]);
 
   /* ===========================
      CREATE
@@ -138,6 +149,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
           onDelete={handleDelete}
           onSubscribe={() => setView("subscription")}
           loading={loading}
+          balance={balance}
         />
       </div>
 
