@@ -66,7 +66,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     { targetId: "field-facts", text: "Опиши девушку: хобби, интересы, факты\nиз описания, детали фото.\nЧем больше напишешь — тем лучше", position: "top" },
     { targetId: "field-girl-message", text: "Если она написала первая —\nвставь её сообщение сюда", position: "top" },
     { targetId: "btn-generate", text: "Нажми и получи 3 варианта сообщений", position: "top" },
-    { targetId: "style-tabs", text: "Если хочешь разнообразить стиль общения:\nРомантик — нежный. Дерзкий — провокатор.\nBad guy — только для избранных 😈", position: "top" },
+    { targetId: "style-animated", text: "Выбери стиль общения:", position: "top" },
     { text: "Комбинируй стили для лучшей конверсии.\nЯ подскажу когда взять контакт\nили позвать на свидание.\nУдачи! 🔥", position: "top" },
   ];
 
@@ -339,6 +339,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         {STYLES.map((s) => (
           <button
             key={s.key}
+            id={`style-${s.key}`}
             onClick={() => setStyle(style === s.key ? null : s.key)}
             className="flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150"
             style={{

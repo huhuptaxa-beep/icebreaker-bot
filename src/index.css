@@ -224,4 +224,14 @@
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+
+/* ===========================
+   TUTORIAL HIGHLIGHT
+=========================== */
+
+.tutorial-highlight {
+  transform: scale(1.15);
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 60;
 }
