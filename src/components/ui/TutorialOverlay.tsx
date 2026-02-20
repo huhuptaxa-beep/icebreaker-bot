@@ -49,7 +49,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const isLast = currentStep === steps.length - 1;
   const isStyleAnimated = step?.targetId === "style-animated";
   const isFinalCenterStep = !step?.targetId;
-  const isFactsStep = step?.targetId === "field-facts"; // 👈 добавлено
+  const isFactsStep = step?.targetId === "field-facts";
 
   /* ================= TARGET MEASURE ================= */
 
@@ -121,9 +121,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   useEffect(() => {
     if (!isStyleAnimated) {
-      STYLE_IDS.forEach((id) => {
-        document.getElementById(id)?.classList.remove("tutorial-highlight");
-      });
+      STYLE_IDS.forEach((id) =>
+        document.getElementById(id)?.classList.remove("tutorial-highlight")
+      );
       if (styleTimerRef.current) clearInterval(styleTimerRef.current);
       return;
     }
@@ -158,9 +158,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const handleNext = () => {
     if (isLast) {
       localStorage.setItem(storageKey, "true");
-      STYLE_IDS.forEach((id) => {
-        document.getElementById(id)?.classList.remove("tutorial-highlight");
-      });
+      STYLE_IDS.forEach((id) =>
+        document.getElementById(id)?.classList.remove("tutorial-highlight")
+      );
       onComplete();
     } else {
       setCurrentStep((s) => s + 1);
@@ -170,18 +170,17 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   const hasTarget = !!(targetRect && step?.targetId);
 
-  /* ================= ARROW ================= */
+  /* ================= CURVED ARROW ================= */
 
   const renderArrow = () => {
-    if (isFactsStep) return null; // 👈 стрелка убрана ТОЛЬКО тут
-    if (isFinalCenterStep || !hasTarget || !arrowVisible || !ready) return null;
+    if (isFactsStep) return null;
+    if (isFinalCenterStep || !hasTarget || !arrowVisible || !ready)
+      return null;
 
     const arrowTarget = isStyleAnimated && styleRect ? styleRect : targetRect!;
-
     const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
     const cutTop = arrowTarget.top;
     const cutBottom = arrowTarget.top + arrowTarget.height;
-
     const screenCenterX = window.innerWidth / 2;
 
     const textEl = textRef.current;
@@ -207,7 +206,14 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
     const dx = endX - startX;
     const dy = endY - startY;
-    const cpX = startX + dx * 0.5;
+
+    const curveStrength = Math.min(Math.abs(dx) * 0.5 + 30, 55);
+
+    const cpX =
+      startX +
+      dx * 0.5 +
+      (dx >= 0 ? -curveStrength : curveStrength);
+
     const cpY = startY + dy * 0.5;
 
     const pathD = `M ${startX} ${startY} Q ${cpX} ${cpY} ${endX} ${endY}`;
@@ -227,7 +233,13 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         className="fixed inset-0 pointer-events-none"
         style={{ zIndex: 53, width: "100vw", height: "100vh" }}
       >
-        <path d={pathD} fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" />
+        <path
+          d={pathD}
+          fill="none"
+          stroke="white"
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
         <polygon
           points={`${endX},${endY} ${h1X},${h1Y} ${h2X},${h2Y}`}
           fill="white"
@@ -241,13 +253,21 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     : step.text;
 
   if (!ready) {
-    return <div className="fixed inset-0 z-50" style={{ background: "rgba(0,0,0,0.75)" }} />;
+    return (
+      <div
+        className="fixed inset-0 z-50"
+        style={{ background: "rgba(0,0,0,0.75)" }}
+      />
+    );
   }
 
   return (
     <div className="fixed inset-0 z-50" onClick={handleNext}>
       {!hasTarget && (
-        <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.75)" }} />
+        <div
+          className="absolute inset-0"
+          style={{ background: "rgba(0,0,0,0.75)" }}
+        />
       )}
 
       {hasTarget && (
@@ -275,7 +295,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         style={{
           zIndex: 54,
           left: "50%",
-          top: isFactsStep ? "58%" : "50%", // 👈 опущен только этот шаг
+          top: isFactsStep ? "58%" : "50%",
           transform: "translate(-50%, -50%)",
           maxWidth: 300,
           width: "100%",
