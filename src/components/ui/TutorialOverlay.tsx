@@ -22,13 +22,6 @@ interface TargetRect {
 const PAD = 8;
 const RADIUS = 16;
 
-const STYLE_IDS = ["style-bold", "style-romantic", "style-badguy"];
-const STYLE_TEXTS = [
-  "Дерзкий — режим провокатора",
-  "Романтик — нежный и чувственный",
-  "Bad guy — для совсем наглых 😈",
-];
-
 const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   steps,
   storageKey,
@@ -40,29 +33,13 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const [arrowVisible, setArrowVisible] = useState(false);
   const prevTargetIdRef = useRef<string | undefined>(undefined);
 
-  const [styleIndex, setStyleIndex] = useState(0);
-  const [styleRect, setStyleRect] = useState<TargetRect | null>(null);
-  const styleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
-  const isStyleAnimated = step?.targetId === "style-animated";
+
+  const isFactsStep = step?.targetId === "field-facts";
+  const isGirlStep = step?.targetId === "field-girl-message";
 
   const measureTarget = useCallback(() => {
-    if (isStyleAnimated) {
-      const tabsEl = document.getElementById("style-tabs");
-      if (tabsEl) {
-        const r = tabsEl.getBoundingClientRect();
-        setTargetRect({
-          top: r.top - PAD,
-          left: r.left - PAD,
-          width: r.width + PAD * 2,
-          height: r.height + PAD * 2,
-        });
-      }
-      return;
-    }
-
     if (!step?.targetId) {
       setTargetRect(null);
       return;
@@ -80,20 +57,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     } else {
       setTargetRect(null);
     }
-  }, [step, isStyleAnimated]);
-
-  const measureStyleButton = useCallback((idx: number) => {
-    const el = document.getElementById(STYLE_IDS[idx]);
-    if (el) {
-      const r = el.getBoundingClientRect();
-      setStyleRect({
-        top: r.top - PAD,
-        left: r.left - PAD,
-        width: r.width + PAD * 2,
-        height: r.height + PAD * 2,
-      });
-    }
-  }, []);
+  }, [step]);
 
   useEffect(() => {
     measureTarget();
@@ -102,82 +66,29 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   }, [measureTarget]);
 
   useEffect(() => {
-    if (prevTargetIdRef.current && prevTargetIdRef.current !== "style-animated") {
+    if (prevTargetIdRef.current) {
       const prevEl = document.getElementById(prevTargetIdRef.current);
       prevEl?.classList.remove("tutorial-highlight");
     }
 
-    const tid = step?.targetId;
-    if (tid && tid !== "style-animated") {
-      const el = document.getElementById(tid);
+    if (step?.targetId) {
+      const el = document.getElementById(step.targetId);
       el?.classList.add("tutorial-highlight");
     }
 
-    prevTargetIdRef.current = tid;
+    prevTargetIdRef.current = step?.targetId;
 
     return () => {
-      if (tid && tid !== "style-animated") {
-        const el = document.getElementById(tid);
+      if (step?.targetId) {
+        const el = document.getElementById(step.targetId);
         el?.classList.remove("tutorial-highlight");
       }
     };
   }, [step]);
 
   useEffect(() => {
-    if (!isStyleAnimated) {
-      STYLE_IDS.forEach((id) => {
-        const el = document.getElementById(id);
-        el?.classList.remove("tutorial-highlight");
-      });
-
-      if (styleTimerRef.current) {
-        clearInterval(styleTimerRef.current);
-        styleTimerRef.current = null;
-      }
-
-      return;
-    }
-
-    setStyleIndex(0);
-    measureStyleButton(0);
-
-    STYLE_IDS.forEach((id, i) => {
-      const el = document.getElementById(id);
-      if (i === 0) el?.classList.add("tutorial-highlight");
-      else el?.classList.remove("tutorial-highlight");
-    });
-
-    styleTimerRef.current = setInterval(() => {
-      setStyleIndex((prev) => {
-        const next = (prev + 1) % STYLE_IDS.length;
-
-        STYLE_IDS.forEach((id, i) => {
-          const el = document.getElementById(id);
-          if (i === next) el?.classList.add("tutorial-highlight");
-          else el?.classList.remove("tutorial-highlight");
-        });
-
-        measureStyleButton(next);
-        return next;
-      });
-    }, 1500);
-
-    return () => {
-      if (styleTimerRef.current) {
-        clearInterval(styleTimerRef.current);
-        styleTimerRef.current = null;
-      }
-
-      STYLE_IDS.forEach((id) => {
-        const el = document.getElementById(id);
-        el?.classList.remove("tutorial-highlight");
-      });
-    };
-  }, [isStyleAnimated, measureStyleButton]);
-
-  useEffect(() => {
     setArrowVisible(false);
-    const timer = setTimeout(() => setArrowVisible(true), 300);
+    const timer = setTimeout(() => setArrowVisible(true), 250);
     return () => clearTimeout(timer);
   }, [currentStep]);
 
@@ -193,56 +104,56 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   const hasTarget = !!(targetRect && step?.targetId);
 
-  // 👇 ТОЛЬКО ЭТО НОВОЕ
-  const isLowerCenterStep =
-    step?.targetId === "field-facts" ||
-    step?.targetId === "field-girl-message";
+  /* ================= TEXT POSITION ================= */
 
-  const textStyle: React.CSSProperties = isLowerCenterStep
-    ? {
-        zIndex: 52,
-        top: "58%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-      }
-    : hasTarget
-    ? {
-        zIndex: 52,
-        ...(step.position === "bottom"
-          ? { top: targetRect!.top + targetRect!.height + 20 }
-          : { bottom: window.innerHeight - targetRect!.top + 20 }),
-      }
-    : {
-        zIndex: 52,
-        top: "50%",
-        transform: "translateY(-50%)",
-      };
+  let textStyle: React.CSSProperties;
+
+  if (!step?.targetId) {
+    textStyle = {
+      zIndex: 52,
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+    };
+  } else if (isGirlStep) {
+    textStyle = {
+      zIndex: 52,
+      top: "44%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+    };
+  } else if (hasTarget) {
+    textStyle = {
+      zIndex: 52,
+      top: targetRect!.top + targetRect!.height + 24,
+    };
+  } else {
+    textStyle = {
+      zIndex: 52,
+      top: "50%",
+      left: "50%",
+      transform: "translate(-50%, -50%)",
+    };
+  }
+
+  /* ================= ARROW ================= */
 
   const renderArrow = () => {
+    if (isFactsStep) return null;
     if (!hasTarget || !arrowVisible) return null;
 
-    const arrowTarget = isStyleAnimated && styleRect ? styleRect : targetRect!;
+    const centerX = window.innerWidth / 2;
 
-    const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
-    const cutCenterY = arrowTarget.top + arrowTarget.height / 2;
-    const screenCenterX = window.innerWidth / 2;
+    const endX = targetRect!.left + targetRect!.width / 2;
+    const endY = targetRect!.top + targetRect!.height / 2;
 
-    let startY: number;
-    let endY: number;
-
-    if (step.position === "bottom") {
-      startY = arrowTarget.top + arrowTarget.height + 20;
-      endY = arrowTarget.top + arrowTarget.height;
-    } else {
-      startY = arrowTarget.top - 20;
-      endY = arrowTarget.top;
-    }
-
-    const startX = screenCenterX;
-    const endX = cutCenterX;
+    const startX = centerX;
+    const startY = isGirlStep
+      ? window.innerHeight * 0.40
+      : window.innerHeight * 0.45;
 
     const midY = (startY + endY) / 2;
-    const cpX = (startX + endX) / 2 + (endX - startX) * 0.2;
+    const cpX = (startX + endX) / 2;
 
     const d = `M ${startX} ${startY} Q ${cpX} ${midY} ${endX} ${endY}`;
 
@@ -253,24 +164,20 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           zIndex: 52,
           width: "100vw",
           height: "100vh",
-          opacity: arrowVisible ? 0.8 : 0,
-          transition: "opacity 0.3s ease",
+          opacity: arrowVisible ? 0.9 : 0,
+          transition: "opacity 0.25s ease",
         }}
       >
         <path
           d={d}
           fill="none"
           stroke="white"
-          strokeWidth={2}
+          strokeWidth={6}   {/* ← БЫЛО 2, СТАЛО 6 */}
           strokeLinecap="round"
         />
       </svg>
     );
   };
-
-  const displayText = isStyleAnimated
-    ? `${step.text.split("\n")[0]}\n${STYLE_TEXTS[styleIndex]}`
-    : step.text;
 
   return (
     <div className="fixed inset-0 z-50" onClick={handleNext}>
@@ -303,14 +210,13 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         key={fadeKey}
         className="fixed left-1/2 flex flex-col items-center animate-fadeIn"
         style={{
-          transform: "translateX(-50%)",
-          maxWidth: 300,
+          maxWidth: 320,
           ...textStyle,
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <p className="text-white text-base text-center leading-relaxed whitespace-pre-line mb-5">
-          {displayText}
+          {step.text}
         </p>
 
         <button
