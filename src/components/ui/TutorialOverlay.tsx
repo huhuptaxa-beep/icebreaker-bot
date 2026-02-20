@@ -40,13 +40,19 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const [arrowVisible, setArrowVisible] = useState(false);
   const prevTargetIdRef = useRef<string | undefined>(undefined);
 
+  const [styleIndex, setStyleIndex] = useState(0);
+  const [styleRect, setStyleRect] = useState<TargetRect | null>(null);
+  const styleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
   const isStyleAnimated = step?.targetId === "style-animated";
 
   const isFactsStep = step?.targetId === "field-facts";
   const isGirlStep = step?.targetId === "field-girl-message";
-  const isLastStep = !step?.targetId;
+  const isFinalCenterStep = !step?.targetId;
+
+  /* ================= TARGET MEASURE ================= */
 
   const measureTarget = useCallback(() => {
     if (isStyleAnimated) {
@@ -95,42 +101,58 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     }
   }, []);
 
-  const [styleIndex, setStyleIndex] = useState(0);
-  const [styleRect, setStyleRect] = useState<TargetRect | null>(null);
-  const styleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
     measureTarget();
     window.addEventListener("resize", measureTarget);
     return () => window.removeEventListener("resize", measureTarget);
   }, [measureTarget]);
 
+  /* ================= STYLE ANIMATION (ВОССТАНОВЛЕНА) ================= */
+
   useEffect(() => {
-    if (prevTargetIdRef.current && prevTargetIdRef.current !== "style-animated") {
-      const prevEl = document.getElementById(prevTargetIdRef.current);
-      prevEl?.classList.remove("tutorial-highlight");
+    if (!isStyleAnimated) {
+      STYLE_IDS.forEach((id) => {
+        document.getElementById(id)?.classList.remove("tutorial-highlight");
+      });
+      if (styleTimerRef.current) clearInterval(styleTimerRef.current);
+      return;
     }
 
-    const tid = step?.targetId;
-    if (tid && tid !== "style-animated") {
-      const el = document.getElementById(tid);
-      el?.classList.add("tutorial-highlight");
-    }
+    setStyleIndex(0);
+    measureStyleButton(0);
 
-    prevTargetIdRef.current = tid;
+    STYLE_IDS.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (i === 0) el?.classList.add("tutorial-highlight");
+      else el?.classList.remove("tutorial-highlight");
+    });
+
+    styleTimerRef.current = setInterval(() => {
+      setStyleIndex((prev) => {
+        const next = (prev + 1) % STYLE_IDS.length;
+
+        STYLE_IDS.forEach((id, i) => {
+          const el = document.getElementById(id);
+          if (i === next) el?.classList.add("tutorial-highlight");
+          else el?.classList.remove("tutorial-highlight");
+        });
+
+        measureStyleButton(next);
+        return next;
+      });
+    }, 1500);
 
     return () => {
-      if (tid && tid !== "style-animated") {
-        const el = document.getElementById(tid);
-        el?.classList.remove("tutorial-highlight");
-      }
+      if (styleTimerRef.current) clearInterval(styleTimerRef.current);
     };
-  }, [step]);
+  }, [isStyleAnimated, measureStyleButton]);
+
+  /* ================= ARROW FADE ================= */
 
   useEffect(() => {
     setArrowVisible(false);
-    const timer = setTimeout(() => setArrowVisible(true), 300);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setArrowVisible(true), 200);
+    return () => clearTimeout(t);
   }, [currentStep]);
 
   const handleNext = () => {
@@ -149,24 +171,25 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   let textStyle: React.CSSProperties;
 
-  if (isLastStep) {
-    // Только последний слайд центрируем
+  if (isFinalCenterStep) {
     textStyle = {
       zIndex: 52,
       top: "50%",
-      left: "50%",
+      transform: "translate(-50%, -50%)",
+    };
+  } else if (isFactsStep) {
+    textStyle = {
+      zIndex: 52,
+      top: "58%", // ниже центра
       transform: "translate(-50%, -50%)",
     };
   } else if (isGirlStep) {
-    // Только field-girl-message немного выше центра
     textStyle = {
       zIndex: 52,
-      top: "45%",
-      left: "50%",
+      top: "48%",
       transform: "translate(-50%, -50%)",
     };
   } else if (hasTarget) {
-    // Всё остальное как было
     textStyle = {
       zIndex: 52,
       ...(step.position === "bottom"
@@ -177,7 +200,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     textStyle = {
       zIndex: 52,
       top: "50%",
-      transform: "translateY(-50%)",
+      transform: "translate(-50%, -50%)",
     };
   }
 
@@ -188,16 +211,16 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     if (!hasTarget || !arrowVisible) return null;
 
     const arrowTarget = isStyleAnimated && styleRect ? styleRect : targetRect!;
-
     const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
-    const cutCenterY = arrowTarget.top + arrowTarget.height / 2;
-
-    const screenCenterX = window.innerWidth / 2;
 
     let startY: number;
     let endY: number;
 
-    if (step.position === "bottom") {
+    if (isGirlStep) {
+      // стрелка от ВЕРХА текста к полю
+      startY = window.innerHeight * 0.48 - 40;
+      endY = arrowTarget.top;
+    } else if (step.position === "bottom") {
       startY = arrowTarget.top + arrowTarget.height + 20;
       endY = arrowTarget.top + arrowTarget.height;
     } else {
@@ -205,11 +228,11 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       endY = arrowTarget.top;
     }
 
-    const startX = screenCenterX;
+    const startX = window.innerWidth / 2;
     const endX = cutCenterX;
 
     const midY = (startY + endY) / 2;
-    const cpX = (startX + endX) / 2 + (endX - startX) * 0.2;
+    const cpX = (startX + endX) / 2;
 
     const d = `M ${startX} ${startY} Q ${cpX} ${midY} ${endX} ${endY}`;
 
@@ -220,15 +243,15 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           zIndex: 52,
           width: "100vw",
           height: "100vh",
-          opacity: arrowVisible ? 0.9 : 0,
-          transition: "opacity 0.3s ease",
+          opacity: arrowVisible ? 0.8 : 0,
+          transition: "opacity 0.2s ease",
         }}
       >
         <path
           d={d}
           fill="none"
           stroke="white"
-          strokeWidth={6}
+          strokeWidth={2}
           strokeLinecap="round"
         />
       </svg>
@@ -270,7 +293,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         key={fadeKey}
         className="fixed left-1/2 flex flex-col items-center animate-fadeIn"
         style={{
-          transform: "translateX(-50%)",
+          left: "50%",
           maxWidth: 300,
           ...textStyle,
         }}
