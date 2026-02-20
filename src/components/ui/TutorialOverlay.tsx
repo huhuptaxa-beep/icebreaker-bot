@@ -173,10 +173,11 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   /* ================= ARROW ================= */
 
   const renderArrow = () => {
-    if (isFactsStep) return null; // 👈 убрали стрелку только тут
+    if (isFactsStep) return null; // 👈 стрелка убрана ТОЛЬКО тут
     if (isFinalCenterStep || !hasTarget || !arrowVisible || !ready) return null;
 
     const arrowTarget = isStyleAnimated && styleRect ? styleRect : targetRect!;
+
     const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
     const cutTop = arrowTarget.top;
     const cutBottom = arrowTarget.top + arrowTarget.height;
@@ -211,9 +212,26 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
     const pathD = `M ${startX} ${startY} Q ${cpX} ${cpY} ${endX} ${endY}`;
 
+    const tX = endX - cpX;
+    const tY = endY - cpY;
+    const angle = Math.atan2(tY, tX);
+    const hl = 10;
+
+    const h1X = endX - hl * Math.cos(angle - 0.35);
+    const h1Y = endY - hl * Math.sin(angle - 0.35);
+    const h2X = endX - hl * Math.cos(angle + 0.35);
+    const h2Y = endY - hl * Math.sin(angle + 0.35);
+
     return (
-      <svg className="fixed inset-0 pointer-events-none" style={{ zIndex: 53 }}>
-        <path d={pathD} fill="none" stroke="white" strokeWidth={2} />
+      <svg
+        className="fixed inset-0 pointer-events-none"
+        style={{ zIndex: 53, width: "100vw", height: "100vh" }}
+      >
+        <path d={pathD} fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" />
+        <polygon
+          points={`${endX},${endY} ${h1X},${h1Y} ${h2X},${h2Y}`}
+          fill="white"
+        />
       </svg>
     );
   };
@@ -257,7 +275,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         style={{
           zIndex: 54,
           left: "50%",
-          top: isFactsStep ? "58%" : "50%", // 👈 опустили только этот шаг
+          top: isFactsStep ? "58%" : "50%", // 👈 опущен только этот шаг
           transform: "translate(-50%, -50%)",
           maxWidth: 300,
           width: "100%",
