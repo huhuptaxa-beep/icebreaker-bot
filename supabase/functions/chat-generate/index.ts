@@ -220,7 +220,7 @@ serve(async (req) => {
           max_tokens: 450,
           temperature: 0.85,
           system: [
-            { type: "text", text: fullSystemPrompt, cache_control: { type: "ephemeral" } },
+            { type: "text", text: styleText, cache_control: { type: "ephemeral" } },
             { type: "text", text: styleText, cache_control: { type: "ephemeral" } },
           ],
           messages: [{ role: "user", content: userPrompt }],
