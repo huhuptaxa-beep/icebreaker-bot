@@ -49,6 +49,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const isLast = currentStep === steps.length - 1;
   const isStyleAnimated = step?.targetId === "style-animated";
   const isFinalCenterStep = !step?.targetId;
+  const isFactsStep = step?.targetId === "field-facts"; // 👈 добавлено
 
   /* ================= TARGET MEASURE ================= */
 
@@ -99,13 +100,12 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     }
   }, []);
 
-  /* Ready + measure on step change */
   useEffect(() => {
     setReady(false);
     setArrowVisible(false);
     measureTarget();
     const t1 = setTimeout(() => {
-      measureTarget(); // re-measure after layout settles
+      measureTarget();
       setReady(true);
     }, 80);
     const t2 = setTimeout(() => setArrowVisible(true), 350);
@@ -155,14 +155,6 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     };
   }, [isStyleAnimated, measureStyleButton]);
 
-  /* Arrow re-fade on style button change */
-  useEffect(() => {
-    if (!isStyleAnimated) return;
-    setArrowVisible(false);
-    const t = setTimeout(() => setArrowVisible(true), 150);
-    return () => clearTimeout(t);
-  }, [styleIndex, isStyleAnimated]);
-
   const handleNext = () => {
     if (isLast) {
       localStorage.setItem(storageKey, "true");
@@ -178,20 +170,19 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   const hasTarget = !!(targetRect && step?.targetId);
 
-  /* ================= CURVED ARROW WITH ARROWHEAD ================= */
+  /* ================= ARROW ================= */
 
   const renderArrow = () => {
+    if (isFactsStep) return null; // 👈 убрали стрелку только тут
     if (isFinalCenterStep || !hasTarget || !arrowVisible || !ready) return null;
 
     const arrowTarget = isStyleAnimated && styleRect ? styleRect : targetRect!;
-
     const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
     const cutTop = arrowTarget.top;
     const cutBottom = arrowTarget.top + arrowTarget.height;
 
     const screenCenterX = window.innerWidth / 2;
 
-    // Get text block edges from ref
     const textEl = textRef.current;
     if (!textEl) return null;
     const tr = textEl.getBoundingClientRect();
@@ -202,62 +193,27 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     let endY: number;
 
     if (step.position === "bottom" || cutTop < tr.top) {
-      // Text is below cutout — arrow goes from top edge of text UP to bottom edge of cutout
       startX = screenCenterX;
       startY = tr.top - 4;
       endX = cutCenterX;
       endY = cutBottom + 6;
     } else {
-      // Text is above cutout — arrow goes from bottom edge of text DOWN to top edge of cutout
       startX = screenCenterX;
       startY = tr.bottom + 4;
       endX = cutCenterX;
       endY = cutTop - 6;
     }
 
-    // Curved control point
     const dx = endX - startX;
     const dy = endY - startY;
-    const curveStrength = Math.min(Math.abs(dx) * 0.5 + 30, 55);
-    const cpX = startX + dx * 0.5 + (dx >= 0 ? -curveStrength : curveStrength);
+    const cpX = startX + dx * 0.5;
     const cpY = startY + dy * 0.5;
 
     const pathD = `M ${startX} ${startY} Q ${cpX} ${cpY} ${endX} ${endY}`;
 
-    // Arrowhead from tangent at t=1 of quadratic bezier: tangent = end - controlPoint
-    const tX = endX - cpX;
-    const tY = endY - cpY;
-    const angle = Math.atan2(tY, tX);
-    const hl = 10; // head length
-
-    const h1X = endX - hl * Math.cos(angle - 0.35);
-    const h1Y = endY - hl * Math.sin(angle - 0.35);
-    const h2X = endX - hl * Math.cos(angle + 0.35);
-    const h2Y = endY - hl * Math.sin(angle + 0.35);
-
     return (
-      <svg
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          zIndex: 53,
-          width: "100vw",
-          height: "100vh",
-          opacity: arrowVisible ? 0.85 : 0,
-          transition: "opacity 0.25s ease",
-        }}
-      >
-        <path
-          d={pathD}
-          fill="none"
-          stroke="white"
-          strokeWidth={2}
-          strokeLinecap="round"
-        />
-        <polygon
-          points={`${endX},${endY} ${h1X},${h1Y} ${h2X},${h2Y}`}
-          fill="white"
-          opacity={0.85}
-        />
+      <svg className="fixed inset-0 pointer-events-none" style={{ zIndex: 53 }}>
+        <path d={pathD} fill="none" stroke="white" strokeWidth={2} />
       </svg>
     );
   };
@@ -266,21 +222,16 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     ? `Если хочешь разнообразить стиль общения:\n${STYLE_TEXTS[styleIndex]}`
     : step.text;
 
-  /* Don't render until measured — prevents flash */
   if (!ready) {
-    return (
-      <div className="fixed inset-0 z-50" style={{ background: "rgba(0,0,0,0.75)" }} />
-    );
+    return <div className="fixed inset-0 z-50" style={{ background: "rgba(0,0,0,0.75)" }} />;
   }
 
   return (
     <div className="fixed inset-0 z-50" onClick={handleNext}>
-      {/* Dark overlay */}
       {!hasTarget && (
         <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.75)" }} />
       )}
 
-      {/* Cutout around target */}
       {hasTarget && (
         <div
           style={{
@@ -297,10 +248,8 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         />
       )}
 
-      {/* Arrow */}
       {renderArrow()}
 
-      {/* Text + Button + Dots — ALWAYS centered */}
       <div
         key={fadeKey}
         ref={textRef}
@@ -308,7 +257,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         style={{
           zIndex: 54,
           left: "50%",
-          top: "50%",
+          top: isFactsStep ? "58%" : "50%", // 👈 опустили только этот шаг
           transform: "translate(-50%, -50%)",
           maxWidth: 300,
           width: "100%",
@@ -321,7 +270,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
         <button
           onClick={handleNext}
-          className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold shadow-lg active:scale-[0.97] transition-transform"
+          className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold shadow-lg"
           style={{
             background: isLast
               ? "linear-gradient(135deg, #22C55E, #16A34A)"
@@ -335,7 +284,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           {steps.map((_, i) => (
             <div
               key={i}
-              className="rounded-full transition-all duration-200"
+              className="rounded-full"
               style={{
                 width: i === currentStep ? 16 : 6,
                 height: 6,
