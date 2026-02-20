@@ -172,7 +172,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           d={d}
           fill="none"
           stroke="white"
-          strokeWidth={6}   {/* ← БЫЛО 2, СТАЛО 6 */}
+          strokeWidth={6}
           strokeLinecap="round"
         />
       </svg>
