@@ -108,6 +108,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   let textStyle: React.CSSProperties;
 
+  // Последний слайд — полностью центр
   if (!step?.targetId) {
     textStyle = {
       zIndex: 52,
@@ -115,14 +116,18 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
       left: "50%",
       transform: "translate(-50%, -50%)",
     };
-  } else if (isGirlStep) {
+  }
+  // Только шаг "вставить сообщение" — чуть выше центра
+  else if (isGirlStep) {
     textStyle = {
       zIndex: 52,
       top: "44%",
       left: "50%",
       transform: "translate(-50%, -50%)",
     };
-  } else if (hasTarget) {
+  }
+  // Остальные шаги
+  else if (hasTarget) {
     textStyle = {
       zIndex: 52,
       top: targetRect!.top + targetRect!.height + 24,
@@ -139,7 +144,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   /* ================= ARROW ================= */
 
   const renderArrow = () => {
+    // ❌ Убираем стрелку только на шаге фактов
     if (isFactsStep) return null;
+
     if (!hasTarget || !arrowVisible) return null;
 
     const centerX = window.innerWidth / 2;
@@ -172,7 +179,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
           d={d}
           fill="none"
           stroke="white"
-          strokeWidth={6}
+          strokeWidth={2}
           strokeLinecap="round"
         />
       </svg>
