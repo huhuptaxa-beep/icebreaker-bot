@@ -38,18 +38,16 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
   const [fadeKey, setFadeKey] = useState(0);
   const [arrowVisible, setArrowVisible] = useState(false);
-  const prevTargetIdRef = useRef<string | undefined>(undefined);
+  const [ready, setReady] = useState(false);
 
   const [styleIndex, setStyleIndex] = useState(0);
   const [styleRect, setStyleRect] = useState<TargetRect | null>(null);
   const styleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const textRef = useRef<HTMLDivElement>(null);
 
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
   const isStyleAnimated = step?.targetId === "style-animated";
-
-  const isFactsStep = step?.targetId === "field-facts";
-  const isGirlStep = step?.targetId === "field-girl-message";
   const isFinalCenterStep = !step?.targetId;
 
   /* ================= TARGET MEASURE ================= */
@@ -101,13 +99,25 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     }
   }, []);
 
+  /* Ready + measure on step change */
   useEffect(() => {
+    setReady(false);
+    setArrowVisible(false);
     measureTarget();
+    const t1 = setTimeout(() => {
+      measureTarget(); // re-measure after layout settles
+      setReady(true);
+    }, 80);
+    const t2 = setTimeout(() => setArrowVisible(true), 350);
     window.addEventListener("resize", measureTarget);
-    return () => window.removeEventListener("resize", measureTarget);
-  }, [measureTarget]);
+    return () => {
+      window.removeEventListener("resize", measureTarget);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [measureTarget, currentStep]);
 
-  /* ================= STYLE ANIMATION (ВОССТАНОВЛЕНА) ================= */
+  /* ================= STYLE ANIMATION ================= */
 
   useEffect(() => {
     if (!isStyleAnimated) {
@@ -130,13 +140,11 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     styleTimerRef.current = setInterval(() => {
       setStyleIndex((prev) => {
         const next = (prev + 1) % STYLE_IDS.length;
-
         STYLE_IDS.forEach((id, i) => {
           const el = document.getElementById(id);
           if (i === next) el?.classList.add("tutorial-highlight");
           else el?.classList.remove("tutorial-highlight");
         });
-
         measureStyleButton(next);
         return next;
       });
@@ -147,17 +155,20 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     };
   }, [isStyleAnimated, measureStyleButton]);
 
-  /* ================= ARROW FADE ================= */
-
+  /* Arrow re-fade on style button change */
   useEffect(() => {
+    if (!isStyleAnimated) return;
     setArrowVisible(false);
-    const t = setTimeout(() => setArrowVisible(true), 200);
+    const t = setTimeout(() => setArrowVisible(true), 150);
     return () => clearTimeout(t);
-  }, [currentStep]);
+  }, [styleIndex, isStyleAnimated]);
 
   const handleNext = () => {
     if (isLast) {
       localStorage.setItem(storageKey, "true");
+      STYLE_IDS.forEach((id) => {
+        document.getElementById(id)?.classList.remove("tutorial-highlight");
+      });
       onComplete();
     } else {
       setCurrentStep((s) => s + 1);
@@ -167,110 +178,109 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   const hasTarget = !!(targetRect && step?.targetId);
 
-  /* ================= TEXT POSITION ================= */
-
-  let textStyle: React.CSSProperties;
-
-  if (isFinalCenterStep) {
-    textStyle = {
-      zIndex: 52,
-      top: "50%",
-      transform: "translate(-50%, -50%)",
-    };
-  } else if (isFactsStep) {
-    textStyle = {
-      zIndex: 52,
-      top: "58%", // ниже центра
-      transform: "translate(-50%, -50%)",
-    };
-  } else if (isGirlStep) {
-    textStyle = {
-      zIndex: 52,
-      top: "48%",
-      transform: "translate(-50%, -50%)",
-    };
-  } else if (hasTarget) {
-    textStyle = {
-      zIndex: 52,
-      ...(step.position === "bottom"
-        ? { top: targetRect!.top + targetRect!.height + 20 }
-        : { bottom: window.innerHeight - targetRect!.top + 20 }),
-    };
-  } else {
-    textStyle = {
-      zIndex: 52,
-      top: "50%",
-      transform: "translate(-50%, -50%)",
-    };
-  }
-
-  /* ================= ARROW ================= */
+  /* ================= CURVED ARROW WITH ARROWHEAD ================= */
 
   const renderArrow = () => {
-    if (isFactsStep) return null;
-    if (!hasTarget || !arrowVisible) return null;
+    if (isFinalCenterStep || !hasTarget || !arrowVisible || !ready) return null;
 
     const arrowTarget = isStyleAnimated && styleRect ? styleRect : targetRect!;
-    const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
 
+    const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
+    const cutTop = arrowTarget.top;
+    const cutBottom = arrowTarget.top + arrowTarget.height;
+
+    const screenCenterX = window.innerWidth / 2;
+
+    // Get text block edges from ref
+    const textEl = textRef.current;
+    if (!textEl) return null;
+    const tr = textEl.getBoundingClientRect();
+
+    let startX: number;
     let startY: number;
+    let endX: number;
     let endY: number;
 
-    if (isGirlStep) {
-      // стрелка от ВЕРХА текста к полю
-      startY = window.innerHeight * 0.48 - 40;
-      endY = arrowTarget.top;
-    } else if (step.position === "bottom") {
-      startY = arrowTarget.top + arrowTarget.height + 20;
-      endY = arrowTarget.top + arrowTarget.height;
+    if (step.position === "bottom" || cutTop < tr.top) {
+      // Text is below cutout — arrow goes from top edge of text UP to bottom edge of cutout
+      startX = screenCenterX;
+      startY = tr.top - 4;
+      endX = cutCenterX;
+      endY = cutBottom + 6;
     } else {
-      startY = arrowTarget.top - 20;
-      endY = arrowTarget.top;
+      // Text is above cutout — arrow goes from bottom edge of text DOWN to top edge of cutout
+      startX = screenCenterX;
+      startY = tr.bottom + 4;
+      endX = cutCenterX;
+      endY = cutTop - 6;
     }
 
-    const startX = window.innerWidth / 2;
-    const endX = cutCenterX;
+    // Curved control point
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const curveStrength = Math.min(Math.abs(dx) * 0.5 + 30, 55);
+    const cpX = startX + dx * 0.5 + (dx >= 0 ? -curveStrength : curveStrength);
+    const cpY = startY + dy * 0.5;
 
-    const midY = (startY + endY) / 2;
-    const cpX = (startX + endX) / 2;
+    const pathD = `M ${startX} ${startY} Q ${cpX} ${cpY} ${endX} ${endY}`;
 
-    const d = `M ${startX} ${startY} Q ${cpX} ${midY} ${endX} ${endY}`;
+    // Arrowhead from tangent at t=1 of quadratic bezier: tangent = end - controlPoint
+    const tX = endX - cpX;
+    const tY = endY - cpY;
+    const angle = Math.atan2(tY, tX);
+    const hl = 10; // head length
+
+    const h1X = endX - hl * Math.cos(angle - 0.35);
+    const h1Y = endY - hl * Math.sin(angle - 0.35);
+    const h2X = endX - hl * Math.cos(angle + 0.35);
+    const h2Y = endY - hl * Math.sin(angle + 0.35);
 
     return (
       <svg
         className="fixed inset-0 pointer-events-none"
         style={{
-          zIndex: 52,
+          zIndex: 53,
           width: "100vw",
           height: "100vh",
-          opacity: arrowVisible ? 0.8 : 0,
-          transition: "opacity 0.2s ease",
+          opacity: arrowVisible ? 0.85 : 0,
+          transition: "opacity 0.25s ease",
         }}
       >
         <path
-          d={d}
+          d={pathD}
           fill="none"
           stroke="white"
           strokeWidth={2}
           strokeLinecap="round"
+        />
+        <polygon
+          points={`${endX},${endY} ${h1X},${h1Y} ${h2X},${h2Y}`}
+          fill="white"
+          opacity={0.85}
         />
       </svg>
     );
   };
 
   const displayText = isStyleAnimated
-    ? `${step.text.split("\n")[0]}\n${STYLE_TEXTS[styleIndex]}`
+    ? `Если хочешь разнообразить стиль общения:\n${STYLE_TEXTS[styleIndex]}`
     : step.text;
+
+  /* Don't render until measured — prevents flash */
+  if (!ready) {
+    return (
+      <div className="fixed inset-0 z-50" style={{ background: "rgba(0,0,0,0.75)" }} />
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50" onClick={handleNext}>
+      {/* Dark overlay */}
       {!hasTarget && (
-        <div
-          className="absolute inset-0"
-          style={{ background: "rgba(0,0,0,0.75)" }}
-        />
+        <div className="absolute inset-0" style={{ background: "rgba(0,0,0,0.75)" }} />
       )}
 
+      {/* Cutout around target */}
       {hasTarget && (
         <div
           style={{
@@ -287,25 +297,31 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
         />
       )}
 
+      {/* Arrow */}
       {renderArrow()}
 
+      {/* Text + Button + Dots — ALWAYS centered */}
       <div
         key={fadeKey}
-        className="fixed left-1/2 flex flex-col items-center animate-fadeIn"
+        ref={textRef}
+        className="fixed flex flex-col items-center"
         style={{
+          zIndex: 54,
           left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
           maxWidth: 300,
-          ...textStyle,
+          width: "100%",
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-white text-base text-center leading-relaxed whitespace-pre-line mb-5">
+        <p className="text-white text-base text-center leading-relaxed whitespace-pre-line mb-5 px-4">
           {displayText}
         </p>
 
         <button
           onClick={handleNext}
-          className="px-6 py-2 rounded-xl text-white text-sm font-semibold shadow-lg active:scale-[0.97] transition-transform"
+          className="px-6 py-2.5 rounded-xl text-white text-sm font-semibold shadow-lg active:scale-[0.97] transition-transform"
           style={{
             background: isLast
               ? "linear-gradient(135deg, #22C55E, #16A34A)"
