@@ -1,7 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+
 import { validateInitData } from "../_shared/validateTelegram.ts"
 import { generateSummary } from "../_shared/generateSummary.ts"
+import { runStrategyEngine } from "../_shared/strategy/engine.ts"
 
 import { OPENER_SYSTEM_PROMPT } from "./openerSystemPrompt.ts"
 import { REPLY_SYSTEM_PROMPT } from "./replySystemPrompt.ts"
@@ -36,13 +38,25 @@ serve(async (req) => {
 
   try {
     const body = await req.json()
-    const { conversation_id, incoming_message, action_type, init_data, facts, style } = body
+    const {
+      conversation_id,
+      incoming_message,
+      action_type,
+      init_data,
+      facts,
+      style
+    } = body
 
-    // Validate Telegram initData
+    /* =====================
+       AUTH
+    ===================== */
+
     const BOT_TOKEN = Deno.env.get("BOT_TOKEN")
     if (!BOT_TOKEN) throw new Error("BOT_TOKEN missing")
 
-    const { valid, telegram_id } = await validateInitData(init_data || "", BOT_TOKEN)
+    const { valid, telegram_id } =
+      await validateInitData(init_data || "", BOT_TOKEN)
+
     if (!valid || !telegram_id) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
@@ -67,8 +81,12 @@ serve(async (req) => {
 
     const now = new Date()
 
-    const weekStarted = user?.week_started_at ? new Date(user.week_started_at) : now
-    const weekExpired = now.getTime() - weekStarted.getTime() >= 7 * 86400 * 1000
+    const weekStarted = user?.week_started_at
+      ? new Date(user.week_started_at)
+      : now
+
+    const weekExpired =
+      now.getTime() - weekStarted.getTime() >= 7 * 86400 * 1000
 
     const weeklyLimit = user?.weekly_limit ?? FREE_WEEKLY_LIMIT
     const weeklyUsed = weekExpired ? 0 : (user?.weekly_used ?? 0)
@@ -90,41 +108,52 @@ serve(async (req) => {
     }
 
     /* =====================
-       BUILD PROMPTS
+       PROMPT BASE
     ===================== */
 
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
     if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY missing")
 
-    // System prompt: opener vs reply
-    let baseSystemPrompt: string
-    if (action_type === "opener") {
-      baseSystemPrompt = OPENER_SYSTEM_PROMPT
-    } else {
-      baseSystemPrompt = REPLY_SYSTEM_PROMPT
-    }
+    let baseSystemPrompt =
+      action_type === "opener"
+        ? OPENER_SYSTEM_PROMPT
+        : REPLY_SYSTEM_PROMPT
 
     let fullSystemPrompt = baseSystemPrompt
-    if (action_type === "date") fullSystemPrompt += "\n\n" + DATE_INSTRUCTIONS
-    if (action_type === "contact") fullSystemPrompt += "\n\n" + CONTACT_INSTRUCTIONS
-    if (action_type === "reengage") fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
 
-    // Style
+    if (action_type === "date")
+      fullSystemPrompt += "\n\n" + DATE_INSTRUCTIONS
+
+    if (action_type === "contact")
+      fullSystemPrompt += "\n\n" + CONTACT_INSTRUCTIONS
+
+    if (action_type === "reengage")
+      fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
+
     const styleText = STYLE_MAP[style] || STYLE_DEFAULT
-
-    // Message type
-    const messageType = (action_type === "opener") ? "first_message" as const : "reply" as const
+    const messageType =
+      action_type === "opener" ? "first_message" : "reply"
 
     let profileInfo = ""
     let conversationContext = ""
     let lastMessage = ""
     let conversationSummary: string | undefined
 
+    /* =====================
+       OPENER MODE
+    ===================== */
+
     if (messageType === "first_message") {
       profileInfo = facts || ""
       lastMessage = incoming_message || ""
-    } else {
-      // Reply mode — need conversation_id
+    }
+
+    /* =====================
+       REPLY MODE
+    ===================== */
+
+    if (messageType === "reply") {
+
       if (!conversation_id) {
         return new Response(
           JSON.stringify({ error: "conversation_id missing" }),
@@ -132,10 +161,9 @@ serve(async (req) => {
         )
       }
 
-      // Ownership check + fetch summary
       const { data: conv } = await supabase
         .from("conversations")
-        .select("user_id, summary")
+        .select("*")
         .eq("id", conversation_id)
         .single()
 
@@ -146,7 +174,52 @@ serve(async (req) => {
         )
       }
 
-      // Last 20 messages (newest first → reverse for chronological order)
+      /* =====================
+         STRATEGY ENGINE
+      ===================== */
+
+      let strategyResult = null
+
+      if (incoming_message) {
+        strategyResult = runStrategyEngine(
+          conv,
+          incoming_message,
+          "girl"
+        )
+
+        await supabase
+          .from("conversations")
+          .update({
+            stage: strategyResult.stage,
+            base_interest_score: strategyResult.baseInterest,
+            effective_interest: strategyResult.effectiveInterest,
+            freshness_multiplier: strategyResult.freshness,
+            has_future_projection: strategyResult.hasFutureProjection,
+            telegram_invite_attempts: strategyResult.telegramInviteAttempts,
+            date_invite_attempts: strategyResult.dateInviteAttempts,
+            last_message_timestamp: now.toISOString()
+          })
+          .eq("id", conversation_id)
+
+        // Передаём стратегию в system prompt
+        fullSystemPrompt += `
+
+CURRENT_STAGE: ${strategyResult.stage}
+EFFECTIVE_INTEREST: ${strategyResult.effectiveInterest}
+NEXT_OBJECTIVE: ${strategyResult.nextObjective}
+
+ВАЖНО:
+Если NEXT_OBJECTIVE = TELEGRAM_INVITE — один вариант обязан предложить переход.
+Если NEXT_OBJECTIVE = DATE_INVITE — один вариант обязан предложить конкретное время.
+Если NEXT_OBJECTIVE = REWARM — лёгкий эмоциональный пинг.
+Если NEXT_OBJECTIVE = SALVAGE — смена динамики.
+`
+      }
+
+      /* =====================
+         LOAD HISTORY
+      ===================== */
+
       const { data: historyDesc } = await supabase
         .from("messages")
         .select("role, text, created_at")
@@ -157,7 +230,11 @@ serve(async (req) => {
       const history = (historyDesc || []).reverse()
 
       if (incoming_message) {
-        history.push({ role: "girl", text: incoming_message, created_at: now.toISOString() })
+        history.push({
+          role: "girl",
+          text: incoming_message,
+          created_at: now.toISOString()
+        })
       }
 
       if (history.length === 0) {
@@ -167,69 +244,82 @@ serve(async (req) => {
         )
       }
 
-      /* ---- Memory V2: use summary + last 8 when history > 12 ---- */
       if (history.length > 12) {
         conversationSummary = conv.summary || undefined
 
         if (!conversationSummary) {
           const olderMessages = history.slice(0, history.length - 8)
-          const generated = await generateSummary(olderMessages, ANTHROPIC_KEY)
+          const generated =
+            await generateSummary(olderMessages, ANTHROPIC_KEY)
+
           if (generated) {
             conversationSummary = generated
             supabase
               .from("conversations")
-              .update({ summary: generated, summary_updated_at: now.toISOString() })
+              .update({
+                summary: generated,
+                summary_updated_at: now.toISOString()
+              })
               .eq("id", conversation_id)
-              .then(() => {})
           }
         }
       }
 
-      const contextMessages = conversationSummary ? history.slice(-8) : history
-      const lastMsg = contextMessages[contextMessages.length - 1]
-      const previousMessages = contextMessages.slice(0, -1)
+      const contextMessages =
+        conversationSummary ? history.slice(-8) : history
+
+      const lastMsg =
+        contextMessages[contextMessages.length - 1]
+
+      const previousMessages =
+        contextMessages.slice(0, -1)
 
       conversationContext = previousMessages
-        .map((msg) => `${msg.role === "user" ? "Ты" : "Она"}: ${msg.text}`)
+        .map((msg) =>
+          `${msg.role === "user" ? "Ты" : "Она"}: ${msg.text}`
+        )
         .join("\n")
+
       lastMessage =
-        lastMsg.role === "girl" ? lastMsg.text : incoming_message || ""
+        lastMsg.role === "girl"
+          ? lastMsg.text
+          : incoming_message || ""
     }
 
-    const userPrompt = buildUserPrompt(messageType, profileInfo, conversationContext, lastMessage, conversationSummary)
+    const userPrompt = buildUserPrompt(
+      messageType,
+      profileInfo,
+      conversationContext,
+      lastMessage,
+      conversationSummary
+    )
 
     /* =====================
-       CLAUDE API (with prompt caching)
+       CLAUDE API
     ===================== */
 
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 30000)
-
-    let anthropicRes
-    try {
-      anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
+    const anthropicRes = await fetch(
+      "https://api.anthropic.com/v1/messages",
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-api-key": ANTHROPIC_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-beta": "prompt-caching-2024-07-31",
+          "anthropic-version": "2023-06-01"
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 450,
           temperature: 0.85,
           system: [
-            { type: "text", text: styleText, cache_control: { type: "ephemeral" } },
-            { type: "text", text: styleText, cache_control: { type: "ephemeral" } },
+            { type: "text", text: styleText }
           ],
-          messages: [{ role: "user", content: userPrompt }],
-        }),
-        signal: controller.signal,
-      })
-    } finally {
-      clearTimeout(timeout)
-    }
+          messages: [
+            { role: "user", content: userPrompt }
+          ]
+        })
+      }
+    )
 
     const anthropicData = await anthropicRes.json()
 
@@ -247,33 +337,12 @@ serve(async (req) => {
         .map((block: any) => block.text)
         .join("\n") || ""
 
-    // Parse HINT from response
-    let hint = "none"
-    const hintMatch = rawText.match(/\[HINT:(date|contact|reengage|none)\]/)
-    if (hintMatch) {
-      hint = hintMatch[1]
-      rawText = rawText.replace(/\[HINT:(date|contact|reengage|none)\]/, "").trim()
-    }
-
     let suggestions = rawText
       .split("§")
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0)
+      .slice(0, 3)
 
-    if (suggestions.length === 0) {
-      suggestions = rawText
-        .split("\n")
-        .map((line: string) => line.trim())
-        .filter((line: string) => line.length > 8)
-    }
-
-    suggestions = suggestions.slice(0, 3)
-
-    /* =====================
-       POST-SUCCESS WRITES
-    ===================== */
-
-    // Save girl's incoming message to DB
     if (action_type !== "opener" && incoming_message && conversation_id) {
       await supabase.from("messages").insert({
         conversation_id,
@@ -282,48 +351,10 @@ serve(async (req) => {
       })
     }
 
-    // Log usage (fire-and-forget)
-    supabase
-      .from("usage_logs")
-      .insert({
-        telegram_id,
-        conversation_id: action_type !== "opener" ? conversation_id : null,
-        action_type: action_type ?? null,
-        input_tokens: anthropicData.usage?.input_tokens ?? 0,
-        output_tokens: anthropicData.usage?.output_tokens ?? 0,
-        cache_read_input_tokens: anthropicData.usage?.cache_read_input_tokens ?? 0,
-        cache_creation_input_tokens: anthropicData.usage?.cache_creation_input_tokens ?? 0,
-      })
-      .then(() => {})
-
-    // Deduct generation: free first, then paid
-    let newWeeklyUsed = weeklyUsed
-    let newPaidBalance = paidBalance
-
-    if (hasFree) {
-      newWeeklyUsed = weeklyUsed + 1
-      await supabase
-        .from("users")
-        .update({
-          weekly_used: newWeeklyUsed,
-          ...(weekExpired ? { week_started_at: now.toISOString() } : {}),
-        })
-        .eq("telegram_id", telegram_id)
-    } else {
-      newPaidBalance = paidBalance - 1
-      await supabase.rpc("increment_generations_balance", {
-        p_telegram_id: telegram_id,
-        p_amount: -1,
-      })
-    }
-
     return new Response(
       JSON.stringify({
         suggestions,
-        hint,
         limit_reached: false,
-        free_remaining: Math.max(0, weeklyLimit - newWeeklyUsed),
-        paid_remaining: newPaidBalance,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )
