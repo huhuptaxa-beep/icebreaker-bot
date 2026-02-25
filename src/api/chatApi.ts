@@ -23,7 +23,7 @@ export interface Message {
 
 export interface GenerateResponse {
   suggestions: string[];
-  hint?: string;
+  available_actions?: string[];
   limit_reached: boolean;
   free_remaining: number;
   paid_remaining: number;

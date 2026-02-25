@@ -26,12 +26,6 @@ const STYLES: { key: Style; label: string }[] = [
 
 type ActiveStyle = Style | null;
 
-const HINT_CONFIG: Record<string, { text: string; button: string; action: "date" | "contact" | "reengage" }> = {
-  date: { text: "Она готова к встрече", button: "Предложить свидание", action: "date" },
-  contact: { text: "Пора обменяться контактами", button: "Взять контакт", action: "contact" },
-  reengage: { text: "Диалог затух", button: "Оживить беседу", action: "reengage" },
-};
-
 const ChatPage: React.FC<ChatPageProps> = ({
   conversationId,
   onBack,
@@ -46,7 +40,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [openerFacts, setOpenerFacts] = useState("");
 
   const [style, setStyle] = useState<ActiveStyle>(null);
-  const [hint, setHint] = useState<string | null>(null);
+  const [availableActions, setAvailableActions] = useState<string[]>([]);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -117,7 +111,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
     setGenerating(true);
     setSuggestions([]);
-    setHint(null);
+    setAvailableActions([]);
 
     try {
       let res;
@@ -153,9 +147,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         showToast("Не удалось сгенерировать ответ", "error");
       } else {
         setSuggestions(res.suggestions || []);
-        if (res.hint && res.hint !== "none") {
-          setHint(res.hint);
-        }
+        setAvailableActions(res.available_actions || []);
       }
 
       setOpenerFacts("");
@@ -180,7 +172,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     try {
       await chatSave(conversationId, text, "user");
       setSuggestions([]);
-      setHint(null);
+      setAvailableActions([]);
       await refreshConversation();
     } catch (err) {
       console.error(err);
@@ -188,11 +180,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     } finally {
       isSavingRef.current = false;
     }
-  };
-
-  const handleHintAction = (action: "date" | "contact" | "reengage") => {
-    setHint(null);
-    handleGenerate(action);
   };
 
   return (
@@ -316,21 +303,36 @@ const ChatPage: React.FC<ChatPageProps> = ({
         loading={generating}
       />
 
-      {/* HINT BANNER */}
-      {hint && HINT_CONFIG[hint] && !generating && (
-        <div
-          className="mx-4 mb-2 px-4 py-3 rounded-2xl flex items-center gap-3"
-          style={{ background: "#1A1A1A", border: "1px solid rgba(251,191,36,0.3)" }}
-        >
-          <span className="text-lg">💡</span>
-          <span className="flex-1 text-sm text-gray-300">{HINT_CONFIG[hint].text}</span>
-          <button
-            onClick={() => handleHintAction(HINT_CONFIG[hint].action)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap"
-            style={{ background: "rgba(251,191,36,0.15)", color: "#FBBF24" }}
-          >
-            {HINT_CONFIG[hint].button}
-          </button>
+      {/* ACTION BUTTONS */}
+      {availableActions.length > 0 && !generating && (
+        <div className="px-4 py-2 flex gap-2">
+          {availableActions.includes("contact") && (
+            <button
+              onClick={() => handleGenerate("contact")}
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+              style={{ background: "rgba(59,130,246,0.15)", color: "#60A5FA", border: "1px solid rgba(59,130,246,0.3)" }}
+            >
+              📱 Взять Telegram
+            </button>
+          )}
+          {availableActions.includes("date") && (
+            <button
+              onClick={() => handleGenerate("date")}
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+              style={{ background: "rgba(34,197,94,0.15)", color: "#4ADE80", border: "1px solid rgba(34,197,94,0.3)" }}
+            >
+              ☕ Позвать на свидание
+            </button>
+          )}
+          {availableActions.includes("reengage") && (
+            <button
+              onClick={() => handleGenerate("reengage")}
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+              style={{ background: "rgba(251,191,36,0.15)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.3)" }}
+            >
+              🔥 Написать ей
+            </button>
+          )}
         </div>
       )}
 

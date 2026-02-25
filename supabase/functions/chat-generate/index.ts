@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { validateInitData } from "../_shared/validateTelegram.ts"
 import { generateSummary } from "../_shared/generateSummary.ts"
 import { runStrategyEngine } from "../_shared/strategy/engine.ts"
+import { STRATEGY_CONFIG } from "../_shared/strategy/config.ts"
 
 import { OPENER_SYSTEM_PROMPT } from "./openerSystemPrompt.ts"
 import { REPLY_SYSTEM_PROMPT } from "./replySystemPrompt.ts"
@@ -13,7 +14,7 @@ import { STYLE_BADGUY } from "./stylebadguy.ts"
 import { STYLE_DEFAULT } from "./styleDefault.ts"
 import { buildUserPrompt } from "./userPrompt.ts"
 import { DATE_INSTRUCTIONS } from "./dateInstructions.ts"
-import { CONTACT_INSTRUCTIONS } from "./contactInstructions.ts"
+import { TELEGRAM_INSTRUCTIONS } from "./telegramInstructions.ts"
 import { REENGAGE_INSTRUCTIONS } from "./reengageInstructions.ts"
 
 const corsHeaders = {
@@ -125,7 +126,7 @@ serve(async (req) => {
       fullSystemPrompt += "\n\n" + DATE_INSTRUCTIONS
 
     if (action_type === "contact")
-      fullSystemPrompt += "\n\n" + CONTACT_INSTRUCTIONS
+      fullSystemPrompt += "\n\n" + TELEGRAM_INSTRUCTIONS
 
     if (action_type === "reengage")
       fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
@@ -138,6 +139,7 @@ serve(async (req) => {
     let conversationContext = ""
     let lastMessage = ""
     let conversationSummary: string | undefined
+    let available_actions: string[] = []
 
     /* =====================
        OPENER MODE
@@ -216,6 +218,35 @@ NEXT_OBJECTIVE: ${strategyResult.nextObjective}
 Если NEXT_OBJECTIVE = REWARM — лёгкий эмоциональный пинг.
 Если NEXT_OBJECTIVE = SALVAGE — смена динамики.
 `
+      }
+
+      // Fallback: загружаем стратегию из БД для action без incoming_message
+      if (!strategyResult && conv) {
+        fullSystemPrompt += `
+CURRENT_STAGE: ${conv.stage || 1}
+EFFECTIVE_INTEREST: ${conv.effective_interest || 3}
+NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "contact" ? "TELEGRAM_INVITE" : "REWARM"}
+`
+      }
+
+      /* =====================
+         AVAILABLE ACTIONS
+      ===================== */
+
+      available_actions = []
+
+      if (strategyResult) {
+        if (strategyResult.freshness < 0.6) {
+          available_actions.push("reengage")
+        }
+        if (strategyResult.nextObjective === "BUILD_TENSION" || strategyResult.stage >= 3) {
+          if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.telegram) {
+            available_actions.push("contact")
+          }
+        }
+        if (strategyResult.stage >= 4 && strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.date) {
+          available_actions.push("date")
+        }
       }
 
       /* =====================
@@ -314,8 +345,8 @@ NEXT_OBJECTIVE: ${strategyResult.nextObjective}
           max_tokens: 450,
           temperature: 0.85,
           system: [
-            { type: "text", text: fullSystemPrompt },
-            { type: "text", text: styleText }
+            { type: "text", text: fullSystemPrompt, cache_control: { type: "ephemeral" } },
+            { type: "text", text: styleText, cache_control: { type: "ephemeral" } }
           ],
           messages: [
             { role: "user", content: userPrompt }
@@ -340,7 +371,7 @@ NEXT_OBJECTIVE: ${strategyResult.nextObjective}
         .map((block: any) => block.text)
         .join("\n") || ""
 
-    let suggestions = rawText
+    const suggestions = rawText
       .split("§")
       .map((s: string) => s.trim())
       .filter((s: string) => s.length > 0)
@@ -354,10 +385,51 @@ NEXT_OBJECTIVE: ${strategyResult.nextObjective}
       })
     }
 
+    /* =====================
+       USAGE LOGGING (fire-and-forget)
+    ===================== */
+
+    const usage = anthropicData.usage || {}
+    supabase.from("usage_logs").insert({
+      telegram_id,
+      conversation_id: conversation_id || null,
+      model: "claude-sonnet-4-6",
+      input_tokens: usage.input_tokens || 0,
+      output_tokens: usage.output_tokens || 0,
+      cache_creation_input_tokens: usage.cache_creation_input_tokens || 0,
+      cache_read_input_tokens: usage.cache_read_input_tokens || 0,
+      action_type: action_type || "normal",
+      created_at: now.toISOString()
+    }).then(() => {}).catch((err: any) => console.error("usage log error:", err))
+
+    /* =====================
+       LIMIT DEDUCTION
+    ===================== */
+
+    if (hasFree) {
+      const updateData: any = { weekly_used: weeklyUsed + 1 }
+      if (weekExpired) {
+        updateData.week_started_at = now.toISOString()
+        updateData.weekly_used = 1
+      }
+      await supabase.from("users").update(updateData).eq("telegram_id", telegram_id)
+    } else if (hasPaid) {
+      await supabase.from("users").update({
+        generations_balance: paidBalance - 1
+      }).eq("telegram_id", telegram_id)
+    }
+
+    const newWeeklyUsed = hasFree ? (weekExpired ? 1 : weeklyUsed + 1) : weeklyUsed
+    const freeRemaining = Math.max(0, weeklyLimit - newWeeklyUsed)
+    const paidRemaining = hasPaid && !hasFree ? paidBalance - 1 : paidBalance
+
     return new Response(
       JSON.stringify({
         suggestions,
+        available_actions,
         limit_reached: false,
+        free_remaining: freeRemaining,
+        paid_remaining: paidRemaining,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )

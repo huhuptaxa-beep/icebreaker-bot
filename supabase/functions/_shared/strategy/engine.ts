@@ -124,9 +124,7 @@ export function runStrategyEngine(
       highInterestStreak = 0
     }
     else {
-      // нейтральное сообщение не ломает streak
-      highInterestStreak = 0
-      lowInterestStreak = 0
+      // нейтральное сообщение НЕ ломает streak — ничего не делаем
     }
 
     /* =========================================
