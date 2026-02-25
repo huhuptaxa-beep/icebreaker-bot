@@ -197,6 +197,8 @@ serve(async (req) => {
             has_future_projection: strategyResult.hasFutureProjection,
             telegram_invite_attempts: strategyResult.telegramInviteAttempts,
             date_invite_attempts: strategyResult.dateInviteAttempts,
+            high_interest_streak: strategyResult.highInterestStreak,
+            low_interest_streak: strategyResult.lowInterestStreak,
             last_message_timestamp: now.toISOString()
           })
           .eq("id", conversation_id)
@@ -312,6 +314,7 @@ NEXT_OBJECTIVE: ${strategyResult.nextObjective}
           max_tokens: 450,
           temperature: 0.85,
           system: [
+            { type: "text", text: fullSystemPrompt },
             { type: "text", text: styleText }
           ],
           messages: [

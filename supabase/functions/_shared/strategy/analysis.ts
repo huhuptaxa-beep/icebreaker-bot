@@ -6,15 +6,75 @@ import { STRATEGY_CONFIG } from "./config.ts"
 export function analyzeGirlMessage(text: string) {
   const { message } = STRATEGY_CONFIG
 
-  const wordCount = text.trim().split(/\s+/).length
-  const hasQuestion = text.includes("?")
-  const hasEmoji = message.emojiRegex.test(text)
-  const isShort = wordCount <= message.shortMessageWordLimit
-  const isLong = wordCount > message.longMessageWordLimit
+  const clean = text.trim()
+  const lower = clean.toLowerCase()
 
-  const hasPersonal = message.personalKeywords.some(k =>
-    text.toLowerCase().includes(k)
-  )
+  const wordCount = clean.length > 0
+    ? clean.split(/\s+/).length
+    : 0
+
+  const hasQuestion = clean.includes("?")
+  const hasEmoji = message.emojiRegex.test(clean)
+
+  const isShort =
+    wordCount <= message.shortMessageWordLimit
+
+  const isLong =
+    wordCount > message.longMessageWordLimit
+
+  const hasPersonal =
+    message.personalKeywords.some(k =>
+      lower.includes(k)
+    )
+
+  /**
+   * ========= SHIT TEST DETECTION =========
+   * Проверочные вопросы
+   */
+  const shitTestKeywords = [
+    "что ты ищешь",
+    "что ищешь",
+    "зачем ты здесь",
+    "давно на сайте",
+    "сколько у тебя было",
+    "женат",
+    "есть дети",
+    "серьёзно настроен",
+    "серьезно настроен"
+  ]
+
+  const isShitTest =
+    shitTestKeywords.some(k =>
+      lower.includes(k)
+    )
+
+  /**
+   * ========= DRY SIGNAL =========
+   * Сухой ответ без эмоций и без вложения
+   */
+  const isDry =
+    isShort &&
+    !hasQuestion &&
+    !hasEmoji &&
+    !hasPersonal
+
+  /**
+   * ========= HIGH INTEREST SIGNAL =========
+   * Девушка вкладывается
+   */
+  const isHighInterestSignal =
+    (
+      hasQuestion &&
+      wordCount >= message.longMessageWordLimit
+    ) ||
+    (
+      hasEmoji &&
+      wordCount >= 5
+    ) ||
+    (
+      hasPersonal &&
+      wordCount >= 6
+    )
 
   return {
     wordCount,
@@ -22,9 +82,13 @@ export function analyzeGirlMessage(text: string) {
     hasEmoji,
     isShort,
     isLong,
-    hasPersonal
+    hasPersonal,
+    isShitTest,
+    isDry,
+    isHighInterestSignal
   }
 }
+
 
 /**
  * Анализ сообщения мужчины (пользователя)
@@ -35,7 +99,9 @@ export function analyzeUserMessage(text: string) {
 
   const hasQuestion = text.includes("?")
 
-  // Простейшее определение future projection
+  /**
+   * ========= FUTURE PROJECTION =========
+   */
   const futureProjectionKeywords = [
     "когда увидимся",
     "на свидании",
@@ -43,14 +109,19 @@ export function analyzeUserMessage(text: string) {
     "когда встретимся",
     "увидимся",
     "пойдём",
-    "пойдем"
+    "пойдем",
+    "будем",
+    "вместе"
   ]
 
-  const hasFutureProjection = futureProjectionKeywords.some(k =>
-    lower.includes(k)
-  )
+  const hasFutureProjection =
+    futureProjectionKeywords.some(k =>
+      lower.includes(k)
+    )
 
-  // Определяем попытку перевода в Telegram
+  /**
+   * ========= TELEGRAM INVITE =========
+   */
   const telegramKeywords = [
     "телеграм",
     "telegram",
@@ -58,21 +129,27 @@ export function analyzeUserMessage(text: string) {
     "tg"
   ]
 
-  const hasTelegramInvite = telegramKeywords.some(k =>
-    lower.includes(k)
-  )
+  const hasTelegramInvite =
+    telegramKeywords.some(k =>
+      lower.includes(k)
+    )
 
-  // Определяем попытку приглашения на свидание
+  /**
+   * ========= DATE INVITE =========
+   */
   const dateKeywords = [
     "встретимся",
     "свидание",
     "увидимся завтра",
-    "пойдём в"
+    "пойдём в",
+    "пойдем в",
+    "давай встретимся"
   ]
 
-  const hasDateInvite = dateKeywords.some(k =>
-    lower.includes(k)
-  )
+  const hasDateInvite =
+    dateKeywords.some(k =>
+      lower.includes(k)
+    )
 
   return {
     hasQuestion,
