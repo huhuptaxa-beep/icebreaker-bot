@@ -14,7 +14,19 @@ export function analyzeGirlMessage(text: string) {
     : 0
 
   const hasQuestion = clean.includes("?")
-  const hasEmoji = message.emojiRegex.test(clean)
+
+  // Стандартные unicode эмодзи
+  const hasUnicodeEmoji = message.emojiRegex.test(clean)
+
+  // Текстовые смайлики: :) :-) :D ;) ;-) :P xD и т.д.
+  const hasTextSmiley = /[:;][-']?[)D(P]|[xXхХ][дДdD]/.test(clean)
+
+  // Скобочки: )) и более = теплота, одна ) в конце = нейтрально
+  const bracketMatch = clean.match(/\){2,}/)
+  const hasWarmBrackets = !!bracketMatch
+
+  // Итого: есть эмодзи/смайлик/тёплые скобочки
+  const hasEmoji = hasUnicodeEmoji || hasTextSmiley || hasWarmBrackets
 
   const isShort =
     wordCount <= message.shortMessageWordLimit
@@ -61,6 +73,12 @@ export function analyzeGirlMessage(text: string) {
   /**
    * ========= HIGH INTEREST SIGNAL =========
    * Девушка вкладывается
+   *
+   * Условия (любое из):
+   * - вопрос + длинное сообщение (10+ слов)
+   * - эмодзи/смайлик/скобочки + 5 слов
+   * - личное раскрытие + 6 слов
+   * - вопрос + эмодзи (любая длина кроме 1-2 слова)
    */
   const isHighInterestSignal =
     (
@@ -74,6 +92,11 @@ export function analyzeGirlMessage(text: string) {
     (
       hasPersonal &&
       wordCount >= 6
+    ) ||
+    (
+      hasQuestion &&
+      hasEmoji &&
+      wordCount >= 3
     )
 
   return {

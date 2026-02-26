@@ -56,7 +56,6 @@ export function runStrategyEngine(
   let dateInviteAttempts =
     dialogue.date_invite_attempts ?? 0
 
-  // НОВОЕ — streak поведение
   let highInterestStreak =
     dialogue.high_interest_streak ?? 0
 
@@ -96,15 +95,13 @@ export function runStrategyEngine(
     if (analysis.isShitTest) {
       signalType = "SHIT_TEST"
     }
-    else if (
-      analysis.hasQuestion &&
-      analysis.wordCount >= STRATEGY_CONFIG.message.longMessageWordLimit
-    ) {
+    else if (analysis.isDry) {
+      signalType = "LOW_INTEREST"
+    }
+    else if (analysis.isHighInterestSignal) {
       signalType = "HIGH_INTEREST"
     }
-    else if (
-      analysis.wordCount <= STRATEGY_CONFIG.message.shortMessageWordLimit
-    ) {
+    else if (analysis.isShort && !analysis.hasQuestion && !analysis.hasEmoji) {
       signalType = "LOW_INTEREST"
     }
     else {
@@ -128,7 +125,7 @@ export function runStrategyEngine(
     }
 
     /* =========================================
-       ОБНОВЛЕНИЕ PHASE (продвинутая логика)
+       ОБНОВЛЕНИЕ PHASE (линейная модель)
        ========================================= */
 
     // Phase 1 → 2 (highStreakForConnection HIGH подряд)
