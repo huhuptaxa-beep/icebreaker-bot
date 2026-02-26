@@ -124,8 +124,7 @@ export const chatGenerate = async (
   conversation_id: string,
   incoming_message: string | null,
   action_type: "normal" | "reengage" | "contact" | "date" | "opener",
-  facts?: string,
-  style?: "bold" | "romantic" | "funny" | "default"
+  facts?: string
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
     method: "POST",
@@ -136,7 +135,6 @@ export const chatGenerate = async (
       action_type,
       init_data: getInitData(),
       facts: facts || null,
-      style: style || "default",
     }),
   });
 

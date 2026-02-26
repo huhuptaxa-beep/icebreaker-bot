@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { validateInitData } from "../_shared/validateTelegram.ts"
+import { runStrategyEngine } from "../_shared/strategy/engine.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,10 +40,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
 
-    // Проверяем владельца диалога
+    // Проверяем владельца диалога и загружаем полный conversation
     const { data: conv } = await supabase
       .from("conversations")
-      .select("user_id")
+      .select("*")
       .eq("id", conversation_id)
       .single()
 
@@ -66,6 +67,21 @@ serve(async (req) => {
       .single()
 
     if (error) throw error
+
+    // Если сохраняем сообщение пользователя — запускаем strategy engine для user-специфичных полей
+    if (safeRole === "user" && conv) {
+      const strategyResult = runStrategyEngine(conv, selected_text, "user")
+
+      await supabase
+        .from("conversations")
+        .update({
+          has_future_projection: strategyResult.hasFutureProjection,
+          telegram_invite_attempts: strategyResult.telegramInviteAttempts,
+          date_invite_attempts: strategyResult.dateInviteAttempts,
+          last_message_timestamp: new Date().toISOString()
+        })
+        .eq("id", conversation_id)
+    }
 
     return new Response(
       JSON.stringify({ message: data }),

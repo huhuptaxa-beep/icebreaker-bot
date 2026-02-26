@@ -8,10 +8,6 @@ import { STRATEGY_CONFIG } from "../_shared/strategy/config.ts"
 
 import { OPENER_SYSTEM_PROMPT } from "./openerSystemPrompt.ts"
 import { REPLY_SYSTEM_PROMPT } from "./replySystemPrompt.ts"
-import { STYLE_BOLD } from "./styleBold.ts"
-import { STYLE_ROMANTIC } from "./styleRomantic.ts"
-import { STYLE_BADGUY } from "./stylebadguy.ts"
-import { STYLE_DEFAULT } from "./styleDefault.ts"
 import { buildUserPrompt } from "./userPrompt.ts"
 import { DATE_INSTRUCTIONS } from "./dateInstructions.ts"
 import { TELEGRAM_INSTRUCTIONS } from "./telegramInstructions.ts"
@@ -25,13 +21,6 @@ const corsHeaders = {
 
 const FREE_WEEKLY_LIMIT = 7
 
-const STYLE_MAP: Record<string, string> = {
-  bold: STYLE_BOLD,
-  romantic: STYLE_ROMANTIC,
-  badguy: STYLE_BADGUY,
-  default: STYLE_DEFAULT,
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -44,8 +33,7 @@ serve(async (req) => {
       incoming_message,
       action_type,
       init_data,
-      facts,
-      style
+      facts
     } = body
 
     /* =====================
@@ -131,7 +119,6 @@ serve(async (req) => {
     if (action_type === "reengage")
       fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
 
-    const styleText = STYLE_MAP[style] || STYLE_DEFAULT
     const messageType =
       action_type === "opener" ? "first_message" : "reply"
 
@@ -345,8 +332,7 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
           max_tokens: 450,
           temperature: 0.85,
           system: [
-            { type: "text", text: fullSystemPrompt, cache_control: { type: "ephemeral" } },
-            { type: "text", text: styleText, cache_control: { type: "ephemeral" } }
+            { type: "text", text: fullSystemPrompt, cache_control: { type: "ephemeral" } }
           ],
           messages: [
             { role: "user", content: userPrompt }
