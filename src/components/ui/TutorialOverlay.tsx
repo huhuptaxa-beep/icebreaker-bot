@@ -22,13 +22,6 @@ interface TargetRect {
 const PAD = 8;
 const RADIUS = 16;
 
-const STYLE_IDS = ["style-bold", "style-romantic", "style-badguy"];
-const STYLE_TEXTS = [
-  "Дерзкий — режим провокатора",
-  "Романтик — нежный и чувственный",
-  "Bad guy — для совсем наглых 😈",
-];
-
 const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   steps,
   storageKey,
@@ -40,34 +33,16 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const [arrowVisible, setArrowVisible] = useState(false);
   const [ready, setReady] = useState(false);
 
-  const [styleIndex, setStyleIndex] = useState(0);
-  const [styleRect, setStyleRect] = useState<TargetRect | null>(null);
-  const styleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textRef = useRef<HTMLDivElement>(null);
 
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
-  const isStyleAnimated = step?.targetId === "style-animated";
   const isFinalCenterStep = !step?.targetId;
   const isFactsStep = step?.targetId === "field-facts";
 
   /* ================= TARGET MEASURE ================= */
 
   const measureTarget = useCallback(() => {
-    if (isStyleAnimated) {
-      const tabsEl = document.getElementById("style-tabs");
-      if (tabsEl) {
-        const r = tabsEl.getBoundingClientRect();
-        setTargetRect({
-          top: r.top - PAD,
-          left: r.left - PAD,
-          width: r.width + PAD * 2,
-          height: r.height + PAD * 2,
-        });
-      }
-      return;
-    }
-
     if (!step?.targetId) {
       setTargetRect(null);
       return;
@@ -85,20 +60,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     } else {
       setTargetRect(null);
     }
-  }, [step, isStyleAnimated]);
-
-  const measureStyleButton = useCallback((idx: number) => {
-    const el = document.getElementById(STYLE_IDS[idx]);
-    if (el) {
-      const r = el.getBoundingClientRect();
-      setStyleRect({
-        top: r.top - PAD,
-        left: r.left - PAD,
-        width: r.width + PAD * 2,
-        height: r.height + PAD * 2,
-      });
-    }
-  }, []);
+  }, [step]);
 
   useEffect(() => {
     setReady(false);
@@ -117,50 +79,9 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     };
   }, [measureTarget, currentStep]);
 
-  /* ================= STYLE ANIMATION ================= */
-
-  useEffect(() => {
-    if (!isStyleAnimated) {
-      STYLE_IDS.forEach((id) =>
-        document.getElementById(id)?.classList.remove("tutorial-highlight")
-      );
-      if (styleTimerRef.current) clearInterval(styleTimerRef.current);
-      return;
-    }
-
-    setStyleIndex(0);
-    measureStyleButton(0);
-
-    STYLE_IDS.forEach((id, i) => {
-      const el = document.getElementById(id);
-      if (i === 0) el?.classList.add("tutorial-highlight");
-      else el?.classList.remove("tutorial-highlight");
-    });
-
-    styleTimerRef.current = setInterval(() => {
-      setStyleIndex((prev) => {
-        const next = (prev + 1) % STYLE_IDS.length;
-        STYLE_IDS.forEach((id, i) => {
-          const el = document.getElementById(id);
-          if (i === next) el?.classList.add("tutorial-highlight");
-          else el?.classList.remove("tutorial-highlight");
-        });
-        measureStyleButton(next);
-        return next;
-      });
-    }, 1500);
-
-    return () => {
-      if (styleTimerRef.current) clearInterval(styleTimerRef.current);
-    };
-  }, [isStyleAnimated, measureStyleButton]);
-
   const handleNext = () => {
     if (isLast) {
       localStorage.setItem(storageKey, "true");
-      STYLE_IDS.forEach((id) =>
-        document.getElementById(id)?.classList.remove("tutorial-highlight")
-      );
       onComplete();
     } else {
       setCurrentStep((s) => s + 1);
@@ -177,7 +98,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     if (isFinalCenterStep || !hasTarget || !arrowVisible || !ready)
       return null;
 
-    const arrowTarget = isStyleAnimated && styleRect ? styleRect : targetRect!;
+    const arrowTarget = targetRect!;
     const cutCenterX = arrowTarget.left + arrowTarget.width / 2;
     const cutTop = arrowTarget.top;
     const cutBottom = arrowTarget.top + arrowTarget.height;
@@ -248,9 +169,7 @@ const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
     );
   };
 
-  const displayText = isStyleAnimated
-    ? `Если хочешь разнообразить стиль общения:\n${STYLE_TEXTS[styleIndex]}`
-    : step.text;
+  const displayText = step.text;
 
   if (!ready) {
     return (

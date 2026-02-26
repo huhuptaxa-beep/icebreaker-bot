@@ -16,16 +16,6 @@ interface ChatPageProps {
   onSubscribe?: () => void;
 }
 
-type Style = "bold" | "romantic" | "badguy";
-
-const STYLES: { key: Style; label: string }[] = [
-  { key: "bold", label: "Дерзкий" },
-  { key: "romantic", label: "Романтик" },
-  { key: "badguy", label: "bad guy" },
-];
-
-type ActiveStyle = Style | null;
-
 const ChatPage: React.FC<ChatPageProps> = ({
   conversationId,
   onBack,
@@ -39,7 +29,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [draftGirlReply, setDraftGirlReply] = useState("");
   const [openerFacts, setOpenerFacts] = useState("");
 
-  const [style, setStyle] = useState<ActiveStyle>(null);
   const [availableActions, setAvailableActions] = useState<string[]>([]);
 
   const { showToast } = useAppToast();
@@ -60,8 +49,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     { targetId: "field-facts", text: "Опиши девушку: хобби, интересы, факты\nиз описания, детали фото.\nЧем больше напишешь — тем лучше", position: "top" },
     { targetId: "field-girl-message", text: "Если она написала первая —\nвставь её сообщение сюда", position: "top" },
     { targetId: "btn-generate", text: "Нажми и получи 3 варианта сообщений", position: "top" },
-    { targetId: "style-animated", text: "Выбери стиль общения:", position: "top" },
-    { text: "Комбинируй стили для лучшей конверсии.\nЯ подскажу когда взять контакт\nили позвать на свидание.\nУдачи! 🔥", position: "top" },
+    { text: "Я подскажу когда взять контакт\nили позвать на свидание.\nУдачи! 🔥", position: "top" },
   ];
 
   const handleTextareaPaste = async () => {
@@ -121,8 +109,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           conversationId,
           null,
           "opener",
-          facts,
-          style ?? "default"
+          facts
         );
       } else {
         const action = actionOverride ?? "normal";
@@ -131,8 +118,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           conversationId,
           girlText || null,
           action,
-          undefined,
-          style ?? "default"
+          undefined
         );
 
         if (!actionOverride) setDraftGirlReply("");
@@ -335,26 +321,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
           )}
         </div>
       )}
-
-      {/* STYLE TABS */}
-      <div id="style-tabs" className="px-4 py-2 flex gap-2">
-        {STYLES.map((s) => (
-          <button
-            key={s.key}
-            id={`style-${s.key}`}
-            onClick={() => setStyle(style === s.key ? null : s.key)}
-            className="flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-150"
-            style={{
-              background: style === s.key
-                ? "linear-gradient(135deg, #EF4444, #F43F5E)"
-                : "#1A1A1A",
-              color: style === s.key ? "#FFFFFF" : "#9CA3AF",
-            }}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
 
       <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
         <button
