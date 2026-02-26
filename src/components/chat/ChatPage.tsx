@@ -4,6 +4,7 @@ import {
   chatGenerate,
   chatSave,
   getConversation,
+  confirmAction,
 } from "@/api/chatApi";
 import { useAppToast } from "@/components/ui/AppToast";
 import MessageBubble from "./MessageBubble";
@@ -30,6 +31,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [openerFacts, setOpenerFacts] = useState("");
 
   const [availableActions, setAvailableActions] = useState<string[]>([]);
+  const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(null);
+  const [currentPhase, setCurrentPhase] = useState<number>(1);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -134,6 +137,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
       } else {
         setSuggestions(res.suggestions || []);
         setAvailableActions(res.available_actions || []);
+        if (res.phase) setCurrentPhase(res.phase);
+
+        // Если пользователь нажал contact/date - устанавливаем pendingAction
+        if (actionOverride === "contact") setPendingAction("contact");
+        if (actionOverride === "date") setPendingAction("date");
       }
 
       setOpenerFacts("");
@@ -159,6 +167,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       await chatSave(conversationId, text, "user");
       setSuggestions([]);
       setAvailableActions([]);
+      // НЕ сбрасываем pendingAction - оно должно остаться для кнопок подтверждения
       await refreshConversation();
     } catch (err) {
       console.error(err);
@@ -289,8 +298,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
         loading={generating}
       />
 
-      {/* ACTION BUTTONS */}
-      {availableActions.length > 0 && !generating && (
+      {/* ACTION BUTTONS (скрываем если есть pendingAction) */}
+      {availableActions.length > 0 && !generating && !pendingAction && (
         <div className="px-4 py-2 flex gap-2">
           {availableActions.includes("contact") && (
             <button
@@ -319,6 +328,84 @@ const ChatPage: React.FC<ChatPageProps> = ({
               🔥 Написать ей
             </button>
           )}
+        </div>
+      )}
+
+      {/* CONFIRMATION BUTTONS - TELEGRAM */}
+      {pendingAction === "contact" && !generating && (
+        <div className="px-4 py-2 flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                await confirmAction(conversationId, "telegram_success");
+                setPendingAction(null);
+                setCurrentPhase(3);
+                showToast("Отлично! Переходим в Telegram", "success");
+              } catch (err) {
+                console.error(err);
+                showToast("Ошибка подтверждения", "error");
+              }
+            }}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "rgba(251,191,36,0.2)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.4)" }}
+          >
+            ✅ Telegram получен
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                await confirmAction(conversationId, "telegram_fail");
+                setPendingAction(null);
+                showToast("Ничего, продолжаем", "info");
+              } catch (err) {
+                console.error(err);
+                showToast("Ошибка подтверждения", "error");
+              }
+            }}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "#1A1A1A", color: "#9CA3AF", border: "1px solid rgba(255,255,255,0.1)" }}
+          >
+            ❌ Не дала
+          </button>
+        </div>
+      )}
+
+      {/* CONFIRMATION BUTTONS - DATE */}
+      {pendingAction === "date" && !generating && (
+        <div className="px-4 py-2 flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                await confirmAction(conversationId, "date_success");
+                setPendingAction(null);
+                setCurrentPhase(5);
+                showToast("Поздравляю! Свидание назначено 🎉", "success");
+              } catch (err) {
+                console.error(err);
+                showToast("Ошибка подтверждения", "error");
+              }
+            }}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "rgba(34,197,94,0.2)", color: "#4ADE80", border: "1px solid rgba(34,197,94,0.4)" }}
+          >
+            ✅ Она согласилась
+          </button>
+          <button
+            onClick={async () => {
+              try {
+                await confirmAction(conversationId, "date_fail");
+                setPendingAction(null);
+                showToast("Не страшно, продолжаем", "info");
+              } catch (err) {
+                console.error(err);
+                showToast("Ошибка подтверждения", "error");
+              }
+            }}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+            style={{ background: "#1A1A1A", color: "#9CA3AF", border: "1px solid rgba(255,255,255,0.1)" }}
+          >
+            ❌ Отказала
+          </button>
         </div>
       )}
 

@@ -15,13 +15,13 @@ type SignalType =
 
 
 /**
- * Главный стратегический движок 2.1
+ * Главный стратегический движок 2.1 (PHASE SYSTEM)
  *
  * Логика:
  * 1. Анализируем сигнал
  * 2. Обновляем интерес
  * 3. Обновляем streak
- * 4. Обновляем stage
+ * 4. Обновляем phase
  * 5. Выбираем objective
  */
 export function runStrategyEngine(
@@ -44,8 +44,8 @@ export function runStrategyEngine(
   let effectiveInterest =
     dialogue.effective_interest ?? baseInterest
 
-  let stage =
-    dialogue.stage ?? 1
+  let phase =
+    dialogue.phase ?? 1
 
   let hasFutureProjection =
     dialogue.has_future_projection ?? false
@@ -128,35 +128,31 @@ export function runStrategyEngine(
     }
 
     /* =========================================
-       ОБНОВЛЕНИЕ STAGE (продвинутая логика)
+       ОБНОВЛЕНИЕ PHASE (продвинутая логика)
        ========================================= */
 
-    // Stage 1 → 2 (2 HIGH подряд)
-    if (stage === 1 && highInterestStreak >= 2) {
-      stage = 2
+    // Phase 1 → 2 (highStreakForConnection HIGH подряд)
+    if (phase === 1 && highInterestStreak >= STRATEGY_CONFIG.phase.highStreakForConnection) {
+      phase = 2
     }
 
-    // Stage 2 → 3 (2 HIGH подряд ИЛИ future projection)
+    // Phase 2 → 3: НЕ автоматически, только по кнопке "Telegram получен"
+    // (обрабатывается в confirm-action endpoint)
+
+    // Phase 3 → 4 (минимум сообщений в Telegram)
     else if (
-      stage === 2 &&
-      (highInterestStreak >= 2 || hasFutureProjection)
+      phase === 3 &&
+      dialogue.phase_message_count >= STRATEGY_CONFIG.phase.minMessagesForTension
     ) {
-      stage = 3
+      phase = 4
     }
 
-    // Stage 3 → 4 (глубина + высокий интерес)
-    else if (
-      stage === 3 &&
-      signalType === "HIGH_INTEREST" &&
-      analysis.hasPersonal &&
-      effectiveInterest >= 8
-    ) {
-      stage = 4
-    }
+    // Phase 4 → 5: НЕ автоматически, только по кнопке "Она согласилась"
+    // (обрабатывается в confirm-action endpoint)
 
-    // Откат если 2 LOW подряд
-    if (lowInterestStreak >= 2 && stage > 1) {
-      stage -= 1
+    // Откат если 2 LOW подряд (но НЕ из phase 3 — уже в Telegram)
+    if (lowInterestStreak >= 2 && phase > 1 && phase !== 3) {
+      phase -= 1
     }
   }
 
@@ -200,14 +196,20 @@ export function runStrategyEngine(
   else if (signalType === "LOW_INTEREST") {
     nextObjective = "SALVAGE"
   }
-  else if (stage === 2) {
+  else if (phase === 1) {
+    nextObjective = "CONTINUE_PLAY"
+  }
+  else if (phase === 2) {
     nextObjective = "DEEPEN_CONNECTION"
   }
-  else if (stage === 3) {
+  else if (phase === 3) {
+    nextObjective = "RESTART_PLAY"
+  }
+  else if (phase === 4) {
     nextObjective = "BUILD_TENSION"
   }
-  else if (stage === 4) {
-    nextObjective = "OPTIONAL_NEXT_STEP"
+  else if (phase === 5) {
+    nextObjective = "POST_DATE"
   }
 
 
@@ -217,7 +219,7 @@ export function runStrategyEngine(
      ====================================================== */
 
   return {
-    stage,
+    phase,
     baseInterest,
     effectiveInterest,
     freshness,

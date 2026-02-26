@@ -48,6 +48,9 @@ export const STRATEGY_CONFIG = {
 
       // Очень короткий ответ (1-3 слова) → минус к интересу
       shortMessagePenalty: -1,
+
+      // Штраф за отказ (Telegram не дала / свидание отказала)
+      rejectionPenalty: -3,
     },
 
     /**
@@ -59,7 +62,7 @@ export const STRATEGY_CONFIG = {
       telegram: 7,
 
       // При каком effective_interest можно звать на свидание
-      date: 8,
+      date: 9,
 
       // Ниже этого значения включается режим SALVAGE (спасение диалога)
       lowInterest: 3,
@@ -126,17 +129,23 @@ export const STRATEGY_CONFIG = {
   },
 
   /**
-   * ===== STAGE ЛОГИКА =====
+   * ===== PHASE ЛОГИКА =====
    *
-   * Когда переходить между стадиями диалога
+   * Когда переходить между фазами диалога
    */
-  stage: {
+  phase: {
 
-    // Минимум сообщений для перехода из интриги в игровую фазу
-    minMessagesForPlay: 4,
+    // Phase 1→2: сколько HIGH_INTEREST подряд нужно
+    highStreakForConnection: 2,
 
-    // Минимум сообщений перед попыткой перевода в Telegram
-    minMessagesForTelegram: 5,
+    // Phase 3→4: минимум обменов сообщениями после перехода в Telegram
+    minMessagesForTension: 3,
+
+    // Phase 4: при каком interest добавлять намёк на свидание в ответ
+    hintDateInterest: 8,
+
+    // Phase 4: при каком interest показать кнопку "Позвать на свидание"
+    showDateButtonInterest: 9,
   },
 
   /**

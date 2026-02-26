@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { validateInitData } from "../_shared/validateTelegram.ts"
-import { runStrategyEngine } from "../_shared/strategy/engine.ts"
+import { STRATEGY_CONFIG } from "../_shared/strategy/config.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,16 +14,8 @@ serve(async (req) => {
   }
 
   try {
-    const { conversation_id, selected_text, role, init_data } = await req.json()
+    const { conversation_id, action, init_data } = await req.json()
 
-    if (!conversation_id || !selected_text) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      )
-    }
-
-    // Validate Telegram initData
     const BOT_TOKEN = Deno.env.get("BOT_TOKEN")
     if (!BOT_TOKEN) throw new Error("BOT_TOKEN missing")
 
@@ -40,7 +32,6 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     )
 
-    // Проверяем владельца диалога и загружаем полный conversation
     const { data: conv } = await supabase
       .from("conversations")
       .select("*")
@@ -54,45 +45,52 @@ serve(async (req) => {
       )
     }
 
-    const safeRole = role === "girl" ? "girl" : "user"
+    const updateData: any = {}
 
-    const { data, error } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id,
-        role: safeRole,
-        text: selected_text
-      })
-      .select()
-      .single()
+    if (action === "telegram_success") {
+      updateData.phase = 3
+      updateData.channel = "telegram"
+      updateData.phase_message_count = 0 // сброс счётчика для новой фазы
+    }
 
-    if (error) throw error
+    if (action === "telegram_fail") {
+      const newInterest = Math.max(0,
+        (conv.base_interest_score || 3) + STRATEGY_CONFIG.interest.weights.rejectionPenalty
+      )
+      updateData.base_interest_score = newInterest
+      updateData.effective_interest = newInterest * (conv.freshness_multiplier || 1)
+      updateData.telegram_invite_attempts = (conv.telegram_invite_attempts || 0) + 1
+    }
 
-    // Если сохраняем сообщение пользователя — запускаем strategy engine для user-специфичных полей
-    if (safeRole === "user" && conv) {
-      const strategyResult = runStrategyEngine(conv, selected_text, "user")
+    if (action === "date_success") {
+      updateData.phase = 5
+    }
 
+    if (action === "date_fail") {
+      const newInterest = Math.max(0,
+        (conv.base_interest_score || 3) + STRATEGY_CONFIG.interest.weights.rejectionPenalty
+      )
+      updateData.base_interest_score = newInterest
+      updateData.effective_interest = newInterest * (conv.freshness_multiplier || 1)
+      updateData.date_invite_attempts = (conv.date_invite_attempts || 0) + 1
+    }
+
+    if (Object.keys(updateData).length > 0) {
       await supabase
         .from("conversations")
-        .update({
-          has_future_projection: strategyResult.hasFutureProjection,
-          telegram_invite_attempts: strategyResult.telegramInviteAttempts,
-          date_invite_attempts: strategyResult.dateInviteAttempts,
-          last_message_timestamp: new Date().toISOString(),
-          phase_message_count: (conv.phase_message_count || 0) + 1
-        })
+        .update(updateData)
         .eq("id", conversation_id)
     }
 
     return new Response(
-      JSON.stringify({ message: data }),
+      JSON.stringify({ success: true, action, phase: updateData.phase || conv.phase }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )
 
   } catch (error) {
-    console.error("chat-save error:", error)
+    console.error("confirm-action ERROR:", error)
     return new Response(
-      JSON.stringify({ error: "Failed to save message" }),
+      JSON.stringify({ error: "Action failed" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     )
   }

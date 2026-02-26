@@ -24,6 +24,7 @@ export interface Message {
 export interface GenerateResponse {
   suggestions: string[];
   available_actions?: string[];
+  phase?: number;
   limit_reached: boolean;
   free_remaining: number;
   paid_remaining: number;
@@ -257,4 +258,26 @@ export const chatSave = async (
 
   const data = await res.json();
   return data.message;
+};
+
+/* ===========================
+   CONFIRM ACTION
+=========================== */
+
+export const confirmAction = async (
+  conversation_id: string,
+  action: "telegram_success" | "telegram_fail" | "date_success" | "date_fail"
+): Promise<{ success: boolean; phase: number }> => {
+  const res = await fetch(`${BASE_URL}/functions/v1/confirm-action`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      conversation_id,
+      action,
+      init_data: getInitData(),
+    }),
+  });
+
+  if (!res.ok) throw new Error("Failed to confirm action");
+  return res.json();
 };

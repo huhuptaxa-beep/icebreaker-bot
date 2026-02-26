@@ -127,6 +127,7 @@ serve(async (req) => {
     let lastMessage = ""
     let conversationSummary: string | undefined
     let available_actions: string[] = []
+    let strategyResult: any = null
 
     /* =====================
        OPENER MODE
@@ -167,8 +168,6 @@ serve(async (req) => {
          STRATEGY ENGINE
       ===================== */
 
-      let strategyResult = null
-
       if (incoming_message) {
         strategyResult = runStrategyEngine(
           conv,
@@ -179,7 +178,7 @@ serve(async (req) => {
         await supabase
           .from("conversations")
           .update({
-            stage: strategyResult.stage,
+            phase: strategyResult.phase,
             base_interest_score: strategyResult.baseInterest,
             effective_interest: strategyResult.effectiveInterest,
             freshness_multiplier: strategyResult.freshness,
@@ -188,14 +187,15 @@ serve(async (req) => {
             date_invite_attempts: strategyResult.dateInviteAttempts,
             high_interest_streak: strategyResult.highInterestStreak,
             low_interest_streak: strategyResult.lowInterestStreak,
-            last_message_timestamp: now.toISOString()
+            last_message_timestamp: now.toISOString(),
+            phase_message_count: (conv.phase_message_count || 0) + 1
           })
           .eq("id", conversation_id)
 
         // Передаём стратегию в system prompt
         fullSystemPrompt += `
 
-CURRENT_STAGE: ${strategyResult.stage}
+CURRENT_PHASE: ${strategyResult.phase}
 EFFECTIVE_INTEREST: ${strategyResult.effectiveInterest}
 NEXT_OBJECTIVE: ${strategyResult.nextObjective}
 
@@ -205,12 +205,17 @@ NEXT_OBJECTIVE: ${strategyResult.nextObjective}
 Если NEXT_OBJECTIVE = REWARM — лёгкий эмоциональный пинг.
 Если NEXT_OBJECTIVE = SALVAGE — смена динамики.
 `
+        // Phase 4: добавить намёк на свидание если interest достаточен
+        if (strategyResult.phase === 4 &&
+            strategyResult.effectiveInterest >= STRATEGY_CONFIG.phase.hintDateInterest) {
+          fullSystemPrompt += "\nОдин из трёх вариантов должен содержать лёгкий вскользь намёк на встречу вживую, без давления и без конкретного предложения."
+        }
       }
 
       // Fallback: загружаем стратегию из БД для action без incoming_message
       if (!strategyResult && conv) {
         fullSystemPrompt += `
-CURRENT_STAGE: ${conv.stage || 1}
+CURRENT_PHASE: ${conv.phase || 1}
 EFFECTIVE_INTEREST: ${conv.effective_interest || 3}
 NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "contact" ? "TELEGRAM_INVITE" : "REWARM"}
 `
@@ -223,15 +228,20 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
       available_actions = []
 
       if (strategyResult) {
+        // Диалог затух
         if (strategyResult.freshness < 0.6) {
           available_actions.push("reengage")
         }
-        if (strategyResult.nextObjective === "BUILD_TENSION" || strategyResult.stage >= 3) {
-          if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.telegram) {
-            available_actions.push("contact")
-          }
+
+        // Phase 2 + interest >= порога → можно предложить Telegram
+        if (strategyResult.phase === 2 &&
+            strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.telegram) {
+          available_actions.push("contact")
         }
-        if (strategyResult.stage >= 4 && strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.date) {
+
+        // Phase 4 + interest >= порога → можно звать на свидание
+        if (strategyResult.phase === 4 &&
+            strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.date) {
           available_actions.push("date")
         }
       }
@@ -413,6 +423,7 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
       JSON.stringify({
         suggestions,
         available_actions,
+        phase: messageType === "reply" && strategyResult ? strategyResult.phase : undefined,
         limit_reached: false,
         free_remaining: freeRemaining,
         paid_remaining: paidRemaining,
