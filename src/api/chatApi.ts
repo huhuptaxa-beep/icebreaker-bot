@@ -22,7 +22,7 @@ export interface Message {
 }
 
 export interface GenerateResponse {
-  suggestions: string[];
+  suggestions: string[][];
   available_actions?: string[];
   phase?: number;
   limit_reached: boolean;

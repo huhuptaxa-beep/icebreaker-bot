@@ -23,7 +23,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   onSubscribe,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[][]>([]);
   const [generating, setGenerating] = useState(false);
   const [girlName, setGirlName] = useState<string>("Чат");
 
@@ -159,12 +159,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   /* ================= SELECT SUGGESTION ================= */
 
-  const handleSelectSuggestion = async (text: string) => {
+  const handleSelectSuggestion = async (suggestion: string[]) => {
     if (isSavingRef.current) return;
     isSavingRef.current = true;
 
     try {
-      await chatSave(conversationId, text, "user");
+      // Save all messages in the suggestion sequentially
+      for (const text of suggestion) {
+        await chatSave(conversationId, text, "user");
+      }
+
       setSuggestions([]);
       setAvailableActions([]);
       // НЕ сбрасываем pendingAction - оно должно остаться для кнопок подтверждения

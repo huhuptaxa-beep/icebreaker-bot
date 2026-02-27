@@ -369,8 +369,10 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
 
     const suggestions = rawText
       .split("§")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0)
+      .map((s: string) =>
+        s.trim().split("|").map((part: string) => part.trim()).filter((part: string) => part.length > 0)
+      )
+      .filter((parts: string[]) => parts.length > 0)
       .slice(0, 3)
 
     if (action_type !== "opener" && incoming_message && conversation_id) {
