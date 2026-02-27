@@ -33,6 +33,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [availableActions, setAvailableActions] = useState<string[]>([]);
   const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(null);
   const [currentPhase, setCurrentPhase] = useState<number>(1);
+  const [showTelegramStart, setShowTelegramStart] = useState(false);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -258,7 +259,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </>
         )}
 
-        {!isNewDialog && (
+        {!isNewDialog && !showTelegramStart && (
           <div className="flex">
             <div className="max-w-[70%]">
               <div className="relative z-10">
@@ -302,6 +303,25 @@ const ChatPage: React.FC<ChatPageProps> = ({
         loading={generating}
       />
 
+      {/* TELEGRAM START BUTTON */}
+      {showTelegramStart && suggestions.length === 0 && !generating && (
+        <div className="px-4 py-6 flex flex-col items-center gap-3">
+          <p className="text-gray-400 text-sm text-center">
+            Отлично! Теперь напиши ей первое сообщение в Telegram
+          </p>
+          <button
+            onClick={() => {
+              handleGenerate("reengage");
+              setShowTelegramStart(false);
+            }}
+            className="w-full py-3.5 rounded-2xl text-white text-base font-semibold"
+            style={{ background: "linear-gradient(135deg, #3B82F6, #2563EB)" }}
+          >
+            💬 Написать в Telegram
+          </button>
+        </div>
+      )}
+
       {/* ACTION BUTTONS (скрываем если есть pendingAction) */}
       {availableActions.length > 0 && !generating && !pendingAction && (
         <div className="px-4 py-2 flex gap-2">
@@ -344,6 +364,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 await confirmAction(conversationId, "telegram_success");
                 setPendingAction(null);
                 setCurrentPhase(3);
+                setShowTelegramStart(true);
                 showToast("Отлично! Переходим в Telegram", "success");
               } catch (err) {
                 console.error(err);
@@ -413,18 +434,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
-      <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
-        <button
-          id="btn-generate"
-          onClick={() => handleGenerate()}
-          disabled={generating}
-          className="w-full py-3 rounded-2xl text-white font-semibold
-                     shadow-lg active:scale-[0.98] transition-transform disabled:opacity-50"
-          style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
-        >
-          {generating ? "Генерирую..." : "Сделать шаг"}
-        </button>
-      </div>
+      {!showTelegramStart && (
+        <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+          <button
+            id="btn-generate"
+            onClick={() => handleGenerate()}
+            disabled={generating}
+            className="w-full py-3 rounded-2xl text-white font-semibold
+                       shadow-lg active:scale-[0.98] transition-transform disabled:opacity-50"
+            style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
+          >
+            {generating ? "Генерирую..." : "Сделать шаг"}
+          </button>
+        </div>
+      )}
 
       {showTutorial && isNewDialog && (
         <TutorialOverlay
