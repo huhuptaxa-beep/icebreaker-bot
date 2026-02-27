@@ -5,24 +5,16 @@ import { STRATEGY_CONFIG } from "./config.ts"
 
 /**
  * Тип сигнала от девушки.
- * Это не уровень интереса, а характер её поведения.
  */
 type SignalType =
-  | "HIGH_INTEREST"   // длинные сообщения, вопросы, вовлечённость
-  | "LOW_INTEREST"    // короткие сухие ответы
-  | "SHIT_TEST"       // проверочные вопросы
+  | "HIGH_INTEREST"
+  | "LOW_INTEREST"
+  | "SHIT_TEST"
   | "NEUTRAL"
 
 
 /**
  * Главный стратегический движок 2.1 (PHASE SYSTEM)
- *
- * Логика:
- * 1. Анализируем сигнал
- * 2. Обновляем интерес
- * 3. Обновляем streak
- * 4. Обновляем phase
- * 5. Выбираем objective
  */
 export function runStrategyEngine(
   dialogue: any,
@@ -63,6 +55,8 @@ export function runStrategyEngine(
     dialogue.low_interest_streak ?? 0
 
   let signalType: SignalType = "NEUTRAL"
+
+  const messageCount = dialogue.phase_message_count ?? 0
 
 
 
@@ -121,31 +115,35 @@ export function runStrategyEngine(
       highInterestStreak = 0
     }
     else {
-      // нейтральное сообщение НЕ ломает streak — ничего не делаем
+      // нейтральное сообщение НЕ ломает streak
     }
 
     /* =========================================
        ОБНОВЛЕНИЕ PHASE (линейная модель)
        ========================================= */
 
-    // Phase 1 → 2 (highStreakForConnection HIGH подряд)
-    if (phase === 1 && highInterestStreak >= STRATEGY_CONFIG.phase.highStreakForConnection) {
-      phase = 2
+    // Phase 1 → 2: streak-based ИЛИ interest-based
+    if (phase === 1) {
+      if (highInterestStreak >= STRATEGY_CONFIG.phase.highStreakForConnection) {
+        phase = 2
+      }
+      // Fallback: если interest вырос до 6+ и прошло 4+ сообщения — переходим
+      else if (effectiveInterest >= 6 && messageCount >= 4) {
+        phase = 2
+      }
     }
 
-    // Phase 2 → 3: НЕ автоматически, только по кнопке "Telegram получен"
-    // (обрабатывается в confirm-action endpoint)
+    // Phase 2 → 3: ТОЛЬКО по кнопке "Telegram получен"
 
-    // Phase 3 → 4 (минимум сообщений в Telegram)
-    else if (
+    // Phase 3 → 4: минимум сообщений в Telegram
+    if (
       phase === 3 &&
-      dialogue.phase_message_count >= STRATEGY_CONFIG.phase.minMessagesForTension
+      messageCount >= STRATEGY_CONFIG.phase.minMessagesForTension
     ) {
       phase = 4
     }
 
-    // Phase 4 → 5: НЕ автоматически, только по кнопке "Она согласилась"
-    // (обрабатывается в confirm-action endpoint)
+    // Phase 4 → 5: ТОЛЬКО по кнопке "Она согласилась"
 
     // Откат если 2 LOW подряд (но НЕ из phase 3 — уже в Telegram)
     if (lowInterestStreak >= 2 && phase > 1 && phase !== 3) {

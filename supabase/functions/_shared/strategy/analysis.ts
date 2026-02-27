@@ -21,12 +21,14 @@ export function analyzeGirlMessage(text: string) {
   // Текстовые смайлики: :) :-) :D ;) ;-) :P xD и т.д.
   const hasTextSmiley = /[:;][-']?[)D(P]|[xXхХ][дДdD]/.test(clean)
 
-  // Скобочки: )) и более = теплота, одна ) в конце = нейтрально
-  const bracketMatch = clean.match(/\){2,}/)
-  const hasWarmBrackets = !!bracketMatch
+  // Скобочки: )) и более = теплота
+  const hasWarmBrackets = /\){2,}/.test(clean)
 
-  // Итого: есть эмодзи/смайлик/тёплые скобочки
-  const hasEmoji = hasUnicodeEmoji || hasTextSmiley || hasWarmBrackets
+  // Смех: хаха, ахах, вхаха, хех, ахаха и т.д.
+  const hasLaugh = /[ахвоу]?ха[хх]?[аа]?|хех|лол|lol/i.test(clean)
+
+  // Итого: есть эмодзи/смайлик/тёплые скобочки/смех
+  const hasEmoji = hasUnicodeEmoji || hasTextSmiley || hasWarmBrackets || hasLaugh
 
   const isShort =
     wordCount <= message.shortMessageWordLimit
@@ -41,7 +43,6 @@ export function analyzeGirlMessage(text: string) {
 
   /**
    * ========= SHIT TEST DETECTION =========
-   * Проверочные вопросы
    */
   const shitTestKeywords = [
     "что ты ищешь",
@@ -62,7 +63,7 @@ export function analyzeGirlMessage(text: string) {
 
   /**
    * ========= DRY SIGNAL =========
-   * Сухой ответ без эмоций и без вложения
+   * Сухой ответ: короткий, без эмоций, без вопроса, без личного
    */
   const isDry =
     isShort &&
@@ -72,32 +73,17 @@ export function analyzeGirlMessage(text: string) {
 
   /**
    * ========= HIGH INTEREST SIGNAL =========
-   * Девушка вкладывается
-   *
-   * Условия (любое из):
-   * - вопрос + длинное сообщение (10+ слов)
-   * - эмодзи/смайлик/скобочки + 5 слов
-   * - личное раскрытие + 6 слов
-   * - вопрос + эмодзи (любая длина кроме 1-2 слова)
+   * Девушка вкладывается. Любое из условий:
+   * - вопрос (любой длины кроме 1-2 слова)
+   * - эмодзи/скобочки/смех + 3 слова
+   * - длинное сообщение (10+ слов)
+   * - личное раскрытие + 4 слова
    */
   const isHighInterestSignal =
-    (
-      hasQuestion &&
-      wordCount >= message.longMessageWordLimit
-    ) ||
-    (
-      hasEmoji &&
-      wordCount >= 5
-    ) ||
-    (
-      hasPersonal &&
-      wordCount >= 6
-    ) ||
-    (
-      hasQuestion &&
-      hasEmoji &&
-      wordCount >= 3
-    )
+    (hasQuestion && wordCount >= 3) ||
+    (hasEmoji && wordCount >= 3) ||
+    isLong ||
+    (hasPersonal && wordCount >= 4)
 
   return {
     wordCount,
