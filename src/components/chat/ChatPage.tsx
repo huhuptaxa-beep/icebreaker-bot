@@ -10,6 +10,7 @@ import { useAppToast } from "@/components/ui/AppToast";
 import MessageBubble from "./MessageBubble";
 import SuggestionsPanel from "./SuggestionsPanel";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
+import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
 
 interface ChatPageProps {
   conversationId: string;
@@ -34,6 +35,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(null);
   const [currentPhase, setCurrentPhase] = useState<number>(1);
   const [showTelegramStart, setShowTelegramStart] = useState(false);
+  const [phaseMessageCount, setPhaseMessageCount] = useState(0);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -71,6 +73,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
     const data = await getConversation(conversationId);
     setGirlName(data.girl_name || "Чат");
     setMessages(data.messages || []);
+    if (data.phase) setCurrentPhase(data.phase);
+    if (data.channel === "telegram" && data.phase === 3) {
+      // Проверяем нужно ли показать кнопку "Написать в Telegram"
+      const lastMsg = (data.messages || [])[data.messages.length - 1];
+      if (!lastMsg || lastMsg.role !== "user") {
+        setShowTelegramStart(true);
+      }
+    }
+    setPhaseMessageCount(data.phase_message_count || 0);
   };
 
   useEffect(() => {
@@ -190,10 +201,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
         <div className="flex items-center gap-3 px-4 py-3"
           style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
         >
-          <button onClick={onBack} className="text-gray-400 text-sm">
+          <button onClick={onBack} className="text-gray-400 text-sm flex-shrink-0">
             ← Назад
           </button>
-          <span className="font-semibold text-white">{girlName}</span>
+          <span className="font-semibold text-white truncate">{girlName}</span>
+          <PhaseProgressBar
+            phase={currentPhase}
+            messageCount={phaseMessageCount}
+            size="large"
+          />
         </div>
       </div>
 

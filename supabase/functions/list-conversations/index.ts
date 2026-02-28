@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const { data, error } = await supabase
       .from("conversations")
-      .select("id, girl_name, created_at")
+      .select("id, girl_name, created_at, phase, channel, phase_message_count")
       .eq("user_id", telegram_id)
       .order("created_at", { ascending: false })
 

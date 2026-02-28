@@ -70,7 +70,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         girl_name: conversation.girl_name,
-        messages
+        messages,
+        channel: conversation.channel || "app",
+        phase: conversation.phase || 1,
+        phase_message_count: conversation.phase_message_count || 0
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )

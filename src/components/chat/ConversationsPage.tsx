@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Conversation } from "@/api/chatApi";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
+import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
 
 /* ==============================
    HELPERS
@@ -119,13 +120,20 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-white text-[15px] truncate">
-              {conv.girl_name || "Новый диалог"}
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-semibold text-white text-[15px] truncate">
+                {conv.girl_name || "Новый диалог"}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                {formatDate(conv.created_at)}
+              </div>
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              {formatDate(conv.created_at)}
-            </div>
+            <PhaseProgressBar
+              phase={conv.phase || 1}
+              messageCount={conv.phase_message_count || 0}
+              size="small"
+            />
           </div>
 
           {/* Chevron */}

@@ -213,6 +213,8 @@ export function runStrategyEngine(
      ===== ВОЗВРАЩАЕМ ОБНОВЛЁННОЕ СОСТОЯНИЕ ==============
      ====================================================== */
 
+  const phaseChanged = phase !== (dialogue.phase ?? 1)
+
   return {
     phase,
     baseInterest,
@@ -223,6 +225,7 @@ export function runStrategyEngine(
     dateInviteAttempts,
     highInterestStreak,
     lowInterestStreak,
-    nextObjective
+    nextObjective,
+    phaseChanged
   }
 }

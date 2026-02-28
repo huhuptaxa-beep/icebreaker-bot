@@ -204,7 +204,7 @@ serve(async (req) => {
             high_interest_streak: strategyResult.highInterestStreak,
             low_interest_streak: strategyResult.lowInterestStreak,
             last_message_timestamp: now.toISOString(),
-            phase_message_count: (conv.phase_message_count || 0) + 1
+            phase_message_count: strategyResult.phaseChanged ? 1 : (conv.phase_message_count || 0) + 1
           })
           .eq("id", conversation_id)
 
