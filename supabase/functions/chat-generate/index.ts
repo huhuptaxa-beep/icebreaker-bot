@@ -12,6 +12,7 @@ import { buildUserPrompt } from "./userPrompt.ts"
 import { DATE_INSTRUCTIONS } from "./dateInstructions.ts"
 import { TELEGRAM_INSTRUCTIONS } from "./telegramInstructions.ts"
 import { REENGAGE_INSTRUCTIONS } from "./reengageInstructions.ts"
+import { TELEGRAM_FIRST_MESSAGE } from "./telegramFirstMessage.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,17 @@ const corsHeaders = {
 }
 
 const FREE_WEEKLY_LIMIT = 7
+
+/*
+ * =====================================================
+ * ОГРАНИЧЕНИЯ ПО КОЛИЧЕСТВУ СООБЩЕНИЙ ДО ДЕЙСТВИЙ
+ * =====================================================
+ * MIN_MESSAGES_FOR_TELEGRAM = 8 — минимум 8 обменов в phase 2 прежде чем покажется кнопка "Взять Telegram"
+ * MIN_MESSAGES_FOR_DATE = 10 — минимум 10 обменов в phase 4 прежде чем покажется кнопка "Позвать на свидание"
+ * Эти лимиты проверяются вместе с interest threshold из STRATEGY_CONFIG
+ */
+const MIN_MESSAGES_FOR_TELEGRAM = 8
+const MIN_MESSAGES_FOR_DATE = 10
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -119,6 +131,10 @@ serve(async (req) => {
     if (action_type === "reengage")
       fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
 
+    // Первое сообщение в Telegram — мини-промпт надстройка
+    if (action_type === "telegram_first")
+      fullSystemPrompt += "\n\n" + TELEGRAM_FIRST_MESSAGE
+
     const messageType =
       action_type === "opener" ? "first_message" : "reply"
 
@@ -217,33 +233,43 @@ NEXT_OBJECTIVE: ${strategyResult.nextObjective}
         fullSystemPrompt += `
 CURRENT_PHASE: ${conv.phase || 1}
 EFFECTIVE_INTEREST: ${conv.effective_interest || 3}
-NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "contact" ? "TELEGRAM_INVITE" : "REWARM"}
+NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "contact" ? "TELEGRAM_INVITE" : action_type === "telegram_first" ? "RESTART_PLAY" : "REWARM"}
 `
       }
 
-      /* =====================
+      /* =====================================================
          AVAILABLE ACTIONS
-      ===================== */
+         =====================================================
+         Кнопки действий показываются на фронте рядом с вариантами.
+         Ограничения:
+         - Telegram: phase === 2, interest >= 7, И минимум 8 обменов
+         - Date: phase === 4, interest >= 9, И минимум 10 обменов в phase 4
+      ===================================================== */
 
       available_actions = []
 
-      if (strategyResult) {
-        // Диалог затух
-        if (strategyResult.freshness < 0.6) {
-          available_actions.push("reengage")
-        }
+      const currentPhase = strategyResult ? strategyResult.phase : (conv.phase || 1)
+      const currentInterest = strategyResult ? strategyResult.effectiveInterest : (conv.effective_interest || 3)
+      const currentFreshness = strategyResult ? strategyResult.freshness : (conv.freshness_multiplier || 1)
+      const totalMessages = conv.phase_message_count || 0
 
-        // Phase 2 + interest >= порога → можно предложить Telegram
-        if (strategyResult.phase === 2 &&
-            strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.telegram) {
-          available_actions.push("contact")
-        }
+      // Диалог затух
+      if (currentFreshness < 0.6) {
+        available_actions.push("reengage")
+      }
 
-        // Phase 4 + interest >= порога → можно звать на свидание
-        if (strategyResult.phase === 4 &&
-            strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.date) {
-          available_actions.push("date")
-        }
+      // Phase 2 + interest >= порога + минимум сообщений → можно предложить Telegram
+      if (currentPhase === 2 &&
+          currentInterest >= STRATEGY_CONFIG.interest.thresholds.telegram &&
+          totalMessages >= MIN_MESSAGES_FOR_TELEGRAM) {
+        available_actions.push("contact")
+      }
+
+      // Phase 4 + interest >= порога + минимум сообщений в phase 4 → можно звать на свидание
+      if (currentPhase === 4 &&
+          currentInterest >= STRATEGY_CONFIG.interest.thresholds.date &&
+          totalMessages >= MIN_MESSAGES_FOR_DATE) {
+        available_actions.push("date")
       }
 
       /* =====================
@@ -267,7 +293,8 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
         })
       }
 
-      if (history.length === 0) {
+      // Разрешаем пустую историю для telegram_first (первое сообщение в Telegram)
+      if (history.length === 0 && action_type !== "telegram_first") {
         return new Response(
           JSON.stringify({ error: "No messages" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
@@ -298,22 +325,24 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
       const contextMessages =
         conversationSummary ? history.slice(-8) : history
 
-      const lastMsg =
-        contextMessages[contextMessages.length - 1]
+      if (contextMessages.length > 0) {
+        const lastMsg =
+          contextMessages[contextMessages.length - 1]
 
-      const previousMessages =
-        contextMessages.slice(0, -1)
+        const previousMessages =
+          contextMessages.slice(0, -1)
 
-      conversationContext = previousMessages
-        .map((msg) =>
-          `${msg.role === "user" ? "Ты" : "Она"}: ${msg.text}`
-        )
-        .join("\n")
+        conversationContext = previousMessages
+          .map((msg) =>
+            `${msg.role === "user" ? "Ты" : "Она"}: ${msg.text}`
+          )
+          .join("\n")
 
-      lastMessage =
-        lastMsg.role === "girl"
-          ? lastMsg.text
-          : incoming_message || ""
+        lastMessage =
+          lastMsg.role === "girl"
+            ? lastMsg.text
+            : incoming_message || ""
+      }
     }
 
     const userPrompt = buildUserPrompt(

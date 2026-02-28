@@ -86,7 +86,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   /* ================= GENERATE ================= */
 
-  const handleGenerate = async (actionOverride?: "date" | "contact" | "reengage") => {
+  const handleGenerate = async (actionOverride?: "date" | "contact" | "reengage" | "telegram_first") => {
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
 
@@ -311,7 +311,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </p>
           <button
             onClick={() => {
-              handleGenerate("reengage");
+              handleGenerate("telegram_first");
               setShowTelegramStart(false);
             }}
             className="w-full py-3.5 rounded-2xl text-white text-base font-semibold"

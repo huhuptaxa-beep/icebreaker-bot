@@ -121,11 +121,11 @@ export const STRATEGY_CONFIG = {
       { hours: 24, multiplier: 0.75 },
 
       // 24–48 часов → значительное снижение
-      { hours: 48, multiplier: 0.6 },
+      { hours: 48, multiplier: 0.5 },
     ],
 
     // Если прошло больше 48 часов
-    defaultMultiplier: 0.4
+    defaultMultiplier: 0.3
   },
 
   /**
@@ -139,13 +139,13 @@ export const STRATEGY_CONFIG = {
     highStreakForConnection: 2,
 
     // Phase 3→4: минимум обменов сообщениями после перехода в Telegram
-    minMessagesForTension: 3,
+    minMessagesForTension: 4,
 
     // Phase 4: при каком interest добавлять намёк на свидание в ответ
-    hintDateInterest: 8,
+    hintDateInterest: 7,
 
     // Phase 4: при каком interest показать кнопку "Позвать на свидание"
-    showDateButtonInterest: 9,
+    showDateButtonInterest: 10,
   },
 
   /**
@@ -159,6 +159,6 @@ export const STRATEGY_CONFIG = {
     rewarmAfterHours: 8,
 
     // Минимум сообщений в Telegram перед приглашением на свидание
-    minMessagesInTelegramForDate: 8
+    minMessagesInTelegramForDate: 20
   }
 }

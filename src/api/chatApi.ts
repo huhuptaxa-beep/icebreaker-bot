@@ -89,7 +89,7 @@ export const getConversations = async (): Promise<Conversation[]> => {
 
 export const getConversation = async (
   conversation_id: string
-): Promise<{ girl_name: string; messages: Message[] }> => {
+): Promise<{ girl_name: string; messages: Message[]; channel?: string; phase?: number }> => {
   const res = await fetch(`${BASE_URL}/functions/v1/get-conversation`, {
     method: "POST",
     headers,
@@ -114,6 +114,8 @@ export const getConversation = async (
   return {
     girl_name: data.girl_name,
     messages: normalizedMessages,
+    channel: data.channel,
+    phase: data.phase,
   };
 };
 
@@ -124,7 +126,7 @@ export const getConversation = async (
 export const chatGenerate = async (
   conversation_id: string,
   incoming_message: string | null,
-  action_type: "normal" | "reengage" | "contact" | "date" | "opener",
+  action_type: "normal" | "reengage" | "contact" | "date" | "opener" | "telegram_first",
   facts?: string
 ): Promise<GenerateResponse> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
