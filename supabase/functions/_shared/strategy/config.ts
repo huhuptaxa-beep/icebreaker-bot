@@ -139,7 +139,7 @@ export const STRATEGY_CONFIG = {
     highStreakForConnection: 2,
 
     // Phase 3→4: минимум обменов сообщениями после перехода в Telegram
-    minMessagesForTension: 4,
+    minMessagesForTension: 8,
 
     // Phase 4: при каком interest добавлять намёк на свидание в ответ
     hintDateInterest: 7,
