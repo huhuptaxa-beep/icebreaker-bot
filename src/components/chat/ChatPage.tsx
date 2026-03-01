@@ -35,7 +35,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(null);
   const [currentPhase, setCurrentPhase] = useState<number>(1);
   const [showTelegramStart, setShowTelegramStart] = useState(false);
-  const [phaseMessageCount, setPhaseMessageCount] = useState(0);
+  const [currentInterest, setCurrentInterest] = useState<number>(5);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setShowTelegramStart(true);
       }
     }
-    setPhaseMessageCount(data.phase_message_count || 0);
+    setCurrentInterest(data.effective_interest || 5);
   };
 
   useEffect(() => {
@@ -150,6 +150,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setSuggestions(res.suggestions || []);
         setAvailableActions(res.available_actions || []);
         if (res.phase) setCurrentPhase(res.phase);
+        if (res.interest !== undefined) setCurrentInterest(res.interest);
 
         // Если пользователь нажал contact/date - устанавливаем pendingAction
         if (actionOverride === "contact") setPendingAction("contact");
@@ -206,8 +207,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </button>
           <span className="font-semibold text-white truncate">{girlName}</span>
           <PhaseProgressBar
-            phase={currentPhase}
-            messageCount={phaseMessageCount}
+            interest={currentInterest}
             size="large"
           />
         </div>

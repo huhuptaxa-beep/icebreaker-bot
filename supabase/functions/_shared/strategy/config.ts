@@ -14,19 +14,20 @@ export const STRATEGY_CONFIG = {
   /**
    * ===== INTEREST (ВОВЛЕЧЁННОСТЬ) =====
    *
-   * Система считает базовый интерес девушки (0–10).
+   * Система считает базовый интерес девушки (0–100).
    * Он растёт и падает в зависимости от её поведения.
+   * Interest — главный показатель. Phase — производная от interest + channel.
    */
   interest: {
 
+    // Стартовое значение интереса при создании диалога
+    defaultScore: 5,
+
     // Максимально возможный interest
-    maxScore: 10,
+    max: 100,
 
     // Минимально возможный interest
-    minScore: 0,
-
-    // Стартовое значение интереса при создании диалога
-    defaultScore: 3,
+    min: 0,
 
     /**
      * ВЕСА СИГНАЛОВ
@@ -35,22 +36,28 @@ export const STRATEGY_CONFIG = {
     weights: {
 
       // Она задала вопрос → сильный сигнал вовлечённости
-      question: 2,
+      question: 3,
 
       // Использует эмодзи → лёгкий позитивный сигнал
-      emoji: 1,
+      emoji: 2,
 
       // Сообщение длиннее longMessageWordLimit → она вкладывается
-      longMessage: 2,
+      longMessage: 4,
 
       // Делится личной информацией (ключевые слова ниже)
-      personalInfo: 3,
+      personalInfo: 5,
 
       // Очень короткий ответ (1-3 слова) → минус к интересу
-      shortMessagePenalty: -1,
+      shortMessage: -1,
+
+      // Сухое сообщение (dry)
+      dryMessage: -3,
+
+      // Shit test не меняет interest
+      shitTest: 0,
 
       // Штраф за отказ (Telegram не дала / свидание отказала)
-      rejectionPenalty: -3,
+      rejectionPenalty: -10,
     },
 
     /**
@@ -59,14 +66,17 @@ export const STRATEGY_CONFIG = {
     thresholds: {
 
       // При каком effective_interest можно предлагать Telegram
-      telegram: 7,
+      telegram: 30,
 
-      // При каком effective_interest можно звать на свидание
-      date: 9,
+      // При каком interest появляется лёгкий намёк на свидание (в промпте)
+      dateHint: 70,
 
-      // Ниже этого значения включается режим SALVAGE (спасение диалога)
-      lowInterest: 3,
-    }
+      // При каком interest ДОЛЖЕН быть намёк на свидание (в промпте)
+      dateStrongHint: 80,
+
+      // При каком effective_interest можно звать на свидание (кнопка)
+      date: 95,
+    },
   },
 
   /**
@@ -131,21 +141,16 @@ export const STRATEGY_CONFIG = {
   /**
    * ===== PHASE ЛОГИКА =====
    *
-   * Когда переходить между фазами диалога
+   * Phase теперь полностью вычисляется из interest + channel.
+   * Конфиг нужен только для минимальных порогов по количеству сообщений.
    */
   phase: {
 
-    // Phase 1→2: сколько HIGH_INTEREST подряд нужно
-    highStreakForConnection: 2,
+    // Минимум сообщений в приложении перед предложением Telegram
+    minMessagesForTelegram: 5,
 
-    // Phase 3→4: минимум обменов сообщениями после перехода в Telegram
-    minMessagesForTension: 8,
-
-    // Phase 4: при каком interest добавлять намёк на свидание в ответ
-    hintDateInterest: 7,
-
-    // Phase 4: при каком interest показать кнопку "Позвать на свидание"
-    showDateButtonInterest: 10,
+    // Минимум сообщений в Telegram перед приглашением на свидание
+    minMessagesForDate: 8,
   },
 
   /**

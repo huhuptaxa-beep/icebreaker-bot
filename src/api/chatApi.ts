@@ -14,6 +14,7 @@ export interface Conversation {
   phase?: number;
   channel?: string;
   phase_message_count?: number;
+  effective_interest?: number;
 }
 
 export interface Message {
@@ -28,6 +29,7 @@ export interface GenerateResponse {
   suggestions: string[][];
   available_actions?: string[];
   phase?: number;
+  interest?: number;
   limit_reached: boolean;
   free_remaining: number;
   paid_remaining: number;
@@ -92,7 +94,7 @@ export const getConversations = async (): Promise<Conversation[]> => {
 
 export const getConversation = async (
   conversation_id: string
-): Promise<{ girl_name: string; messages: Message[]; channel?: string; phase?: number; phase_message_count?: number }> => {
+): Promise<{ girl_name: string; messages: Message[]; channel?: string; phase?: number; phase_message_count?: number; effective_interest?: number }> => {
   const res = await fetch(`${BASE_URL}/functions/v1/get-conversation`, {
     method: "POST",
     headers,
@@ -120,6 +122,7 @@ export const getConversation = async (
     channel: data.channel,
     phase: data.phase,
     phase_message_count: data.phase_message_count,
+    effective_interest: data.effective_interest,
   };
 };
 

@@ -130,8 +130,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
               </div>
             </div>
             <PhaseProgressBar
-              phase={conv.phase || 1}
-              messageCount={conv.phase_message_count || 0}
+              interest={conv.effective_interest || 0}
               size="small"
             />
           </div>

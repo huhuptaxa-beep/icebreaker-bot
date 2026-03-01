@@ -50,12 +50,19 @@ serve(async (req) => {
     if (action === "telegram_success") {
       updateData.phase = 3
       updateData.channel = "telegram"
-      updateData.phase_message_count = 0 // сброс счётчика для новой фазы
+      updateData.phase_message_count = 0
+      // Если interest ниже 40, установить на 40
+      const currentInterest = conv.base_interest_score || 5
+      if (currentInterest < 40) {
+        updateData.base_interest_score = 40
+        updateData.effective_interest = 40
+      }
     }
 
     if (action === "telegram_fail") {
-      const newInterest = Math.max(0,
-        (conv.base_interest_score || 3) + STRATEGY_CONFIG.interest.weights.rejectionPenalty
+      const newInterest = Math.max(
+        STRATEGY_CONFIG.interest.min,
+        (conv.base_interest_score || 5) + STRATEGY_CONFIG.interest.weights.rejectionPenalty
       )
       updateData.base_interest_score = newInterest
       updateData.effective_interest = newInterest * (conv.freshness_multiplier || 1)
@@ -64,11 +71,14 @@ serve(async (req) => {
 
     if (action === "date_success") {
       updateData.phase = 5
+      updateData.base_interest_score = 100
+      updateData.effective_interest = 100
     }
 
     if (action === "date_fail") {
-      const newInterest = Math.max(0,
-        (conv.base_interest_score || 3) + STRATEGY_CONFIG.interest.weights.rejectionPenalty
+      const newInterest = Math.max(
+        STRATEGY_CONFIG.interest.min,
+        (conv.base_interest_score || 5) + STRATEGY_CONFIG.interest.weights.rejectionPenalty
       )
       updateData.base_interest_score = newInterest
       updateData.effective_interest = newInterest * (conv.freshness_multiplier || 1)

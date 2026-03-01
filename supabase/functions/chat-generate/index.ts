@@ -22,17 +22,6 @@ const corsHeaders = {
 
 const FREE_WEEKLY_LIMIT = 7
 
-/*
- * =====================================================
- * ОГРАНИЧЕНИЯ ПО КОЛИЧЕСТВУ СООБЩЕНИЙ ДО ДЕЙСТВИЙ
- * =====================================================
- * MIN_MESSAGES_FOR_TELEGRAM = 8 — минимум 8 обменов в phase 2 прежде чем покажется кнопка "Взять Telegram"
- * MIN_MESSAGES_FOR_DATE = 10 — минимум 10 обменов в phase 4 прежде чем покажется кнопка "Позвать на свидание"
- * Эти лимиты проверяются вместе с interest threshold из STRATEGY_CONFIG
- */
-const MIN_MESSAGES_FOR_TELEGRAM = 8
-const MIN_MESSAGES_FOR_DATE = 10
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -204,7 +193,7 @@ serve(async (req) => {
             high_interest_streak: strategyResult.highInterestStreak,
             low_interest_streak: strategyResult.lowInterestStreak,
             last_message_timestamp: now.toISOString(),
-            phase_message_count: strategyResult.phaseChanged ? 1 : (conv.phase_message_count || 0) + 1
+            phase_message_count: (conv.phase_message_count || 0) + 1
           })
           .eq("id", conversation_id)
 
@@ -214,17 +203,15 @@ serve(async (req) => {
 CURRENT_PHASE: ${strategyResult.phase}
 EFFECTIVE_INTEREST: ${strategyResult.effectiveInterest}
 NEXT_OBJECTIVE: ${strategyResult.nextObjective}
-
-ВАЖНО:
-Если NEXT_OBJECTIVE = TELEGRAM_INVITE — один вариант обязан предложить переход.
-Если NEXT_OBJECTIVE = DATE_INVITE — один вариант обязан предложить конкретное время.
-Если NEXT_OBJECTIVE = REWARM — лёгкий эмоциональный пинг.
-Если NEXT_OBJECTIVE = SALVAGE — смена динамики.
 `
-        // Phase 4: добавить намёк на свидание если interest достаточен
-        if (strategyResult.phase === 4 &&
-            strategyResult.effectiveInterest >= STRATEGY_CONFIG.phase.hintDateInterest) {
-          fullSystemPrompt += "\nОдин из трёх вариантов должен содержать лёгкий вскользь намёк на встречу вживую, без давления и без конкретного предложения."
+
+        // Намёки на свидание в зависимости от interest (только для Telegram)
+        if (strategyResult && (conv.channel || "app") === "telegram") {
+          if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateStrongHint) {
+            fullSystemPrompt += "\nОдин из трёх вариантов ДОЛЖЕН содержать намёк на встречу вживую."
+          } else if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateHint) {
+            fullSystemPrompt += "\nОдин из трёх вариантов МОЖЕТ содержать лёгкий вскользь намёк на встречу вживую, без давления."
+          }
         }
       }
 
@@ -241,34 +228,34 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
          AVAILABLE ACTIONS
          =====================================================
          Кнопки действий показываются на фронте рядом с вариантами.
-         Ограничения:
-         - Telegram: phase === 2, interest >= 7, И минимум 8 обменов
-         - Date: phase === 4, interest >= 9, И минимум 10 обменов в phase 4
       ===================================================== */
 
       available_actions = []
 
+      const currentInterest = strategyResult ? strategyResult.effectiveInterest : (conv.effective_interest || 5)
       const currentPhase = strategyResult ? strategyResult.phase : (conv.phase || 1)
-      const currentInterest = strategyResult ? strategyResult.effectiveInterest : (conv.effective_interest || 3)
       const currentFreshness = strategyResult ? strategyResult.freshness : (conv.freshness_multiplier || 1)
-      const totalMessages = conv.phase_message_count || 0
+      const totalMessages = (conv.phase_message_count || 0) + (strategyResult ? 1 : 0)
+      const channel = conv.channel || "app"
 
       // Диалог затух
       if (currentFreshness < 0.6) {
         available_actions.push("reengage")
       }
 
-      // Phase 2 + interest >= порога + минимум сообщений → можно предложить Telegram
-      if (currentPhase === 2 &&
-          currentInterest >= STRATEGY_CONFIG.interest.thresholds.telegram &&
-          totalMessages >= MIN_MESSAGES_FOR_TELEGRAM) {
+      // Telegram: interest >= 30, phase === 2, минимум сообщений, канал app
+      if (currentInterest >= STRATEGY_CONFIG.interest.thresholds.telegram &&
+          currentPhase === 2 &&
+          totalMessages >= STRATEGY_CONFIG.phase.minMessagesForTelegram &&
+          channel === "app") {
         available_actions.push("contact")
       }
 
-      // Phase 4 + interest >= порога + минимум сообщений в phase 4 → можно звать на свидание
-      if (currentPhase === 4 &&
-          currentInterest >= STRATEGY_CONFIG.interest.thresholds.date &&
-          totalMessages >= MIN_MESSAGES_FOR_DATE) {
+      // Date: interest >= 95, phase >= 4, минимум сообщений, канал telegram
+      if (currentInterest >= STRATEGY_CONFIG.interest.thresholds.date &&
+          currentPhase >= 4 &&
+          totalMessages >= STRATEGY_CONFIG.phase.minMessagesForDate &&
+          channel === "telegram") {
         available_actions.push("date")
       }
 
@@ -455,6 +442,7 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
         suggestions,
         available_actions,
         phase: messageType === "reply" && strategyResult ? strategyResult.phase : undefined,
+        interest: strategyResult ? strategyResult.effectiveInterest : undefined,
         limit_reached: false,
         free_remaining: freeRemaining,
         paid_remaining: paidRemaining,

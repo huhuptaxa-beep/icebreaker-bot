@@ -56,8 +56,6 @@ export function runStrategyEngine(
 
   let signalType: SignalType = "NEUTRAL"
 
-  const messageCount = dialogue.phase_message_count ?? 0
-
 
 
   /* ======================================================
@@ -119,35 +117,25 @@ export function runStrategyEngine(
     }
 
     /* =========================================
-       ОБНОВЛЕНИЕ PHASE (линейная модель)
+       ОБНОВЛЕНИЕ PHASE (производная от interest + channel)
        ========================================= */
 
-    // Phase 1 → 2: streak-based ИЛИ interest-based
-    if (phase === 1) {
-      if (highInterestStreak >= STRATEGY_CONFIG.phase.highStreakForConnection) {
-        phase = 2
+    const channel = dialogue.channel || "app"
+
+    if (channel === "telegram") {
+      if (effectiveInterest >= 80) {
+        phase = 5
+      } else if (effectiveInterest >= 50) {
+        phase = 4
+      } else {
+        phase = 3
       }
-      // Fallback: если interest вырос до 6+ и прошло 4+ сообщения — переходим
-      else if (effectiveInterest >= 6 && messageCount >= 4) {
+    } else {
+      if (effectiveInterest >= 20) {
         phase = 2
+      } else {
+        phase = 1
       }
-    }
-
-    // Phase 2 → 3: ТОЛЬКО по кнопке "Telegram получен"
-
-    // Phase 3 → 4: минимум сообщений в Telegram
-    if (
-      phase === 3 &&
-      messageCount >= STRATEGY_CONFIG.phase.minMessagesForTension
-    ) {
-      phase = 4
-    }
-
-    // Phase 4 → 5: ТОЛЬКО по кнопке "Она согласилась"
-
-    // Откат если 2 LOW подряд (но НЕ из phase 3 — уже в Telegram)
-    if (lowInterestStreak >= 2 && phase > 1 && phase !== 3) {
-      phase -= 1
     }
   }
 
@@ -188,7 +176,7 @@ export function runStrategyEngine(
   else if (signalType === "SHIT_TEST") {
     nextObjective = "PASS_TEST"
   }
-  else if (signalType === "LOW_INTEREST") {
+  else if (signalType === "LOW_INTEREST" && lowInterestStreak >= 2) {
     nextObjective = "SALVAGE"
   }
   else if (phase === 1) {
@@ -213,8 +201,6 @@ export function runStrategyEngine(
      ===== ВОЗВРАЩАЕМ ОБНОВЛЁННОЕ СОСТОЯНИЕ ==============
      ====================================================== */
 
-  const phaseChanged = phase !== (dialogue.phase ?? 1)
-
   return {
     phase,
     baseInterest,
@@ -225,7 +211,6 @@ export function runStrategyEngine(
     dateInviteAttempts,
     highInterestStreak,
     lowInterestStreak,
-    nextObjective,
-    phaseChanged
+    nextObjective
   }
 }
