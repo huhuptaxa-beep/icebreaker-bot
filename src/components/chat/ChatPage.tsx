@@ -205,7 +205,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <button onClick={onBack} className="text-gray-400 text-sm flex-shrink-0">
             ← Назад
           </button>
-          <span className="font-semibold text-white truncate">{girlName}</span>
+          <span className="font-semibold text-white flex-shrink-0 truncate" style={{ maxWidth: "40%" }}>
+            {girlName}
+          </span>
           <PhaseProgressBar
             interest={currentInterest}
             size="large"
