@@ -11,19 +11,9 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
 }) => {
   const progress = Math.min(Math.max(interest, 0), 100);
 
-  // Определяем градиент в зависимости от прогресса
-  const getGradient = () => {
-    if (progress < 50) {
-      return "linear-gradient(90deg, #DC2626, #EF4444)";
-    } else if (progress < 80) {
-      return "linear-gradient(90deg, #F59E0B, #EAB308)";
-    } else {
-      return "linear-gradient(90deg, #22C55E, #4ADE80)";
-    }
-  };
+  const barGradient = "linear-gradient(90deg, #DC2626, #EF4444)";
 
   if (size === "small") {
-    // Компактная версия для списка диалогов
     return (
       <div className="relative" style={{ width: 70, height: 16 }}>
         <div
@@ -38,7 +28,7 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
             style={{
               width: `${progress}%`,
               minWidth: progress > 0 ? 24 : 0,
-              background: getGradient(),
+              background: barGradient,
             }}
           />
         </div>
@@ -52,7 +42,6 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
     );
   }
 
-  // Полная версия для хедера чата
   return (
     <div className="flex flex-col items-center flex-1">
       <span
@@ -77,7 +66,7 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
             style={{
               width: `${progress}%`,
               minWidth: progress > 0 ? 28 : 0,
-              background: getGradient(),
+              background: barGradient,
             }}
           />
         </div>
