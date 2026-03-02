@@ -28,7 +28,7 @@ export function analyzeGirlMessage(text: string) {
   const hasSingleBracket = /\)/.test(clean) && !hasWarmBrackets
 
   // Смех: хаха, ахах, вхаха, хех, ахаха и т.д.
-  const hasLaugh = /[ахвоу]?ха[хх]?[аа]?|хех|лол|lol/i.test(clean)
+  const hasLaugh = /[ахвоу]?ха[хх]?[аа]?|хех|Ахаха|Азаза|лол|lol/i.test(clean)
 
   // Итого: есть эмодзи/смайлик/тёплые скобочки/смех
   const hasEmoji = hasUnicodeEmoji || hasTextSmiley || hasWarmBrackets || hasLaugh
