@@ -74,7 +74,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
 
   return (
     <div className="relative overflow-hidden">
-      {/* Delete button — gray per spec */}
+      {/* Delete button */}
       <div
         className="absolute right-0 top-0 bottom-0 flex items-center justify-center bg-gray-600"
         style={{ width: DELETE_W }}
@@ -91,7 +91,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
         </button>
       </div>
 
-      {/* Swipeable content */}
+      {/* Swipeable content — НЕПРОЗРАЧНЫЙ фон чтобы закрыть кнопку Удалить */}
       <div
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -99,7 +99,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
         style={{
           transform: `translateX(${translateX}px)`,
           transition: dragging ? "none" : "transform 0.3s cubic-bezier(0.22,1,0.36,1)",
-          background: "rgba(255,255,255,0.03)",
+          background: "#12121a",
           touchAction: "pan-y",
           willChange: "transform",
         }}
@@ -111,7 +111,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
           }}
           className="w-full text-left px-4 py-4 flex items-center gap-3 active:bg-white/5 transition-colors"
         >
-          {/* Avatar — red gradient */}
+          {/* Avatar */}
           <div
             className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base flex-shrink-0 shadow-sm"
             style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
@@ -262,7 +262,7 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
             <div
               className="mx-4 overflow-hidden"
               style={{
-                background: "rgba(255,255,255,0.03)",
+                background: "#12121a",
                 border: "1px solid rgba(255,255,255,0.05)",
                 borderRadius: 16,
               }}
@@ -279,6 +279,10 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
                 />
               ))}
             </div>
+
+            <p className="text-center text-gray-600 text-xs mt-3">
+              Свайп влево — удалить диалог
+            </p>
           </div>
         )}
       </div>
