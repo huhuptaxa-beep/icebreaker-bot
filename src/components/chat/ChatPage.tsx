@@ -200,7 +200,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[100dvh]" style={{ background: "transparent" }}>
+    <div className="flex flex-col h-[100dvh]" style={{ background: "#0E0E12" }}>
 
       {/* HEADER */}
       <div
