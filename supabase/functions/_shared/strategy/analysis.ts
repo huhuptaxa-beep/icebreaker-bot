@@ -21,8 +21,11 @@ export function analyzeGirlMessage(text: string) {
   // Текстовые смайлики: :) :-) :D ;) ;-) :P xD и т.д.
   const hasTextSmiley = /[:;][-']?[)D(P]|[xXхХ][дДdD]/.test(clean)
 
-  // Скобочки: )) и более = теплота
+  // Двойные скобочки )) и более = полноценный эмодзи
   const hasWarmBrackets = /\){2,}/.test(clean)
+
+  // Одиночная скобочка ) в конце = лёгкая теплота
+  const hasSingleBracket = /\)/.test(clean) && !hasWarmBrackets
 
   // Смех: хаха, ахах, вхаха, хех, ахаха и т.д.
   const hasLaugh = /[ахвоу]?ха[хх]?[аа]?|хех|лол|lol/i.test(clean)
@@ -69,6 +72,7 @@ export function analyzeGirlMessage(text: string) {
     isShort &&
     !hasQuestion &&
     !hasEmoji &&
+    !hasSingleBracket &&
     !hasPersonal
 
   /**
@@ -89,6 +93,8 @@ export function analyzeGirlMessage(text: string) {
     wordCount,
     hasQuestion,
     hasEmoji,
+    hasLaugh,      
+    hasSingleBracket, 
     isShort,
     isLong,
     hasPersonal,

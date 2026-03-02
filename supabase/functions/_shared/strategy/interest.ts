@@ -14,13 +14,22 @@ export function updateInterest(oldBase: number, analysis: any) {
     delta += interest.weights.dryMessage
   } else {
     if (analysis.hasQuestion) delta += interest.weights.question
-    if (analysis.hasEmoji) delta += interest.weights.emoji
+
+    // Эмодзи/смех/скобочки — разные веса, не суммируются между собой
+    if (analysis.hasEmoji && !analysis.hasLaugh) {
+      delta += interest.weights.emoji        // +3
+    } else if (analysis.hasLaugh) {
+      delta += interest.weights.laugh        // +2
+    } else if (analysis.hasSingleBracket) {
+      delta += interest.weights.warmBracket  // +1
+    }
+
     if (analysis.isLong) delta += interest.weights.longMessage
     if (analysis.hasPersonal) delta += interest.weights.personalInfo
   }
 
-  // Короткое без вопроса и эмодзи — дополнительный мягкий минус
-  if (analysis.isShort && !analysis.hasQuestion && !analysis.hasEmoji && !analysis.isDry) {
+  // Короткое без эмоций — дополнительный мягкий минус
+  if (analysis.isShort && !analysis.hasQuestion && !analysis.hasEmoji && !analysis.hasSingleBracket && !analysis.isDry) {
     delta += interest.weights.shortMessage
   }
 
