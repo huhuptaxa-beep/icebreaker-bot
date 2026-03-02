@@ -12,6 +12,15 @@ import SuggestionsPanel from "./SuggestionsPanel";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
 import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
 
+const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
+  try {
+    const tg = (window as any).Telegram?.WebApp?.HapticFeedback;
+    if (tg?.impactOccurred) {
+      tg.impactOccurred(type);
+    }
+  } catch {}
+};
+
 interface ChatPageProps {
   conversationId: string;
   onBack: () => void;
@@ -36,6 +45,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [currentPhase, setCurrentPhase] = useState<number>(1);
   const [showTelegramStart, setShowTelegramStart] = useState(false);
   const [currentInterest, setCurrentInterest] = useState<number>(5);
+  const [currentChannel, setCurrentChannel] = useState<string>("app");
+  const [confirmResult, setConfirmResult] = useState<{
+    type: "telegram_success" | "telegram_fail" | "date_success" | "date_fail";
+  } | null>(null);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -73,6 +86,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     const data = await getConversation(conversationId);
     setGirlName(data.girl_name || "Чат");
     setMessages(data.messages || []);
+    setCurrentChannel(data.channel || "app");
     if (data.phase) setCurrentPhase(data.phase);
     if (data.channel === "telegram" && data.phase === 3) {
       // Проверяем нужно ли показать кнопку "Написать в Telegram"
@@ -100,6 +114,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const handleGenerate = async (actionOverride?: "date" | "contact" | "reengage" | "telegram_first") => {
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
+
+    haptic("medium");
 
     const facts = openerFacts.trim();
     const girlText = draftGirlReply.trim();
@@ -181,6 +197,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
     if (isSavingRef.current) return;
     isSavingRef.current = true;
 
+    haptic("light");
+
     try {
       // Save all messages in the suggestion sequentially
       for (const text of suggestion) {
@@ -232,8 +250,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
       >
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} text={msg.text} role={msg.role} />
+        {messages.map((msg, index) => (
+          <React.Fragment key={msg.id}>
+            {/* Разделитель Telegram — показываем перед первым сообщением если channel telegram */}
+            {currentChannel === "telegram" && index === 0 && (
+              <div className="flex items-center gap-3 py-2">
+                <div className="flex-1 h-px" style={{ background: "rgba(59,130,246,0.2)" }} />
+                <span className="text-[11px] font-medium" style={{ color: "rgba(59,130,246,0.5)" }}>
+                  📱 Telegram
+                </span>
+                <div className="flex-1 h-px" style={{ background: "rgba(59,130,246,0.2)" }} />
+              </div>
+            )}
+            <MessageBubble text={msg.text} role={msg.role} />
+          </React.Fragment>
         ))}
 
         {isNewDialog && (
@@ -362,63 +392,141 @@ const ChatPage: React.FC<ChatPageProps> = ({
       {availableActions.length > 0 && !generating && !pendingAction && (
         <div className="px-4 py-2 flex gap-2">
           {availableActions.includes("contact") && (
-            <button
-              onClick={() => handleGenerate("contact")}
-              className="flex-1 py-2.5 text-sm font-medium"
-              style={{
-                background: "linear-gradient(90deg, #1C2B4A, #243A63)",
-                border: "1px solid rgba(80,140,255,0.4)",
-                color: "#8FB4FF",
-                borderRadius: 18,
-              }}
-            >
-              📱 Взять Telegram
-            </button>
+            <div className="flex-1 flex flex-col gap-1.5">
+              <p className="text-[12px] text-center" style={{ color: "rgba(255,255,255,0.4)" }}>
+                AI определил момент для сближения
+              </p>
+              <button
+                onClick={() => handleGenerate("contact")}
+                className="w-full py-2.5 rounded-2xl text-sm font-medium"
+                style={{
+                  background: "linear-gradient(90deg, #1C2B4A, #243A63)",
+                  border: "1px solid rgba(80,140,255,0.4)",
+                  color: "#8FB4FF",
+                }}
+              >
+                📱 Взять Telegram
+              </button>
+            </div>
           )}
           {availableActions.includes("date") && (
-            <button
-              onClick={() => handleGenerate("date")}
-              className="flex-1 py-2.5 text-sm font-medium"
-              style={{
-                background: "rgba(34,197,94,0.15)",
-                color: "#4ADE80",
-                border: "1px solid rgba(34,197,94,0.3)",
-                borderRadius: 18,
-              }}
-            >
-              ☕ Позвать на свидание
-            </button>
+            <div className="flex-1 flex flex-col gap-1.5">
+              <button
+                onClick={() => handleGenerate("date")}
+                className="w-full py-2.5 rounded-2xl text-sm font-medium"
+                style={{
+                  background: "rgba(34,197,94,0.15)",
+                  color: "#4ADE80",
+                  border: "1px solid rgba(34,197,94,0.3)",
+                }}
+              >
+                ☕ Позвать на свидание
+              </button>
+            </div>
           )}
           {availableActions.includes("reengage") && (
-            <button
-              onClick={() => handleGenerate("reengage")}
-              className="flex-1 py-2.5 text-sm font-medium"
+            <div className="flex-1 flex flex-col gap-1.5">
+              <button
+                onClick={() => handleGenerate("reengage")}
+                className="w-full py-2.5 rounded-2xl text-sm font-medium"
+                style={{
+                  background: "rgba(251,191,36,0.15)",
+                  color: "#FBBF24",
+                  border: "1px solid rgba(251,191,36,0.3)",
+                }}
+              >
+                🔥 Написать ей
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CONFIRMATION RESULT CARD */}
+      {confirmResult && (
+        <div className="px-4 py-3 animate-fadeIn">
+          {confirmResult.type === "telegram_success" && (
+            <div
+              className="px-4 py-3 rounded-2xl"
               style={{
-                background: "rgba(251,191,36,0.15)",
-                color: "#FBBF24",
-                border: "1px solid rgba(251,191,36,0.3)",
-                borderRadius: 18,
+                background: "rgba(247,195,95,0.08)",
+                border: "1px solid rgba(247,195,95,0.3)",
               }}
             >
-              🔥 Написать ей
-            </button>
+              <p className="text-sm font-semibold" style={{ color: "#F7C35F" }}>
+                ✅ Telegram получен
+              </p>
+              <p className="text-xs mt-1" style={{ color: "rgba(247,195,95,0.6)" }}>
+                AI рекомендует закрепить контакт
+              </p>
+            </div>
+          )}
+          {confirmResult.type === "telegram_fail" && (
+            <div
+              className="px-4 py-3 rounded-2xl"
+              style={{
+                background: "rgba(255,46,77,0.08)",
+                border: "1px solid rgba(255,46,77,0.3)",
+              }}
+            >
+              <p className="text-sm font-semibold" style={{ color: "#FF2E4D" }}>
+                ❌ Контакт не получен
+              </p>
+              <p className="text-xs mt-1" style={{ color: "rgba(255,46,77,0.6)" }}>
+                AI пересчитает стратегию
+              </p>
+            </div>
+          )}
+          {confirmResult.type === "date_success" && (
+            <div
+              className="px-4 py-3 rounded-2xl"
+              style={{
+                background: "rgba(247,195,95,0.08)",
+                border: "1px solid rgba(247,195,95,0.3)",
+              }}
+            >
+              <p className="text-sm font-semibold" style={{ color: "#F7C35F" }}>
+                🎉 Свидание назначено
+              </p>
+              <p className="text-xs mt-1" style={{ color: "rgba(247,195,95,0.6)" }}>
+                Удачи!
+              </p>
+            </div>
+          )}
+          {confirmResult.type === "date_fail" && (
+            <div
+              className="px-4 py-3 rounded-2xl"
+              style={{
+                background: "rgba(255,46,77,0.08)",
+                border: "1px solid rgba(255,46,77,0.3)",
+              }}
+            >
+              <p className="text-sm font-semibold" style={{ color: "#FF2E4D" }}>
+                ❌ Отказала
+              </p>
+              <p className="text-xs mt-1" style={{ color: "rgba(255,46,77,0.6)" }}>
+                AI пересчитает стратегию
+              </p>
+            </div>
           )}
         </div>
       )}
 
       {/* CONFIRMATION BUTTONS - TELEGRAM */}
-      {pendingAction === "contact" && !generating && (
+      {pendingAction === "contact" && !generating && !confirmResult && (
         <div className="px-4 py-2 flex gap-2">
           <button
             onClick={async () => {
+              haptic("heavy");
               try {
                 await confirmAction(conversationId, "telegram_success");
+                setSuggestions([]);
                 setPendingAction(null);
                 setCurrentPhase(3);
                 setCurrentInterest(prev => Math.max(prev, 40));
                 setShowTelegramStart(true);
-
-                showToast("Отлично! Переходим в Telegram", "success");
+                setConfirmResult({ type: "telegram_success" });
+                setTimeout(() => setConfirmResult(null), 3000);
               } catch (err) {
                 console.error(err);
                 showToast("Ошибка подтверждения", "error");
@@ -436,10 +544,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </button>
           <button
             onClick={async () => {
+              haptic("light");
               try {
                 await confirmAction(conversationId, "telegram_fail");
+                setSuggestions([]);
                 setPendingAction(null);
-                showToast("Ничего, продолжаем", "info");
+                setConfirmResult({ type: "telegram_fail" });
+                setTimeout(() => setConfirmResult(null), 3000);
               } catch (err) {
                 console.error(err);
                 showToast("Ошибка подтверждения", "error");
@@ -459,16 +570,19 @@ const ChatPage: React.FC<ChatPageProps> = ({
       )}
 
       {/* CONFIRMATION BUTTONS - DATE */}
-      {pendingAction === "date" && !generating && (
+      {pendingAction === "date" && !generating && !confirmResult && (
         <div className="px-4 py-2 flex gap-2">
           <button
             onClick={async () => {
+              haptic("heavy");
               try {
                 await confirmAction(conversationId, "date_success");
+                setSuggestions([]);
                 setPendingAction(null);
                 setCurrentPhase(5);
                 setCurrentInterest(100);
-                showToast("Поздравляю! Свидание назначено 🎉", "success");
+                setConfirmResult({ type: "date_success" });
+                setTimeout(() => setConfirmResult(null), 3000);
               } catch (err) {
                 console.error(err);
                 showToast("Ошибка подтверждения", "error");
@@ -486,10 +600,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
           </button>
           <button
             onClick={async () => {
+              haptic("light");
               try {
                 await confirmAction(conversationId, "date_fail");
+                setSuggestions([]);
                 setPendingAction(null);
-                showToast("Не страшно, продолжаем", "info");
+                setConfirmResult({ type: "date_fail" });
+                setTimeout(() => setConfirmResult(null), 3000);
               } catch (err) {
                 console.error(err);
                 showToast("Ошибка подтверждения", "error");
