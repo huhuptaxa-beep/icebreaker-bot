@@ -39,10 +39,10 @@ export const STRATEGY_CONFIG = {
       baseMessage: 1,
 
       // Она посмеялась → сигнал вовлечённости
-      laugh: 2
+      laugh: 2,
 
       // Одна скобочка → это мило
-      warmBracket: 1
+      warmBracket: 1,
   
       // Она задала вопрос → сильный сигнал вовлечённости
       question: 3,

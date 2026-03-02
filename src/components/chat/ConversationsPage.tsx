@@ -185,7 +185,7 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
   return (
     <div
       className="flex flex-col h-[100dvh] animate-fadeIn"
-      style={{ background: "transparent" }}
+      style={{ background: "#0E0E12" }}
       onClick={() => openId && setOpenId(null)}
     >
       {/* Header */}
