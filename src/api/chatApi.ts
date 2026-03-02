@@ -34,6 +34,7 @@ export interface GenerateResponse {
   free_remaining: number;
   paid_remaining: number;
   error?: string;
+  showDisinterestWarning?: boolean;
 }
 
 /* ===========================
