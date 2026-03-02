@@ -200,10 +200,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#0A0A0A]">
+    <div className="flex flex-col h-[100dvh]" style={{ background: "transparent" }}>
 
       {/* HEADER */}
-      <div className="sticky top-0 z-40 bg-[#111111] border-b border-white/8">
+      <div
+        className="sticky top-0 z-40 border-b border-white/8"
+        style={{
+          background: "rgba(14,14,18,0.85)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+        }}
+      >
         <div className="flex items-center gap-3 px-4 py-3"
           style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
         >
@@ -329,16 +336,22 @@ const ChatPage: React.FC<ChatPageProps> = ({
       {/* TELEGRAM START BUTTON */}
       {showTelegramStart && suggestions.length === 0 && !generating && (
         <div className="px-4 py-6 flex flex-col items-center gap-3">
-          <p className="text-gray-400 text-sm text-center">
-            Отлично! Теперь напиши ей первое сообщение в Telegram
+          <p className="text-sm text-center" style={{ color: "rgba(255,255,255,0.5)" }}>
+            Отлично. Теперь закрепи позицию первым сообщением.
           </p>
           <button
             onClick={() => {
               handleGenerate("telegram_first");
               setShowTelegramStart(false);
             }}
-            className="w-full py-3.5 rounded-2xl text-white text-base font-semibold"
-            style={{ background: "linear-gradient(135deg, #3B82F6, #2563EB)" }}
+            className="w-full text-white text-base font-semibold active:scale-[0.97] transition-transform"
+            style={{
+              background: "linear-gradient(90deg, #3A6FF8, #5A8CFF)",
+              borderRadius: 22,
+              boxShadow: "0 10px 30px rgba(90,140,255,0.35)",
+              padding: "14px 0",
+              border: "none",
+            }}
           >
             💬 Написать в Telegram
           </button>
@@ -351,8 +364,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
           {availableActions.includes("contact") && (
             <button
               onClick={() => handleGenerate("contact")}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-              style={{ background: "rgba(59,130,246,0.15)", color: "#60A5FA", border: "1px solid rgba(59,130,246,0.3)" }}
+              className="flex-1 py-2.5 text-sm font-medium"
+              style={{
+                background: "linear-gradient(90deg, #1C2B4A, #243A63)",
+                border: "1px solid rgba(80,140,255,0.4)",
+                color: "#8FB4FF",
+                borderRadius: 18,
+              }}
             >
               📱 Взять Telegram
             </button>
@@ -360,8 +378,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
           {availableActions.includes("date") && (
             <button
               onClick={() => handleGenerate("date")}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-              style={{ background: "rgba(34,197,94,0.15)", color: "#4ADE80", border: "1px solid rgba(34,197,94,0.3)" }}
+              className="flex-1 py-2.5 text-sm font-medium"
+              style={{
+                background: "rgba(34,197,94,0.15)",
+                color: "#4ADE80",
+                border: "1px solid rgba(34,197,94,0.3)",
+                borderRadius: 18,
+              }}
             >
               ☕ Позвать на свидание
             </button>
@@ -369,8 +392,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
           {availableActions.includes("reengage") && (
             <button
               onClick={() => handleGenerate("reengage")}
-              className="flex-1 py-2.5 rounded-xl text-sm font-medium"
-              style={{ background: "rgba(251,191,36,0.15)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.3)" }}
+              className="flex-1 py-2.5 text-sm font-medium"
+              style={{
+                background: "rgba(251,191,36,0.15)",
+                color: "#FBBF24",
+                border: "1px solid rgba(251,191,36,0.3)",
+                borderRadius: 18,
+              }}
             >
               🔥 Написать ей
             </button>
@@ -396,8 +424,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 showToast("Ошибка подтверждения", "error");
               }
             }}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(251,191,36,0.2)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.4)" }}
+            className="flex-1 py-2.5 text-sm font-semibold"
+            style={{
+              background: "rgba(251,191,36,0.2)",
+              color: "#FBBF24",
+              border: "1px solid rgba(251,191,36,0.4)",
+              borderRadius: 18,
+            }}
           >
             ✅ Telegram получен
           </button>
@@ -412,8 +445,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 showToast("Ошибка подтверждения", "error");
               }
             }}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "#1A1A1A", color: "#9CA3AF", border: "1px solid rgba(255,255,255,0.1)" }}
+            className="flex-1 py-2.5 text-sm font-semibold"
+            style={{
+              background: "#1A1A1A",
+              color: "#9CA3AF",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 18,
+            }}
           >
             ❌ Не дала
           </button>
@@ -436,8 +474,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 showToast("Ошибка подтверждения", "error");
               }
             }}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "rgba(34,197,94,0.2)", color: "#4ADE80", border: "1px solid rgba(34,197,94,0.4)" }}
+            className="flex-1 py-2.5 text-sm font-semibold"
+            style={{
+              background: "rgba(34,197,94,0.2)",
+              color: "#4ADE80",
+              border: "1px solid rgba(34,197,94,0.4)",
+              borderRadius: 18,
+            }}
           >
             ✅ Она согласилась
           </button>
@@ -452,8 +495,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 showToast("Ошибка подтверждения", "error");
               }
             }}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
-            style={{ background: "#1A1A1A", color: "#9CA3AF", border: "1px solid rgba(255,255,255,0.1)" }}
+            className="flex-1 py-2.5 text-sm font-semibold"
+            style={{
+              background: "#1A1A1A",
+              color: "#9CA3AF",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 18,
+            }}
           >
             ❌ Отказала
           </button>
@@ -466,9 +514,26 @@ const ChatPage: React.FC<ChatPageProps> = ({
             id="btn-generate"
             onClick={() => handleGenerate()}
             disabled={generating}
-            className="w-full py-3 rounded-2xl text-white font-semibold
-                       shadow-lg active:scale-[0.98] transition-transform disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
+            className="w-full text-white font-semibold transition-transform disabled:opacity-60"
+            style={{
+              background: "linear-gradient(90deg, #FF2E4D, #FF5A5F)",
+              borderRadius: 22,
+              boxShadow: generating ? "none" : "0 10px 30px rgba(255,46,77,0.35)",
+              fontSize: 16,
+              padding: "14px 0",
+              border: "none",
+              animation: generating ? "none" : "pulse-glow 7s infinite ease-in-out",
+              transform: "scale(1)",
+            }}
+            onMouseDown={(e) => {
+              if (!generating) e.currentTarget.style.transform = "scale(0.97)";
+            }}
+            onMouseUp={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+            }}
           >
             {generating ? "Генерирую..." : "Сделать шаг"}
           </button>

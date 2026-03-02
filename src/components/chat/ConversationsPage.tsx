@@ -99,7 +99,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
         style={{
           transform: `translateX(${translateX}px)`,
           transition: dragging ? "none" : "transform 0.3s cubic-bezier(0.22,1,0.36,1)",
-          background: "#1A1A1A",
+          background: "rgba(255,255,255,0.03)",
           touchAction: "pan-y",
           willChange: "transform",
         }}
@@ -140,8 +140,6 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
         </button>
-
-        <div className="ml-[68px] mr-4 h-px bg-white/5" />
       </div>
     </div>
   );
@@ -186,11 +184,19 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
 
   return (
     <div
-      className="flex flex-col h-[100dvh] bg-[#0A0A0A] animate-fadeIn"
+      className="flex flex-col h-[100dvh] animate-fadeIn"
+      style={{ background: "transparent" }}
       onClick={() => openId && setOpenId(null)}
     >
       {/* Header */}
-      <div className="bg-[#111111] border-b border-white/8">
+      <div
+        className="border-b border-white/8"
+        style={{
+          background: "rgba(14,14,18,0.85)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+        }}
+      >
         <div
           className="flex items-center justify-between px-4 py-3"
           style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
@@ -253,7 +259,14 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
 
         {!loading && safeConvs.length > 0 && (
           <div className="pt-3 pb-4">
-            <div className="mx-4 rounded-2xl overflow-hidden" style={{ background: "#1A1A1A" }}>
+            <div
+              className="mx-4 overflow-hidden"
+              style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                borderRadius: 16,
+              }}
+            >
               {safeConvs.map((conv) => (
                 <SwipeableRow
                   key={conv.id}
@@ -266,9 +279,6 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
                 />
               ))}
             </div>
-            <p className="text-center text-xs text-gray-600 mt-4 px-4">
-              Свайп влево — удалить диалог
-            </p>
           </div>
         )}
       </div>

@@ -10,31 +10,35 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
   size = "large",
 }) => {
   const progress = Math.min(Math.max(interest, 0), 100);
-
-  const barGradient = "linear-gradient(90deg, #DC2626, #EF4444)";
+  const isComplete = progress >= 100;
 
   if (size === "small") {
     return (
-      <div className="relative" style={{ width: 70, height: 16 }}>
+      <div className="flex items-center gap-1.5">
         <div
-          className="w-full h-full rounded-lg"
+          className="relative rounded-full overflow-hidden"
           style={{
+            width: 50,
+            height: 6,
             background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.12)",
           }}
         >
           <div
-            className="h-full rounded-lg transition-all duration-500"
+            className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${progress}%`,
-              minWidth: progress > 0 ? 24 : 0,
-              background: barGradient,
+              background: isComplete
+                ? "linear-gradient(90deg, #F7C35F, #FFD977)"
+                : "linear-gradient(90deg, #FF2E4D, #FF5A5F)",
+              boxShadow: isComplete
+                ? "0 0 8px rgba(247,195,95,0.3)"
+                : "0 0 8px rgba(255,46,77,0.3)",
             }}
           />
         </div>
         <span
-          className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white"
-          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}
+          className="text-[9px] font-bold"
+          style={{ color: "rgba(255,255,255,0.35)" }}
         >
           {Math.round(progress)}%
         </span>
@@ -45,7 +49,7 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
   return (
     <div className="flex flex-col items-center flex-1">
       <span
-        className="text-[10px] font-semibold uppercase mb-0.5"
+        className="text-[10px] font-semibold uppercase mb-1"
         style={{
           letterSpacing: "1.5px",
           color: "rgba(255,255,255,0.5)",
@@ -53,26 +57,35 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
       >
         Соблазнение
       </span>
-      <div className="relative w-full" style={{ height: 22 }}>
+      <div className="flex items-center gap-2 w-full">
         <div
-          className="w-full h-full rounded-full"
+          className="relative rounded-full overflow-hidden flex-1"
           style={{
+            height: 8,
             background: "rgba(255,255,255,0.06)",
-            border: "1.5px solid rgba(255,255,255,0.15)",
           }}
         >
           <div
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${progress}%`,
-              minWidth: progress > 0 ? 28 : 0,
-              background: barGradient,
+              ...(isComplete
+                ? {
+                    background: "linear-gradient(90deg, #F7C35F, #FFD977, #FFF5CC, #FFD977, #F7C35F)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer-progress 3s infinite linear",
+                    boxShadow: "0 0 12px rgba(247,195,95,0.4)",
+                  }
+                : {
+                    background: "linear-gradient(90deg, #FF2E4D, #FF5A5F)",
+                    boxShadow: "0 0 12px rgba(255,46,77,0.4)",
+                  }),
             }}
           />
         </div>
         <span
-          className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white"
-          style={{ textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}
+          className="text-[11px] font-bold"
+          style={{ color: "rgba(255,255,255,0.5)" }}
         >
           {Math.round(progress)}%
         </span>

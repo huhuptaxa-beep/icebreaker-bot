@@ -14,17 +14,23 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   if (loading) {
     return (
       <div className="px-4 py-3 flex flex-col gap-3 animate-fadeIn">
-        <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          Генерирую варианты...
-        </div>
-        {[1, 2, 3].map((i) => (
+        <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>
+          Анализирую динамику переписки<span className="loading-dots"></span>
+        </p>
+        {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="h-14 rounded-xl animate-pulse"
             style={{
-              background: "#1A1A1A",
-              animationDelay: `${i * 0.15}s`,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 18,
+              padding: 16,
+              marginBottom: 0,
+              height: 60,
+              animation: `shimmer 1.5s infinite linear`,
+              animationDelay: `${i * 200}ms`,
+              backgroundImage: "linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%)",
+              backgroundSize: "200% 100%",
             }}
           />
         ))}
@@ -36,40 +42,68 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
 
   return (
     <div className="px-4 py-3 flex flex-col gap-2.5 animate-fadeIn">
-      <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-        Выбери вариант
+      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 10, fontWeight: 400 }}>
+        AI предлагает 3 стратегии ответа
       </span>
 
       {suggestions.map((suggestion, i) => (
         <button
           key={i}
           onClick={() => onSelect(suggestion)}
-          className="w-full text-left px-4 py-3 text-sm rounded-2xl transition-all duration-150 active:scale-[0.98] flex items-start gap-3"
+          className="w-full text-left transition-all duration-200"
           style={{
-            background: "#1A1A1A",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "#FFFFFF",
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: 18,
+            padding: 16,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+            animation: "fadeSlideUp 250ms ease-out forwards",
+            animationDelay: `${i * 80}ms`,
+            opacity: 0,
+          }}
+          onMouseDown={(e) => {
+            e.currentTarget.style.transform = "scale(0.98)";
+          }}
+          onMouseUp={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
           }}
         >
           <span
-            className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white mt-0.5"
-            style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
+            style={{
+              background: "rgba(255,46,77,0.15)",
+              color: "#fff",
+              borderRadius: 999,
+              width: 24,
+              height: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 600,
+              flexShrink: 0,
+              marginTop: 2,
+            }}
           >
             {i + 1}
           </span>
-          <div className="flex-1 leading-relaxed">
+          <div style={{ flex: 1, lineHeight: 1.5 }}>
             {suggestion.map((part, partIndex) => (
               <React.Fragment key={partIndex}>
                 {partIndex > 0 && (
                   <div
-                    className="my-2"
                     style={{
                       height: "1px",
                       background: "rgba(255,255,255,0.1)",
+                      margin: "8px 0",
                     }}
                   />
                 )}
-                <div className="text-white text-sm">{part}</div>
+                <div style={{ color: "#FFFFFF", fontSize: 14 }}>{part}</div>
               </React.Fragment>
             ))}
           </div>
