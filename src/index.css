@@ -280,3 +280,30 @@
   content: '';
   animation: dots 1.2s infinite steps(1);
 }
+
+/* ===========================
+   DELTA POP ANIMATION
+=========================== */
+
+@keyframes delta-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.animate-delta-pop {
+  animation: delta-pop 1.5s ease-out forwards;
+}

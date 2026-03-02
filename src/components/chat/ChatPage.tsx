@@ -49,6 +49,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [confirmResult, setConfirmResult] = useState<{
     type: "telegram_success" | "telegram_fail" | "date_success" | "date_fail";
   } | null>(null);
+  const [interestDelta, setInterestDelta] = useState<number | null>(null);
+  const [freeRemaining, setFreeRemaining] = useState<number | null>(null);
+  const [paidRemaining, setPaidRemaining] = useState<number | null>(null);
 
   const { showToast } = useAppToast();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -166,7 +169,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setSuggestions(res.suggestions || []);
         setAvailableActions(res.available_actions || []);
         if (res.phase) setCurrentPhase(res.phase);
-        if (res.interest !== undefined) setCurrentInterest(res.interest);
+        if (res.interest !== undefined) {
+          const oldInterest = currentInterest;
+          const newInterest = res.interest;
+          const diff = Math.round(newInterest - oldInterest);
+          setCurrentInterest(newInterest);
+          if (diff !== 0) {
+            setInterestDelta(diff);
+            setTimeout(() => setInterestDelta(null), 1600);
+          }
+        }
+
+        // Счётчики генераций
+        if (res.free_remaining !== undefined) setFreeRemaining(res.free_remaining);
+        if (res.paid_remaining !== undefined) setPaidRemaining(res.paid_remaining);
 
         // Toast при 3 сухих ответах подряд
         if (res.showDisinterestWarning) {
@@ -217,6 +233,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }
   };
 
+  const canGenerate = (() => {
+    if (generating) return false;
+    if (isNewDialog) return !!(openerFacts.trim() || draftGirlReply.trim());
+    if (showTelegramStart) return false;
+    const lastMsg = messages[messages.length - 1];
+    const hasUnansweredGirl = lastMsg?.role === "girl";
+    return !!(draftGirlReply.trim() || hasUnansweredGirl);
+  })();
+
   return (
     <div className="flex flex-col h-[100dvh]" style={{ background: "transparent" }}>
 
@@ -238,9 +263,23 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <span className="font-semibold text-white flex-shrink-0 truncate" style={{ maxWidth: "40%" }}>
             {girlName}
           </span>
+          {freeRemaining !== null && (
+            <span
+              className="text-[10px] font-medium flex-shrink-0 px-1.5 py-0.5 rounded-md"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                color: (freeRemaining + (paidRemaining || 0)) > 3
+                  ? "rgba(255,255,255,0.35)"
+                  : "#FF2E4D",
+              }}
+            >
+              ⭐ {freeRemaining + (paidRemaining || 0)}
+            </span>
+          )}
           <PhaseProgressBar
             interest={currentInterest}
             size="large"
+            delta={interestDelta}
           />
         </div>
       </div>
@@ -268,6 +307,19 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
         {isNewDialog && (
           <>
+            <div className="flex flex-col items-center py-6">
+              <div
+                className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
+                style={{ background: "rgba(255,46,77,0.1)" }}
+              >
+                <span className="text-3xl">💬</span>
+              </div>
+              <p className="text-white font-semibold text-base mb-1">Начни переписку</p>
+              <p className="text-gray-500 text-xs text-center leading-relaxed px-4">
+                Опиши девушку и получи идеальное первое сообщение
+              </p>
+            </div>
+
             <div className="flex">
               <div className="max-w-[70%]">
                 <div className="relative z-10">
@@ -630,29 +682,25 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <button
             id="btn-generate"
             onClick={() => handleGenerate()}
-            disabled={generating}
-            className="w-full text-white font-semibold transition-transform disabled:opacity-60"
+            disabled={generating || !canGenerate}
+            className="w-full py-3.5 rounded-2xl font-semibold text-base shadow-lg active:scale-[0.97] transition-all"
             style={{
-              background: "linear-gradient(90deg, #FF2E4D, #FF5A5F)",
-              borderRadius: 22,
-              boxShadow: generating ? "none" : "0 10px 30px rgba(255,46,77,0.35)",
-              fontSize: 16,
-              padding: "14px 0",
-              border: "none",
-              animation: generating ? "none" : "pulse-glow 7s infinite ease-in-out",
-              transform: "scale(1)",
-            }}
-            onMouseDown={(e) => {
-              if (!generating) e.currentTarget.style.transform = "scale(0.97)";
-            }}
-            onMouseUp={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
+              background: generating
+                ? "rgba(255,255,255,0.08)"
+                : canGenerate
+                  ? "linear-gradient(90deg, #FF2E4D, #FF5A5F)"
+                  : "rgba(255,255,255,0.06)",
+              color: generating
+                ? "rgba(255,255,255,0.4)"
+                : canGenerate
+                  ? "#FFFFFF"
+                  : "rgba(255,255,255,0.25)",
+              boxShadow: canGenerate && !generating
+                ? "0 10px 30px rgba(255,46,77,0.35)"
+                : "none",
             }}
           >
-            {generating ? "Генерирую..." : "Сделать шаг"}
+            {generating ? "Анализирую..." : canGenerate ? "Сделать шаг" : "Вставь её ответ"}
           </button>
         </div>
       )}

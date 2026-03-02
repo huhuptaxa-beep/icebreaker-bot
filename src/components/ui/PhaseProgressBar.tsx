@@ -1,16 +1,28 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 interface PhaseProgressBarProps {
   interest: number;
   size?: "small" | "large";
+  delta?: number | null;
 }
 
 const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
   interest,
   size = "large",
+  delta,
 }) => {
   const progress = Math.min(Math.max(interest, 0), 100);
   const isComplete = progress >= 100;
+
+  const [showDelta, setShowDelta] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (delta && delta !== 0) {
+      setShowDelta(delta);
+      const timer = setTimeout(() => setShowDelta(null), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [delta]);
 
   if (size === "small") {
     return (
@@ -83,12 +95,24 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
             }}
           />
         </div>
-        <span
-          className="text-[11px] font-bold"
-          style={{ color: "rgba(255,255,255,0.5)" }}
-        >
-          {Math.round(progress)}%
-        </span>
+        <div className="flex items-center gap-1">
+          <span
+            className="text-[11px] font-bold"
+            style={{ color: "rgba(255,255,255,0.5)" }}
+          >
+            {Math.round(progress)}%
+          </span>
+          {showDelta !== null && (
+            <span
+              className="text-[11px] font-bold animate-delta-pop"
+              style={{
+                color: showDelta > 0 ? "#4ADE80" : "#FF2E4D",
+              }}
+            >
+              {showDelta > 0 ? `+${showDelta}` : showDelta}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
