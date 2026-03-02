@@ -268,7 +268,7 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
         .select("role, text, created_at")
         .eq("conversation_id", conversation_id)
         .order("created_at", { ascending: false })
-        .limit(20)
+        .limit(40)
 
       const history = (historyDesc || []).reverse()
 
@@ -443,6 +443,7 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
         available_actions,
         phase: messageType === "reply" && strategyResult ? strategyResult.phase : undefined,
         interest: strategyResult ? strategyResult.effectiveInterest : undefined,
+        showDisinterestWarning: strategyResult?.showDisinterestWarning || false,
         limit_reached: false,
         free_remaining: freeRemaining,
         paid_remaining: paidRemaining,

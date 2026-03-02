@@ -5,26 +5,27 @@ export function updateInterest(oldBase: number, analysis: any) {
 
   let delta = 0
 
-  // Если сообщение сухое (dry) - штраф
+  // +1 за любое сообщение — она ответила, это уже хорошо
+  delta += interest.weights.baseMessage
+
   if (analysis.isDry) {
+    // Сухое сообщение — мягкий штраф (-1)
+    // Жёсткий штраф (-4) применяется в engine.ts при streak >= 2
     delta += interest.weights.dryMessage
-  }
-  // Иначе суммируем позитивные сигналы
-  else {
+  } else {
     if (analysis.hasQuestion) delta += interest.weights.question
     if (analysis.hasEmoji) delta += interest.weights.emoji
     if (analysis.isLong) delta += interest.weights.longMessage
     if (analysis.hasPersonal) delta += interest.weights.personalInfo
   }
 
-  // Короткое сообщение без вопроса и эмодзи - дополнительный штраф
-  if (analysis.isShort && !analysis.hasQuestion && !analysis.hasEmoji) {
+  // Короткое без вопроса и эмодзи — дополнительный мягкий минус
+  if (analysis.isShort && !analysis.hasQuestion && !analysis.hasEmoji && !analysis.isDry) {
     delta += interest.weights.shortMessage
   }
 
   let newBase = oldBase + delta
 
-  // Clamp между min и max
   if (newBase > interest.max) newBase = interest.max
   if (newBase < interest.min) newBase = interest.min
 

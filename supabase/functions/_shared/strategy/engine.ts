@@ -117,6 +117,21 @@ export function runStrategyEngine(
     }
 
     /* =========================================
+       ШТРАФ ЗА DRY STREAK
+       ========================================= */
+
+    // 2 сухих подряд → дополнительный штраф -4
+    if (lowInterestStreak === 2) {
+      baseInterest = Math.max(
+        STRATEGY_CONFIG.interest.min,
+        baseInterest + STRATEGY_CONFIG.interest.weights.dryStreak2
+      )
+      effectiveInterest = Number(
+        (baseInterest * freshness).toFixed(2)
+      )
+    }
+
+    /* =========================================
        ОБНОВЛЕНИЕ PHASE (производная от interest + channel)
        ========================================= */
 
@@ -211,6 +226,8 @@ export function runStrategyEngine(
     dateInviteAttempts,
     highInterestStreak,
     lowInterestStreak,
-    nextObjective
+    nextObjective,
+        // 3 dry подряд → сигнал фронту показать toast
+    showDisinterestWarning: lowInterestStreak >= 3
   }
 }

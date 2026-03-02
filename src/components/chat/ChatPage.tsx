@@ -152,6 +152,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
         if (res.phase) setCurrentPhase(res.phase);
         if (res.interest !== undefined) setCurrentInterest(res.interest);
 
+        // Toast при 3 сухих ответах подряд
+        if (res.showDisinterestWarning) {
+          showToast("Она не в настроении - смени тему", "warning");
+        }
+
         // Если пользователь нажал contact/date - устанавливаем pendingAction
         if (actionOverride === "contact") setPendingAction("contact");
         if (actionOverride === "date") setPendingAction("date");
@@ -382,7 +387,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 await confirmAction(conversationId, "telegram_success");
                 setPendingAction(null);
                 setCurrentPhase(3);
+                setCurrentInterest(prev => Math.max(prev, 40));
                 setShowTelegramStart(true);
+
                 showToast("Отлично! Переходим в Telegram", "success");
               } catch (err) {
                 console.error(err);
@@ -422,6 +429,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 await confirmAction(conversationId, "date_success");
                 setPendingAction(null);
                 setCurrentPhase(5);
+                setCurrentInterest(100);
                 showToast("Поздравляю! Свидание назначено 🎉", "success");
               } catch (err) {
                 console.error(err);

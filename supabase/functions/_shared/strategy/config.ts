@@ -35,11 +35,14 @@ export const STRATEGY_CONFIG = {
      */
     weights: {
 
+      // +1 за любое сообщение (она ответила = хорошо)
+      baseMessage: 1,
+  
       // Она задала вопрос → сильный сигнал вовлечённости
       question: 3,
 
       // Использует эмодзи → лёгкий позитивный сигнал
-      emoji: 2,
+      emoji: 4,
 
       // Сообщение длиннее longMessageWordLimit → она вкладывается
       longMessage: 4,
@@ -51,7 +54,10 @@ export const STRATEGY_CONFIG = {
       shortMessage: -1,
 
       // Сухое сообщение (dry)
-      dryMessage: -3,
+      dryMessage: -1,
+
+      // Штраф за 2 dry подряд
+      dryStreak2: -4,
 
       // Shit test не меняет interest
       shitTest: 0,
