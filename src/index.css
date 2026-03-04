@@ -388,6 +388,52 @@
 }
 
 /* ===========================
+   CHAT MESSAGE APPEAR
+=========================== */
+
+@keyframes chatMessageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-message-enter {
+  animation: chatMessageIn 0.24s cubic-bezier(0.21, 0.61, 0.35, 1) forwards;
+}
+
+@keyframes copyToastFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+}
+
+.copy-toast {
+  animation: copyToastFade 1s ease forwards;
+  background: rgba(20, 20, 25, 0.85);
+  border: 0.5px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+/* ===========================
    BUTTON SHINE
 =========================== */
 

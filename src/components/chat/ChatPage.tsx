@@ -60,12 +60,66 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const isSavingRef = useRef(false);
 
   const [pasteLabel, setPasteLabel] = useState<string | null>(null);
+  const [copyToastVisible, setCopyToastVisible] = useState(false);
+  const [copyFlashMap, setCopyFlashMap] = useState<Record<string, boolean>>({});
+  const [newMessageAnimationMap, setNewMessageAnimationMap] = useState<Record<string, boolean>>({});
+  const copyToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const isNewDialog = messages.length === 0;
 
   const [showTutorial, setShowTutorial] = useState(
     () => localStorage.getItem("tutorial_chat_done") !== "true"
   );
+
+  const triggerCopyToast = () => {
+    setCopyToastVisible(true);
+    if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
+    copyToastTimerRef.current = setTimeout(() => setCopyToastVisible(false), 1000);
+  };
+
+  const markCopyFlash = (ids: string[]) => {
+    if (!ids.length) return;
+    setCopyFlashMap((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        next[id] = true;
+      });
+      return next;
+    });
+    const timeout = setTimeout(() => {
+      setCopyFlashMap((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          delete next[id];
+        });
+        return next;
+      });
+    }, 1200);
+    copyFlashTimeouts.current.push(timeout);
+  };
+
+  const markNewMessageAnimation = (ids: string[]) => {
+    if (!ids.length) return;
+    setNewMessageAnimationMap((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        next[id] = true;
+      });
+      return next;
+    });
+    const timeout = setTimeout(() => {
+      setNewMessageAnimationMap((prev) => {
+        const next = { ...prev };
+        ids.forEach((id) => {
+          delete next[id];
+        });
+        return next;
+      });
+    }, 600);
+    newMessageTimeouts.current.push(timeout);
+  };
 
   const CHAT_TUTORIAL_STEPS: TutorialStep[] = [
     { targetId: "field-facts", text: "Опиши девушку: хобби, интересы, факты\nиз описания, детали фото.\nЧем больше напишешь — тем лучше", position: "top" },
@@ -103,6 +157,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
   useEffect(() => {
     refreshConversation().catch(() => { });
   }, [conversationId]);
+
+  useEffect(() => {
+    return () => {
+      copyFlashTimeouts.current.forEach(clearTimeout);
+      newMessageTimeouts.current.forEach(clearTimeout);
+      if (copyToastTimerRef.current) {
+        clearTimeout(copyToastTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -211,13 +275,40 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
     haptic("light");
 
+    const createdAt = new Date().toISOString();
+    const localBatch = suggestion.map((text, index) => ({
+      id: `temp-${Date.now()}-${index}-${Math.random().toString(36).slice(2, 6)}`,
+      conversation_id: conversationId,
+      role: "user" as const,
+      text,
+      created_at: createdAt,
+    })) as Message[];
+
+    if (localBatch.length) {
+      setMessages((prev) => [...prev, ...localBatch]);
+      markNewMessageAnimation(localBatch.map((item) => item.id));
+    }
+
+    setSuggestions([]);
+    setAvailableActions([]);
+
+    const combined = suggestion.join("\n\n").trim();
+    if (combined) {
+      try {
+        await navigator.clipboard.writeText(combined);
+        markCopyFlash(localBatch.map((item) => item.id));
+        triggerCopyToast();
+      } catch (err) {
+        console.error(err);
+        showToast("Не удалось скопировать сообщение", "error");
+      }
+    }
+
     try {
       for (const text of suggestion) {
         await chatSave(conversationId, text, "user");
       }
 
-      setSuggestions([]);
-      setAvailableActions([]);
       await refreshConversation();
     } catch (err) {
       console.error(err);
@@ -308,7 +399,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)" }} />
               </div>
             )}
-            <MessageBubble text={msg.text} role={msg.role} />
+            <MessageBubble
+              text={msg.text}
+              role={msg.role}
+              copiedRecently={!!copyFlashMap[msg.id]}
+              animateEntry={!!newMessageAnimationMap[msg.id]}
+            />
           </React.Fragment>
         ))}
 
@@ -446,6 +542,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
         onSelect={handleSelectSuggestion}
         loading={generating}
       />
+
+      {copyToastVisible && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 bottom-32 copy-toast px-4 py-2 rounded-full text-[13px] font-semibold text-white pointer-events-none select-none"
+        >
+          ✓ Сообщение скопировано
+        </div>
+      )}
 
       {/* TELEGRAM START BUTTON */}
       {showTelegramStart && suggestions.length === 0 && !generating && (

@@ -1,13 +1,23 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface Props {
   text: string;
   role: "user" | "girl";
+  copiedRecently?: boolean;
+  animateEntry?: boolean;
 }
 
-const MessageBubble: React.FC<Props> = ({ text, role }) => {
+const MessageBubble: React.FC<Props> = ({ text, role, copiedRecently, animateEntry }) => {
   const isMine = role === "user";
   const [actionLabel, setActionLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (copiedRecently && isMine) {
+      setActionLabel("✓ Скопировано");
+      const timer = setTimeout(() => setActionLabel(null), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [copiedRecently, isMine]);
 
   const handleCopy = async () => {
     try {
@@ -18,7 +28,7 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
   };
 
   return (
-    <div className={`flex ${isMine ? "justify-end" : "justify-start"} animate-fadeIn`}>
+    <div className={`flex ${isMine ? "justify-end" : "justify-start"} ${animateEntry ? "chat-message-enter" : "animate-fadeIn"}`}>
       <div className="max-w-[75%]">
         <div
           className="relative z-10 px-5 py-3.5 rounded-2xl text-[14px] leading-relaxed"

@@ -12,6 +12,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   loading,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [pressedIndex, setPressedIndex] = useState<number | null>(null);
 
   if (loading) {
     return (
@@ -65,6 +66,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     setTimeout(() => {
       onSelect(suggestion);
       setSelectedIndex(null);
+      setPressedIndex(null);
     }, 200);
   };
 
@@ -87,11 +89,17 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
 
       {suggestions.map((suggestion, i) => {
         const isSelected = selectedIndex === i;
+        const isPressed = pressedIndex === i && selectedIndex !== i;
+        const scale = isSelected ? 0.96 : isPressed ? 0.985 : 1;
 
         return (
           <button
             key={i}
             onClick={() => handleSelect(suggestion, i)}
+            onPointerDown={() => setPressedIndex(i)}
+            onPointerUp={() => setPressedIndex(null)}
+            onPointerLeave={() => setPressedIndex(null)}
+            onPointerCancel={() => setPressedIndex(null)}
             className="w-full text-left transition-all duration-300"
             style={{
               background: isSelected
@@ -113,7 +121,8 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
               boxShadow: isSelected
                 ? "0 0 15px rgba(212, 175, 55, 0.5), 0 0 30px rgba(212, 175, 55, 0.15)"
                 : "0 2px 8px rgba(0, 0, 0, 0.15)",
-              transform: isSelected ? "scale(0.98)" : "scale(1)",
+              transform: `scale(${scale})`,
+              transition: "transform 0.2s ease, border 0.3s ease, background 0.3s ease",
             }}
           >
             {/* Number badge — gold circle */}
