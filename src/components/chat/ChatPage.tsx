@@ -70,6 +70,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const copyToastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [contactToastVisible, setContactToastVisible] = useState(false);
+  const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isNewDialog = messages.length === 0;
 
@@ -140,6 +142,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
     newMessageTimeouts.current.push(timeout);
   };
 
+  const triggerContactToast = () => {
+    if (contactToastTimer.current) {
+      clearTimeout(contactToastTimer.current);
+    }
+    setContactToastVisible(true);
+    contactToastTimer.current = setTimeout(() => {
+      setContactToastVisible(false);
+      contactToastTimer.current = null;
+    }, 1000);
+  };
+
   const CHAT_TUTORIAL_STEPS: TutorialStep[] = [
     { targetId: "field-facts", text: "Опиши девушку: хобби, интересы, факты\nиз описания, детали фото.\nЧем больше напишешь — тем лучше", position: "top" },
     { targetId: "field-girl-message", text: "Если она написала первая —\nвставь её сообщение сюда", position: "top" },
@@ -182,6 +195,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
       copyFlashTimeouts.current.forEach(clearTimeout);
       newMessageTimeouts.current.forEach(clearTimeout);
       clearCopyToastTimers();
+      if (contactToastTimer.current) {
+        clearTimeout(contactToastTimer.current);
+        contactToastTimer.current = null;
+      }
     };
   }, []);
 
@@ -580,28 +597,62 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
+      {contactToastVisible && (
+        <div
+          className="fixed left-1/2 px-4 py-2 rounded-full text-[12px] font-semibold pointer-events-none select-none"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom) + 64px)",
+            transform: "translateX(-50%)",
+            background: "rgba(20, 20, 24, 0.9)",
+            border: "0.5px solid rgba(212, 175, 55, 0.25)",
+            color: "rgba(255, 255, 255, 0.9)",
+            boxShadow: "0 14px 35px rgba(0,0,0,0.45)",
+            zIndex: 70,
+          }}
+        >
+          Контакт получен
+        </div>
+      )}
+
       {/* TELEGRAM START BUTTON */}
       {showTelegramStart && suggestions.length === 0 && !generating && (
-        <div className="px-5 py-6 flex flex-col items-center gap-3">
-          <p className="text-sm text-center" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
-            Отлично. Теперь закрепи позицию первым сообщением.
-          </p>
-          <button
-            onClick={() => {
-              handleGenerate("telegram_first");
-              setShowTelegramStart(false);
-            }}
-            className="w-full text-white text-base font-semibold active:scale-[0.97] transition-transform"
+        <div className="px-5 py-6">
+          <div
+            className="rounded-3xl px-5 py-5 flex flex-col gap-3"
             style={{
-              background: "linear-gradient(90deg, #3A6FF8, #5A8CFF)",
-              borderRadius: 22,
-              boxShadow: "0 10px 30px rgba(90,140,255,0.25)",
-              padding: "14px 0",
-              border: "none",
+              background: "rgba(15, 15, 20, 0.92)",
+              border: "0.5px solid rgba(212, 175, 55, 0.15)",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
             }}
           >
-            💬 Написать в Telegram
-          </button>
+            <span
+              className="text-[11px] font-semibold uppercase tracking-[0.2em]"
+              style={{ color: "rgba(212, 175, 55, 0.55)" }}
+            >
+              Следующий шаг
+            </span>
+            <div className="flex flex-col gap-1">
+              <p className="text-white font-semibold text-base">Сгенерировать первое сообщение</p>
+              <p className="text-sm" style={{ color: "rgba(200, 200, 220, 0.5)" }}>
+                AI подготовит вступление, чтобы плавно уйти в Telegram.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                handleGenerate("telegram_first");
+                setShowTelegramStart(false);
+              }}
+              className="w-full py-3 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-transform"
+              style={{
+                background: "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)",
+                color: "#050505",
+                border: "none",
+                boxShadow: "0 0 18px rgba(212, 175, 55, 0.35)",
+              }}
+            >
+              ⚡ Сгенерировать первое сообщение
+            </button>
+          </div>
         </div>
       )}
 
@@ -610,20 +661,45 @@ const ChatPage: React.FC<ChatPageProps> = ({
         <div className="px-5 py-2 flex gap-2">
           {availableActions.includes("contact") && (
             <div className="flex-1 flex flex-col gap-1.5">
+              <p
+                className="text-[11px] font-semibold uppercase tracking-[0.25em] text-center"
+                style={{ color: "rgba(212, 175, 55, 0.6)" }}
+              >
+                ✨ Момент для сближения
+              </p>
               <p className="text-[12px] text-center" style={{ color: "rgba(200, 200, 220, 0.3)" }}>
                 AI определил момент для сближения
               </p>
-              <button
-                onClick={() => handleGenerate("contact")}
-                className="w-full py-2.5 rounded-2xl text-sm font-medium"
+              <div
+                className="rounded-2xl px-4 py-4 flex flex-col gap-2"
                 style={{
-                  background: "rgba(59, 130, 246, 0.08)",
-                  border: "0.5px solid rgba(80,140,255,0.25)",
-                  color: "#8FB4FF",
+                  background: "rgba(22, 22, 32, 0.9)",
+                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
                 }}
               >
-                📱 Взять Telegram
-              </button>
+                <span className="text-[11px] font-semibold uppercase" style={{ color: "rgba(212, 175, 55, 0.6)", letterSpacing: "0.2em" }}>
+                  AI рекомендует
+                </span>
+                <div className="flex flex-col gap-1">
+                  <p className="text-white text-sm font-semibold">Пора брать Telegram</p>
+                  <p className="text-[12px]" style={{ color: "rgba(200, 200, 220, 0.55)" }}>
+                    Пока интерес высокий, закрепи контакт.
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleGenerate("contact")}
+                  className="w-full py-2.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-transform"
+                  style={{
+                    background: "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)",
+                    color: "#050505",
+                    boxShadow: "0 0 15px rgba(212, 175, 55, 0.35)",
+                    border: "none",
+                  }}
+                >
+                  📱 Взять Telegram
+                </button>
+              </div>
             </div>
           )}
           {availableActions.includes("date") && (
@@ -731,58 +807,64 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       {/* CONFIRMATION BUTTONS - TELEGRAM */}
       {pendingAction === "contact" && !generating && !confirmResult && (
-        <div className="px-5 py-2 flex gap-2">
-          <button
-            onClick={async () => {
-              haptic("heavy");
-              try {
-                await confirmAction(conversationId, "telegram_success");
-                setSuggestions([]);
-                setPendingAction(null);
-                setCurrentPhase(3);
-                setCurrentInterest(prev => Math.max(prev, 40));
-                setShowTelegramStart(true);
-                setConfirmResult({ type: "telegram_success" });
-                setTimeout(() => setConfirmResult(null), 3000);
-              } catch (err) {
-                console.error(err);
-                showToast("Ошибка подтверждения", "error");
-              }
-            }}
-            className="flex-1 py-2.5 text-sm font-semibold"
-            style={{
-              background: "rgba(212, 175, 55, 0.1)",
-              color: "#D4AF37",
-              border: "0.5px solid rgba(212, 175, 55, 0.3)",
-              borderRadius: 18,
-            }}
-          >
-            ✅ Telegram получен
-          </button>
-          <button
-            onClick={async () => {
-              haptic("light");
-              try {
-                await confirmAction(conversationId, "telegram_fail");
-                setSuggestions([]);
-                setPendingAction(null);
-                setConfirmResult({ type: "telegram_fail" });
-                setTimeout(() => setConfirmResult(null), 3000);
-              } catch (err) {
-                console.error(err);
-                showToast("Ошибка подтверждения", "error");
-              }
-            }}
-            className="flex-1 py-2.5 text-sm font-semibold"
-            style={{
-              background: "rgba(255, 255, 255, 0.03)",
-              color: "rgba(200, 200, 220, 0.4)",
-              border: "0.5px solid rgba(200, 200, 220, 0.08)",
-              borderRadius: 18,
-            }}
-          >
-            ❌ Не дала
-          </button>
+        <div className="px-5 py-2 flex flex-col gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "rgba(200, 200, 220, 0.3)" }}>
+            Удалось взять Telegram?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                haptic("heavy");
+                try {
+                  await confirmAction(conversationId, "telegram_success");
+                  setSuggestions([]);
+                  setPendingAction(null);
+                  setCurrentPhase(3);
+                  setCurrentInterest(prev => Math.max(prev, 40));
+                  setShowTelegramStart(true);
+                  setConfirmResult({ type: "telegram_success" });
+                  triggerContactToast();
+                  setTimeout(() => setConfirmResult(null), 3000);
+                } catch (err) {
+                  console.error(err);
+                  showToast("Ошибка подтверждения", "error");
+                }
+              }}
+              className="flex-1 py-2.5 text-sm font-semibold"
+              style={{
+                background: "rgba(212, 175, 55, 0.1)",
+                color: "#D4AF37",
+                border: "0.5px solid rgba(212, 175, 55, 0.3)",
+                borderRadius: 18,
+              }}
+            >
+              ✅ Telegram получен
+            </button>
+            <button
+              onClick={async () => {
+                haptic("light");
+                try {
+                  await confirmAction(conversationId, "telegram_fail");
+                  setSuggestions([]);
+                  setPendingAction(null);
+                  setConfirmResult({ type: "telegram_fail" });
+                  setTimeout(() => setConfirmResult(null), 3000);
+                } catch (err) {
+                  console.error(err);
+                  showToast("Ошибка подтверждения", "error");
+                }
+              }}
+              className="flex-1 py-2.5 text-sm font-semibold"
+              style={{
+                background: "rgba(255, 255, 255, 0.03)",
+                color: "rgba(200, 200, 220, 0.4)",
+                border: "0.5px solid rgba(200, 200, 220, 0.08)",
+                borderRadius: 18,
+              }}
+            >
+              ✕ Пока нет
+            </button>
+          </div>
         </div>
       )}
 
