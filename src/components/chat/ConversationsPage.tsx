@@ -1,7 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Conversation } from "@/api/chatApi";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
-import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
 
 /* ==============================
    HELPERS
@@ -18,6 +17,78 @@ function formatDate(iso: string) {
   if (days < 7) return `${days} дн. назад`;
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
+
+type ProgressState = {
+  label: string;
+  badgeBg: string;
+  badgeText: string;
+  barGradient: string;
+  barGlow: string;
+};
+
+const PROGRESS_STATES: { min: number; max: number; state: ProgressState }[] = [
+  {
+    min: 0,
+    max: 0,
+    state: {
+      label: "New",
+      badgeBg: "rgba(120,120,140,0.2)",
+      badgeText: "rgba(255,255,255,0.85)",
+      barGradient: "linear-gradient(90deg, rgba(140,140,160,0.4), rgba(200,200,220,0.4))",
+      barGlow: "0 0 12px rgba(140,140,160,0.25)",
+    },
+  },
+  {
+    min: 1,
+    max: 40,
+    state: {
+      label: "In progress",
+      badgeBg: "rgba(80,120,255,0.18)",
+      badgeText: "rgba(160,190,255,1)",
+      barGradient: "linear-gradient(90deg, #3B82F6, #60A5FA)",
+      barGlow: "0 0 16px rgba(59,130,246,0.45)",
+    },
+  },
+  {
+    min: 41,
+    max: 80,
+    state: {
+      label: "Going well",
+      badgeBg: "rgba(255,184,76,0.18)",
+      badgeText: "rgba(255,214,147,1)",
+      barGradient: "linear-gradient(90deg, #F59E0B, #FCD34D)",
+      barGlow: "0 0 16px rgba(252,211,77,0.45)",
+    },
+  },
+  {
+    min: 81,
+    max: 99,
+    state: {
+      label: "Almost done",
+      badgeBg: "rgba(192,132,252,0.2)",
+      badgeText: "rgba(232,213,255,1)",
+      barGradient: "linear-gradient(90deg, #C084FC, #D946EF)",
+      barGlow: "0 0 18px rgba(192,132,252,0.45)",
+    },
+  },
+  {
+    min: 100,
+    max: 100,
+    state: {
+      label: "Completed",
+      badgeBg: "rgba(34,197,94,0.2)",
+      badgeText: "rgba(187,247,208,1)",
+      barGradient: "linear-gradient(90deg, #22C55E, #86EFAC)",
+      barGlow: "0 0 20px rgba(52,211,153,0.5)",
+    },
+  },
+];
+
+const getProgressState = (interest?: number): ProgressState => {
+  const progress = Math.round(Math.min(Math.max(interest ?? 0, 0), 100));
+  const state = PROGRESS_STATES.find(({ min, max }) => progress >= min && progress <= max);
+  return state?.state ?? PROGRESS_STATES[0].state;
+};
 
 /* ==============================
    SWIPEABLE ROW
@@ -47,6 +118,9 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
   const touchStartX = useRef(0);
   const baseX = useRef(0);
 
+  const progress = Math.round(Math.min(Math.max(conv.effective_interest ?? 0, 0), 100));
+  const progressState = getProgressState(conv.effective_interest);
+
   const committedX = isOpen ? -DELETE_W : 0;
   const rawX = baseX.current + liveOffset;
   const clampedX = Math.min(0, Math.max(-DELETE_W, rawX));
@@ -73,7 +147,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl">
+    <div className="relative overflow-hidden rounded-[22px]">
       {/* Delete button — Platinum Silver */}
       <div
         className="absolute right-0 top-0 bottom-0 flex items-center justify-center"
@@ -142,22 +216,56 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-semibold text-white/90 text-[15px] truncate tracking-wide">
-                {conv.girl_name || "Новый диалог"}
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-start gap-2 min-w-0">
+              <div className="min-w-0">
+                <div className="text-white text-[15px] font-semibold tracking-wide truncate">
+                  {conv.girl_name || "Новый диалог"}
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-medium text-white/50">
+                  <span>{formatDate(conv.created_at)}</span>
+                  <span className="w-1 h-1 rounded-full bg-white/25" />
+                  <span>{progress}%</span>
+                </div>
               </div>
-              <div
-                className="text-xs mt-0.5 font-medium"
-                style={{ color: "rgba(200, 200, 220, 0.4)" }}
+              <span
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase whitespace-nowrap"
+                style={{
+                  background: progressState.badgeBg,
+                  color: progressState.badgeText,
+                  letterSpacing: "0.05em",
+                }}
               >
-                {formatDate(conv.created_at)}
-              </div>
+                {progressState.label}
+              </span>
             </div>
-            <PhaseProgressBar
-              interest={conv.effective_interest || 0}
-              size="small"
-            />
+            <div className="flex items-center gap-2">
+              <div
+                className="flex-1 h-1.5 rounded-full overflow-hidden"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.08)",
+                }}
+              >
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${progress}%`,
+                    background: progressState.barGradient,
+                    boxShadow: progressState.barGlow,
+                  }}
+                />
+              </div>
+              <span
+                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.75)",
+                }}
+              >
+                {progress}%
+              </span>
+            </div>
           </div>
 
           {/* Chevron — silver */}
