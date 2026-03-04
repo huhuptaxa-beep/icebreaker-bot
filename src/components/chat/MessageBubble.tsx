@@ -24,14 +24,14 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
           className="relative z-10 px-5 py-3.5 rounded-2xl text-[14px] leading-relaxed"
           style={{
             background: isMine
-              ? "linear-gradient(135deg, #6B1520 0%, #8B1A2B 50%, #5A1018 100%)"
-              : "linear-gradient(135deg, rgba(40, 40, 50, 0.9), rgba(35, 35, 45, 0.95))",
+              ? "linear-gradient(135deg, rgba(55, 55, 65, 0.95) 0%, rgba(70, 70, 80, 0.9) 50%, rgba(50, 50, 60, 0.95) 100%)"
+              : "linear-gradient(135deg, rgba(35, 35, 42, 0.9), rgba(30, 30, 38, 0.95))",
             color: "#FFFFFF",
             border: isMine
-              ? "0.5px solid rgba(212, 175, 55, 0.15)"
+              ? "0.5px solid rgba(212, 175, 55, 0.2)"
               : "0.5px solid rgba(200, 200, 220, 0.08)",
             boxShadow: isMine
-              ? "0 4px 15px rgba(107, 21, 32, 0.3)"
+              ? "0 4px 15px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(200, 200, 220, 0.04)"
               : "0 2px 10px rgba(0, 0, 0, 0.2)",
           }}
         >
@@ -49,8 +49,8 @@ const MessageBubble: React.FC<Props> = ({ text, role }) => {
               paddingTop: 18,
               paddingBottom: 4,
               marginLeft: "auto",
-              background: "rgba(90, 16, 24, 0.6)",
-              color: "rgba(249, 224, 118, 0.5)",
+              background: "rgba(45, 45, 55, 0.7)",
+              color: "rgba(212, 175, 55, 0.5)",
               textAlign: "right",
               paddingRight: 10,
               clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 20% 100%)",

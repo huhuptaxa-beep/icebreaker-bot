@@ -74,17 +74,18 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
 
   return (
     <div className="relative overflow-hidden rounded-2xl">
-      {/* Delete button */}
+      {/* Delete button — Platinum Silver */}
       <div
         className="absolute right-0 top-0 bottom-0 flex items-center justify-center"
         style={{
           width: DELETE_W,
-          background: "linear-gradient(135deg, #3A1520, #5A1A25)",
+          background: "linear-gradient(135deg, #2A2A30, #3A3A42)",
         }}
       >
         <button
           onClick={() => onDelete(conv.id)}
-          className="w-full h-full flex flex-col items-center justify-center gap-1 text-white/80 active:text-white transition-colors"
+          className="w-full h-full flex flex-col items-center justify-center gap-1 transition-colors"
+          style={{ color: "rgba(200, 200, 220, 0.7)" }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round"
@@ -118,7 +119,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
           }}
           className="w-full text-left px-4 py-4 flex items-center gap-3 active:bg-white/[0.03] transition-colors"
         >
-          {/* Avatar — Premium Silver */}
+          {/* Avatar — Premium Silver, smaller thinner serif letter */}
           <div
             className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
             style={{
@@ -129,10 +130,11 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
             <span
               style={{
                 fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontWeight: 700,
-                fontSize: 17,
+                fontWeight: 400,
+                fontSize: 15,
                 color: "#1A1A1E",
                 textShadow: "0 1px 2px rgba(255, 255, 255, 0.2)",
+                letterSpacing: "0.02em",
               }}
             >
               {(conv.girl_name || "?").charAt(0).toUpperCase()}
@@ -147,7 +149,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
               </div>
               <div
                 className="text-xs mt-0.5 font-medium"
-                style={{ color: "rgba(200, 200, 220, 0.35)" }}
+                style={{ color: "rgba(200, 200, 220, 0.4)" }}
               >
                 {formatDate(conv.created_at)}
               </div>
@@ -215,7 +217,7 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
       style={{ background: "#050505" }}
       onClick={() => openId && setOpenId(null)}
     >
-      {/* ========== TOP BAR ========== */}
+      {/* ========== UNIFIED TOP BAR — Title + Badges on one line ========== */}
       <div
         style={{
           background: "rgba(5, 5, 5, 0.9)",
@@ -225,72 +227,73 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
         }}
       >
         <div
-          className="flex items-center justify-between px-5 py-3"
-          style={{ paddingTop: "max(14px, env(safe-area-inset-top))" }}
+          className="flex items-center justify-between px-5 py-4"
+          style={{ paddingTop: "max(16px, env(safe-area-inset-top))" }}
         >
-          {/* Balance — gold star */}
-          <button
-            id="btn-balance"
-            onClick={(e) => { e.stopPropagation(); onSubscribe(); }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+          {/* Title */}
+          <h1
+            className="text-2xl font-bold tracking-tight"
             style={{
-              background: "rgba(212, 175, 55, 0.08)",
-              border: "0.5px solid rgba(212, 175, 55, 0.2)",
+              color: "rgba(255, 255, 255, 0.92)",
+              letterSpacing: "-0.02em",
             }}
           >
-            <span
-              style={{
-                background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontSize: 16,
-              }}
-            >
-              ★
-            </span>
-            <span
-              className="font-bold"
-              style={{
-                background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              {balance ?? "—"}
-            </span>
-          </button>
+            Диалоги
+          </h1>
 
-          {/* New Chat — gold button */}
-          <button
-            id="btn-new-dialog"
-            onClick={(e) => { e.stopPropagation(); onCreate(); }}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all disabled:opacity-50"
-            style={{
-              background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
-              color: "#050505",
-              boxShadow: "0 4px 15px rgba(212, 175, 55, 0.25)",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <span className="text-base leading-none">+</span>
-            Новый
-          </button>
+          {/* Controls */}
+          <div className="flex items-center gap-2.5">
+            {/* Balance — gold star */}
+            <button
+              id="btn-balance"
+              onClick={(e) => { e.stopPropagation(); onSubscribe(); }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold active:scale-95 transition-transform"
+              style={{
+                background: "rgba(212, 175, 55, 0.08)",
+                border: "0.5px solid rgba(212, 175, 55, 0.2)",
+              }}
+            >
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontSize: 16,
+                }}
+              >
+                ★
+              </span>
+              <span
+                className="font-bold"
+                style={{
+                  background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                {balance ?? "—"}
+              </span>
+            </button>
+
+            {/* New Chat — gold button */}
+            <button
+              id="btn-new-dialog"
+              onClick={(e) => { e.stopPropagation(); onCreate(); }}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
+                color: "#050505",
+                boxShadow: "0 4px 15px rgba(212, 175, 55, 0.25)",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              <span className="text-base leading-none">+</span>
+              Новый
+            </button>
+          </div>
         </div>
-      </div>
-
-      {/* ========== TITLE ========== */}
-      <div className="px-5 pt-6 pb-2">
-        <h1
-          className="text-3xl font-bold tracking-tight"
-          style={{
-            color: "rgba(255, 255, 255, 0.92)",
-            letterSpacing: "-0.02em",
-          }}
-        >
-          Диалоги
-        </h1>
       </div>
 
       {/* ========== LIST ========== */}
@@ -322,7 +325,7 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
               </svg>
             </div>
             <p className="text-white/90 font-semibold text-base mb-2">Нет диалогов</p>
-            <p className="text-sm mb-6 leading-relaxed" style={{ color: "rgba(200, 200, 220, 0.35)" }}>
+            <p className="text-sm mb-6 leading-relaxed" style={{ color: "rgba(200, 200, 220, 0.45)" }}>
               Создай первый диалог и начни писать уверенно
             </p>
             <button
@@ -340,7 +343,7 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
         )}
 
         {!loading && safeConvs.length > 0 && (
-          <div className="px-4 pt-2 pb-4 space-y-3">
+          <div className="px-4 pt-4 pb-4 space-y-3">
             {safeConvs.map((conv) => (
               <SwipeableRow
                 key={conv.id}

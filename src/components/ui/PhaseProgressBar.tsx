@@ -39,21 +39,15 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
             className="h-full rounded-full transition-all duration-500"
             style={{
               width: `${progress}%`,
-              background: isComplete
-                ? "linear-gradient(90deg, #AD8B3A, #F9E076, #FFE8A0, #F9E076, #AD8B3A)"
-                : "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
-              backgroundSize: isComplete ? "200% 100%" : "100% 100%",
-              animation: isComplete ? "shimmer-progress 3s infinite linear" : "none",
-              boxShadow: isComplete
-                ? "0 0 8px rgba(212, 175, 55, 0.4)"
-                : "0 0 6px rgba(212, 175, 55, 0.2)",
+              background: "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
+              boxShadow: "0 0 6px rgba(212, 175, 55, 0.2)",
             }}
           />
         </div>
         <span
           className="text-[9px] font-bold"
           style={{
-            background: "linear-gradient(135deg, rgba(200, 200, 220, 0.4), rgba(200, 200, 220, 0.25))",
+            background: "linear-gradient(135deg, rgba(200, 200, 220, 0.45), rgba(200, 200, 220, 0.3))",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
           }}
@@ -64,67 +58,61 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
     );
   }
 
+  // Large — static, compact, right-aligned via parent
   return (
-    <div className="flex flex-col items-center flex-1">
+    <div className="flex items-center gap-2 ml-auto flex-shrink-0" style={{ maxWidth: 160 }}>
       <span
-        className="text-[10px] font-semibold uppercase mb-1"
+        className="text-[9px] font-semibold uppercase flex-shrink-0"
         style={{
-          letterSpacing: "2px",
-          background: "linear-gradient(135deg, rgba(200, 200, 220, 0.5), rgba(200, 200, 220, 0.3))",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
+          letterSpacing: "1.5px",
+          color: "rgba(200, 200, 220, 0.35)",
         }}
       >
         Соблазнение
       </span>
-      <div className="flex items-center gap-2 w-full">
+      <div
+        className="relative rounded-full overflow-hidden"
+        style={{
+          width: 55,
+          height: 5,
+          background: "linear-gradient(90deg, rgba(168, 168, 176, 0.08), rgba(200, 200, 220, 0.1))",
+          flexShrink: 0,
+        }}
+      >
         <div
-          className="relative rounded-full overflow-hidden flex-1"
+          className="h-full rounded-full transition-all duration-500"
           style={{
-            height: 7,
-            background: "linear-gradient(90deg, rgba(168, 168, 176, 0.08), rgba(200, 200, 220, 0.1))",
+            width: `${progress}%`,
+            background: isComplete
+              ? "linear-gradient(90deg, #AD8B3A, #F9E076, #FFE8A0, #F9E076, #AD8B3A)"
+              : "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
+            backgroundSize: isComplete ? "200% 100%" : "100% 100%",
+            animation: isComplete ? "shimmer-progress 3s infinite linear" : "none",
+            boxShadow: isComplete
+              ? "0 0 8px rgba(212, 175, 55, 0.4)"
+              : "0 0 5px rgba(212, 175, 55, 0.2)",
+          }}
+        />
+      </div>
+      <div className="flex items-center gap-0.5 flex-shrink-0">
+        <span
+          className="text-[10px] font-bold"
+          style={{
+            color: "rgba(200, 200, 220, 0.4)",
           }}
         >
-          <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{
-              width: `${progress}%`,
-              ...(isComplete
-                ? {
-                  background: "linear-gradient(90deg, #AD8B3A, #F9E076, #FFE8A0, #F9E076, #AD8B3A)",
-                  backgroundSize: "200% 100%",
-                  animation: "shimmer-progress 3s infinite linear",
-                  boxShadow: "0 0 12px rgba(212, 175, 55, 0.5)",
-                }
-                : {
-                  background: "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
-                  boxShadow: "0 0 10px rgba(212, 175, 55, 0.3)",
-                }),
-            }}
-          />
-        </div>
-        <div className="flex items-center gap-1">
+          {Math.round(progress)}%
+        </span>
+        {showDelta !== null && (
           <span
-            className="text-[11px] font-bold"
+            className="text-[10px] font-bold animate-delta-pop"
             style={{
-              background: "linear-gradient(135deg, rgba(200, 200, 220, 0.5), rgba(200, 200, 220, 0.35))",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              color: showDelta > 0 ? "#4ADE80" : "rgba(200, 200, 220, 0.5)",
             }}
           >
-            {Math.round(progress)}%
+            {showDelta > 0 ? `+${showDelta}` : showDelta}
           </span>
-          {showDelta !== null && (
-            <span
-              className="text-[11px] font-bold animate-delta-pop"
-              style={{
-                color: showDelta > 0 ? "#4ADE80" : "#FF4466",
-              }}
-            >
-              {showDelta > 0 ? `+${showDelta}` : showDelta}
-            </span>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

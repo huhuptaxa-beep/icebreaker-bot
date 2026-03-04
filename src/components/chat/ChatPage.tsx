@@ -277,7 +277,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 border: "0.5px solid rgba(212, 175, 55, 0.15)",
                 color: (freeRemaining + (paidRemaining || 0)) > 3
                   ? "rgba(212, 175, 55, 0.6)"
-                  : "#FF4466",
+                  : "rgba(200, 200, 220, 0.6)",
               }}
             >
               ★ {freeRemaining + (paidRemaining || 0)}
@@ -327,7 +327,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               <p className="text-white/90 font-semibold text-base mb-1">Начни переписку</p>
               <p
                 className="text-xs text-center leading-relaxed px-4"
-                style={{ color: "rgba(200, 200, 220, 0.35)" }}
+                style={{ color: "rgba(200, 200, 220, 0.5)" }}
               >
                 Опиши девушку и получи идеальное первое сообщение
               </p>
@@ -343,7 +343,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     }
                     id="field-girl-message"
                     placeholder="Вставь её сообщение, если написала первая"
-                    className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
+                    className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-[rgba(200,200,220,0.4)]"
                     style={{
                       background: "rgba(255, 255, 255, 0.04)",
                       color: "#FFFFFF",
@@ -354,7 +354,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 </div>
                 <button
                   onClick={handleTextareaPaste}
-                  className="relative z-0 text-xs rounded-bl-lg transition-colors font-medium"
+                  className="relative z-0 text-xs rounded-bl-lg transition-colors font-semibold"
                   style={{
                     display: "block",
                     width: "40%",
@@ -363,10 +363,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     paddingTop: 18,
                     paddingBottom: 4,
                     background: "rgba(20, 20, 25, 0.8)",
-                    color: "rgba(200, 200, 220, 0.3)",
+                    color: "rgba(212, 175, 55, 0.5)",
                     textAlign: "left",
                     paddingLeft: 10,
                     clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
+                    border: "none",
+                    borderLeft: "0.5px solid rgba(212, 175, 55, 0.15)",
                   }}
                 >
                   {pasteLabel ?? "Вставить"}
@@ -381,8 +383,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setOpenerFacts(e.target.value)
                 }
                 id="field-facts"
-                placeholder="Напиши факты о девушке..."
-                className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none"
+                placeholder="Напиши факты о девушке: хобби, интересы, детали фото..."
+                className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none placeholder:text-[rgba(212,175,55,0.35)]"
                 style={{
                   background: "rgba(212, 175, 55, 0.04)",
                   color: "#FFFFFF",
@@ -404,7 +406,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     setDraftGirlReply(e.target.value)
                   }
                   placeholder="Вставь её ответ..."
-                  className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
+                  className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-[rgba(200,200,220,0.4)]"
                   style={{
                     background: "rgba(255, 255, 255, 0.04)",
                     color: "#FFFFFF",
@@ -415,7 +417,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               </div>
               <button
                 onClick={handleTextareaPaste}
-                className="relative z-0 text-xs rounded-bl-lg transition-colors font-medium"
+                className="relative z-0 text-xs rounded-bl-lg transition-colors font-semibold"
                 style={{
                   display: "block",
                   width: "40%",
@@ -424,10 +426,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   paddingTop: 18,
                   paddingBottom: 4,
                   background: "rgba(20, 20, 25, 0.8)",
-                  color: "rgba(200, 200, 220, 0.3)",
+                  color: "rgba(212, 175, 55, 0.5)",
                   textAlign: "left",
                   paddingLeft: 10,
                   clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
+                  border: "none",
+                  borderLeft: "0.5px solid rgba(212, 175, 55, 0.15)",
                 }}
               >
                 {pasteLabel ?? "Вставить"}
@@ -545,14 +549,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
             <div
               className="px-4 py-3 rounded-2xl"
               style={{
-                background: "rgba(255, 68, 102, 0.06)",
-                border: "0.5px solid rgba(255, 68, 102, 0.2)",
+                background: "rgba(200, 200, 220, 0.04)",
+                border: "0.5px solid rgba(200, 200, 220, 0.15)",
               }}
             >
-              <p className="text-sm font-semibold" style={{ color: "#FF4466" }}>
+              <p className="text-sm font-semibold" style={{ color: "rgba(200, 200, 220, 0.7)" }}>
                 ❌ Контакт не получен
               </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(255, 68, 102, 0.5)" }}>
+              <p className="text-xs mt-1" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
                 AI пересчитает стратегию
               </p>
             </div>
@@ -577,14 +581,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
             <div
               className="px-4 py-3 rounded-2xl"
               style={{
-                background: "rgba(255, 68, 102, 0.06)",
-                border: "0.5px solid rgba(255, 68, 102, 0.2)",
+                background: "rgba(200, 200, 220, 0.04)",
+                border: "0.5px solid rgba(200, 200, 220, 0.15)",
               }}
             >
-              <p className="text-sm font-semibold" style={{ color: "#FF4466" }}>
+              <p className="text-sm font-semibold" style={{ color: "rgba(200, 200, 220, 0.7)" }}>
                 ❌ Отказала
               </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(255, 68, 102, 0.5)" }}>
+              <p className="text-xs mt-1" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
                 AI пересчитает стратегию
               </p>
             </div>
