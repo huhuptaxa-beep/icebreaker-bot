@@ -18,7 +18,7 @@ const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
     if (tg?.impactOccurred) {
       tg.impactOccurred(type);
     }
-  } catch {}
+  } catch { }
 };
 
 interface ChatPageProps {
@@ -82,7 +82,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setPasteLabel("Вставлено ✓");
         setTimeout(() => setPasteLabel(null), 1500);
       }
-    } catch {}
+    } catch { }
   };
 
   const refreshConversation = async () => {
@@ -92,7 +92,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     setCurrentChannel(data.channel || "app");
     if (data.phase) setCurrentPhase(data.phase);
     if (data.channel === "telegram" && data.phase === 3) {
-      // Проверяем нужно ли показать кнопку "Написать в Telegram"
       const lastMsg = (data.messages || [])[data.messages.length - 1];
       if (!lastMsg || lastMsg.role !== "user") {
         setShowTelegramStart(true);
@@ -102,7 +101,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   useEffect(() => {
-    refreshConversation().catch(() => {});
+    refreshConversation().catch(() => { });
   }, [conversationId]);
 
   useEffect(() => {
@@ -180,16 +179,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
           }
         }
 
-        // Счётчики генераций
         if (res.free_remaining !== undefined) setFreeRemaining(res.free_remaining);
         if (res.paid_remaining !== undefined) setPaidRemaining(res.paid_remaining);
 
-        // Toast при 3 сухих ответах подряд
         if (res.showDisinterestWarning) {
           showToast("Она не в настроении - смени тему", "warning");
         }
 
-        // Если пользователь нажал contact/date - устанавливаем pendingAction
         if (actionOverride === "contact") setPendingAction("contact");
         if (actionOverride === "date") setPendingAction("date");
       }
@@ -216,14 +212,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
     haptic("light");
 
     try {
-      // Save all messages in the suggestion sequentially
       for (const text of suggestion) {
         await chatSave(conversationId, text, "user");
       }
 
       setSuggestions([]);
       setAvailableActions([]);
-      // НЕ сбрасываем pendingAction - оно должно остаться для кнопок подтверждения
       await refreshConversation();
     } catch (err) {
       console.error(err);
@@ -243,37 +237,50 @@ const ChatPage: React.FC<ChatPageProps> = ({
   })();
 
   return (
-    <div className="flex flex-col h-[100dvh]" style={{ background: "transparent" }}>
+    <div className="flex flex-col h-[100dvh]" style={{ background: "#050505" }}>
 
-      {/* HEADER */}
+      {/* ========== HEADER ========== */}
       <div
-        className="sticky top-0 z-40 border-b border-white/8"
+        className="sticky top-0 z-40"
         style={{
-          background: "rgba(14,14,18,0.85)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
+          background: "rgba(5, 5, 5, 0.9)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "0.5px solid rgba(200, 200, 220, 0.06)",
         }}
       >
-        <div className="flex items-center gap-3 px-4 py-3"
+        <div className="flex items-center gap-3 px-5 py-3"
           style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
         >
-          <button onClick={onBack} className="text-gray-400 text-sm flex-shrink-0">
+          <button
+            onClick={onBack}
+            className="text-sm flex-shrink-0 font-medium transition-colors"
+            style={{ color: "rgba(200, 200, 220, 0.4)" }}
+          >
             ← Назад
           </button>
-          <span className="font-semibold text-white flex-shrink-0 truncate" style={{ maxWidth: "40%" }}>
+          <span
+            className="font-semibold flex-shrink-0 truncate"
+            style={{
+              maxWidth: "40%",
+              color: "rgba(255, 255, 255, 0.9)",
+              letterSpacing: "0.01em",
+            }}
+          >
             {girlName}
           </span>
           {freeRemaining !== null && (
             <span
-              className="text-[10px] font-medium flex-shrink-0 px-1.5 py-0.5 rounded-md"
+              className="text-[10px] font-bold flex-shrink-0 px-2 py-1 rounded-lg"
               style={{
-                background: "rgba(255,255,255,0.06)",
+                background: "rgba(212, 175, 55, 0.08)",
+                border: "0.5px solid rgba(212, 175, 55, 0.15)",
                 color: (freeRemaining + (paidRemaining || 0)) > 3
-                  ? "rgba(255,255,255,0.35)"
-                  : "#FF2E4D",
+                  ? "rgba(212, 175, 55, 0.6)"
+                  : "#FF4466",
               }}
             >
-              ⭐ {freeRemaining + (paidRemaining || 0)}
+              ★ {freeRemaining + (paidRemaining || 0)}
             </span>
           )}
           <PhaseProgressBar
@@ -284,21 +291,21 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       </div>
 
-      {/* CONTENT */}
+      {/* ========== CONTENT ========== */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-5"
+        className="flex-1 overflow-y-auto px-5 py-5 space-y-5"
       >
         {messages.map((msg, index) => (
           <React.Fragment key={msg.id}>
-            {/* Разделитель Telegram — показываем перед первым сообщением если channel telegram */}
+            {/* Telegram separator */}
             {currentChannel === "telegram" && index === 0 && (
               <div className="flex items-center gap-3 py-2">
-                <div className="flex-1 h-px" style={{ background: "rgba(59,130,246,0.2)" }} />
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)" }} />
                 <span className="text-[11px] font-medium" style={{ color: "rgba(59,130,246,0.5)" }}>
                   📱 Telegram
                 </span>
-                <div className="flex-1 h-px" style={{ background: "rgba(59,130,246,0.2)" }} />
+                <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)" }} />
               </div>
             )}
             <MessageBubble text={msg.text} role={msg.role} />
@@ -307,15 +314,21 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
         {isNewDialog && (
           <>
-            <div className="flex flex-col items-center py-6">
+            <div className="flex flex-col items-center py-8">
               <div
                 className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
-                style={{ background: "rgba(255,46,77,0.1)" }}
+                style={{
+                  background: "rgba(212, 175, 55, 0.06)",
+                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
+                }}
               >
                 <span className="text-3xl">💬</span>
               </div>
-              <p className="text-white font-semibold text-base mb-1">Начни переписку</p>
-              <p className="text-gray-500 text-xs text-center leading-relaxed px-4">
+              <p className="text-white/90 font-semibold text-base mb-1">Начни переписку</p>
+              <p
+                className="text-xs text-center leading-relaxed px-4"
+                style={{ color: "rgba(200, 200, 220, 0.35)" }}
+              >
                 Опиши девушку и получи идеальное первое сообщение
               </p>
             </div>
@@ -331,12 +344,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     id="field-girl-message"
                     placeholder="Вставь её сообщение, если написала первая"
                     className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
-                    style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      color: "#FFFFFF",
+                      border: "0.5px solid rgba(200, 200, 220, 0.08)",
+                      backdropFilter: "blur(10px)",
+                    }}
                   />
                 </div>
                 <button
                   onClick={handleTextareaPaste}
-                  className="relative z-0 text-xs rounded-bl-lg transition-colors"
+                  className="relative z-0 text-xs rounded-bl-lg transition-colors font-medium"
                   style={{
                     display: "block",
                     width: "40%",
@@ -344,8 +362,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
                     marginTop: -16,
                     paddingTop: 18,
                     paddingBottom: 4,
-                    background: "#161616",
-                    color: "rgba(255,255,255,0.45)",
+                    background: "rgba(20, 20, 25, 0.8)",
+                    color: "rgba(200, 200, 220, 0.3)",
                     textAlign: "left",
                     paddingLeft: 10,
                     clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
@@ -364,8 +382,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 }
                 id="field-facts"
                 placeholder="Напиши факты о девушке..."
-                className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none placeholder:text-red-400/40"
-                style={{ background: "linear-gradient(135deg, #7F1D1D, #991B1B)", color: "#FFFFFF", border: "1px solid rgba(239,68,68,0.3)" }}
+                className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none"
+                style={{
+                  background: "rgba(212, 175, 55, 0.04)",
+                  color: "#FFFFFF",
+                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
+                  backdropFilter: "blur(10px)",
+                }}
               />
             </div>
           </>
@@ -382,12 +405,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   }
                   placeholder="Вставь её ответ..."
                   className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-gray-600"
-                  style={{ background: "#1E1E1E", color: "#FFFFFF", border: "1px solid rgba(255,255,255,0.08)" }}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.04)",
+                    color: "#FFFFFF",
+                    border: "0.5px solid rgba(200, 200, 220, 0.08)",
+                    backdropFilter: "blur(10px)",
+                  }}
                 />
               </div>
               <button
                 onClick={handleTextareaPaste}
-                className="relative z-0 text-xs rounded-bl-lg transition-colors"
+                className="relative z-0 text-xs rounded-bl-lg transition-colors font-medium"
                 style={{
                   display: "block",
                   width: "40%",
@@ -395,8 +423,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   marginTop: -16,
                   paddingTop: 18,
                   paddingBottom: 4,
-                  background: "#161616",
-                  color: "rgba(255,255,255,0.45)",
+                  background: "rgba(20, 20, 25, 0.8)",
+                  color: "rgba(200, 200, 220, 0.3)",
                   textAlign: "left",
                   paddingLeft: 10,
                   clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
@@ -417,8 +445,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       {/* TELEGRAM START BUTTON */}
       {showTelegramStart && suggestions.length === 0 && !generating && (
-        <div className="px-4 py-6 flex flex-col items-center gap-3">
-          <p className="text-sm text-center" style={{ color: "rgba(255,255,255,0.5)" }}>
+        <div className="px-5 py-6 flex flex-col items-center gap-3">
+          <p className="text-sm text-center" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
             Отлично. Теперь закрепи позицию первым сообщением.
           </p>
           <button
@@ -430,7 +458,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
             style={{
               background: "linear-gradient(90deg, #3A6FF8, #5A8CFF)",
               borderRadius: 22,
-              boxShadow: "0 10px 30px rgba(90,140,255,0.35)",
+              boxShadow: "0 10px 30px rgba(90,140,255,0.25)",
               padding: "14px 0",
               border: "none",
             }}
@@ -440,20 +468,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
-      {/* ACTION BUTTONS (скрываем если есть pendingAction) */}
+      {/* ACTION BUTTONS */}
       {availableActions.length > 0 && !generating && !pendingAction && (
-        <div className="px-4 py-2 flex gap-2">
+        <div className="px-5 py-2 flex gap-2">
           {availableActions.includes("contact") && (
             <div className="flex-1 flex flex-col gap-1.5">
-              <p className="text-[12px] text-center" style={{ color: "rgba(255,255,255,0.4)" }}>
+              <p className="text-[12px] text-center" style={{ color: "rgba(200, 200, 220, 0.3)" }}>
                 AI определил момент для сближения
               </p>
               <button
                 onClick={() => handleGenerate("contact")}
                 className="w-full py-2.5 rounded-2xl text-sm font-medium"
                 style={{
-                  background: "linear-gradient(90deg, #1C2B4A, #243A63)",
-                  border: "1px solid rgba(80,140,255,0.4)",
+                  background: "rgba(59, 130, 246, 0.08)",
+                  border: "0.5px solid rgba(80,140,255,0.25)",
                   color: "#8FB4FF",
                 }}
               >
@@ -467,9 +495,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 onClick={() => handleGenerate("date")}
                 className="w-full py-2.5 rounded-2xl text-sm font-medium"
                 style={{
-                  background: "rgba(34,197,94,0.15)",
+                  background: "rgba(34,197,94,0.06)",
                   color: "#4ADE80",
-                  border: "1px solid rgba(34,197,94,0.3)",
+                  border: "0.5px solid rgba(34,197,94,0.2)",
                 }}
               >
                 ☕ Позвать на свидание
@@ -482,9 +510,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 onClick={() => handleGenerate("reengage")}
                 className="w-full py-2.5 rounded-2xl text-sm font-medium"
                 style={{
-                  background: "rgba(251,191,36,0.15)",
-                  color: "#FBBF24",
-                  border: "1px solid rgba(251,191,36,0.3)",
+                  background: "rgba(212, 175, 55, 0.06)",
+                  color: "#D4AF37",
+                  border: "0.5px solid rgba(212, 175, 55, 0.2)",
                 }}
               >
                 🔥 Написать ей
@@ -496,19 +524,19 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       {/* CONFIRMATION RESULT CARD */}
       {confirmResult && (
-        <div className="px-4 py-3 animate-fadeIn">
+        <div className="px-5 py-3 animate-fadeIn">
           {confirmResult.type === "telegram_success" && (
             <div
               className="px-4 py-3 rounded-2xl"
               style={{
-                background: "rgba(247,195,95,0.08)",
-                border: "1px solid rgba(247,195,95,0.3)",
+                background: "rgba(212, 175, 55, 0.06)",
+                border: "0.5px solid rgba(212, 175, 55, 0.2)",
               }}
             >
-              <p className="text-sm font-semibold" style={{ color: "#F7C35F" }}>
+              <p className="text-sm font-semibold" style={{ color: "#D4AF37" }}>
                 ✅ Telegram получен
               </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(247,195,95,0.6)" }}>
+              <p className="text-xs mt-1" style={{ color: "rgba(212, 175, 55, 0.5)" }}>
                 AI рекомендует закрепить контакт
               </p>
             </div>
@@ -517,14 +545,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
             <div
               className="px-4 py-3 rounded-2xl"
               style={{
-                background: "rgba(255,46,77,0.08)",
-                border: "1px solid rgba(255,46,77,0.3)",
+                background: "rgba(255, 68, 102, 0.06)",
+                border: "0.5px solid rgba(255, 68, 102, 0.2)",
               }}
             >
-              <p className="text-sm font-semibold" style={{ color: "#FF2E4D" }}>
+              <p className="text-sm font-semibold" style={{ color: "#FF4466" }}>
                 ❌ Контакт не получен
               </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(255,46,77,0.6)" }}>
+              <p className="text-xs mt-1" style={{ color: "rgba(255, 68, 102, 0.5)" }}>
                 AI пересчитает стратегию
               </p>
             </div>
@@ -533,14 +561,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
             <div
               className="px-4 py-3 rounded-2xl"
               style={{
-                background: "rgba(247,195,95,0.08)",
-                border: "1px solid rgba(247,195,95,0.3)",
+                background: "rgba(212, 175, 55, 0.06)",
+                border: "0.5px solid rgba(212, 175, 55, 0.2)",
               }}
             >
-              <p className="text-sm font-semibold" style={{ color: "#F7C35F" }}>
+              <p className="text-sm font-semibold" style={{ color: "#D4AF37" }}>
                 🎉 Свидание назначено
               </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(247,195,95,0.6)" }}>
+              <p className="text-xs mt-1" style={{ color: "rgba(212, 175, 55, 0.5)" }}>
                 Удачи!
               </p>
             </div>
@@ -549,14 +577,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
             <div
               className="px-4 py-3 rounded-2xl"
               style={{
-                background: "rgba(255,46,77,0.08)",
-                border: "1px solid rgba(255,46,77,0.3)",
+                background: "rgba(255, 68, 102, 0.06)",
+                border: "0.5px solid rgba(255, 68, 102, 0.2)",
               }}
             >
-              <p className="text-sm font-semibold" style={{ color: "#FF2E4D" }}>
+              <p className="text-sm font-semibold" style={{ color: "#FF4466" }}>
                 ❌ Отказала
               </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(255,46,77,0.6)" }}>
+              <p className="text-xs mt-1" style={{ color: "rgba(255, 68, 102, 0.5)" }}>
                 AI пересчитает стратегию
               </p>
             </div>
@@ -566,7 +594,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       {/* CONFIRMATION BUTTONS - TELEGRAM */}
       {pendingAction === "contact" && !generating && !confirmResult && (
-        <div className="px-4 py-2 flex gap-2">
+        <div className="px-5 py-2 flex gap-2">
           <button
             onClick={async () => {
               haptic("heavy");
@@ -586,9 +614,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
             }}
             className="flex-1 py-2.5 text-sm font-semibold"
             style={{
-              background: "rgba(251,191,36,0.2)",
-              color: "#FBBF24",
-              border: "1px solid rgba(251,191,36,0.4)",
+              background: "rgba(212, 175, 55, 0.1)",
+              color: "#D4AF37",
+              border: "0.5px solid rgba(212, 175, 55, 0.3)",
               borderRadius: 18,
             }}
           >
@@ -610,9 +638,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
             }}
             className="flex-1 py-2.5 text-sm font-semibold"
             style={{
-              background: "#1A1A1A",
-              color: "#9CA3AF",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255, 255, 255, 0.03)",
+              color: "rgba(200, 200, 220, 0.4)",
+              border: "0.5px solid rgba(200, 200, 220, 0.08)",
               borderRadius: 18,
             }}
           >
@@ -623,7 +651,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       {/* CONFIRMATION BUTTONS - DATE */}
       {pendingAction === "date" && !generating && !confirmResult && (
-        <div className="px-4 py-2 flex gap-2">
+        <div className="px-5 py-2 flex gap-2">
           <button
             onClick={async () => {
               haptic("heavy");
@@ -642,9 +670,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
             }}
             className="flex-1 py-2.5 text-sm font-semibold"
             style={{
-              background: "rgba(34,197,94,0.2)",
+              background: "rgba(34,197,94,0.1)",
               color: "#4ADE80",
-              border: "1px solid rgba(34,197,94,0.4)",
+              border: "0.5px solid rgba(34,197,94,0.25)",
               borderRadius: 18,
             }}
           >
@@ -666,9 +694,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
             }}
             className="flex-1 py-2.5 text-sm font-semibold"
             style={{
-              background: "#1A1A1A",
-              color: "#9CA3AF",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255, 255, 255, 0.03)",
+              color: "rgba(200, 200, 220, 0.4)",
+              border: "0.5px solid rgba(200, 200, 220, 0.08)",
               borderRadius: 18,
             }}
           >
@@ -677,27 +705,36 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
+      {/* ========== MAIN CTA — Premium Gold ========== */}
       {!showTelegramStart && (
-        <div className="px-4 pb-4" style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}>
+        <div className="px-5 pb-5" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
           <button
             id="btn-generate"
             onClick={() => handleGenerate()}
             disabled={generating || !canGenerate}
-            className="w-full py-3.5 rounded-2xl font-semibold text-base shadow-lg active:scale-[0.97] transition-all"
+            className="w-full py-4 rounded-2xl font-bold text-base active:scale-[0.97] transition-all"
             style={{
               background: generating
-                ? "rgba(255,255,255,0.08)"
+                ? "rgba(255, 255, 255, 0.04)"
                 : canGenerate
-                  ? "linear-gradient(90deg, #FF2E4D, #FF5A5F)"
-                  : "rgba(255,255,255,0.06)",
+                  ? "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)"
+                  : "rgba(255, 255, 255, 0.03)",
               color: generating
-                ? "rgba(255,255,255,0.4)"
+                ? "rgba(200, 200, 220, 0.3)"
                 : canGenerate
-                  ? "#FFFFFF"
-                  : "rgba(255,255,255,0.25)",
+                  ? "#050505"
+                  : "rgba(200, 200, 220, 0.2)",
               boxShadow: canGenerate && !generating
-                ? "0 10px 30px rgba(255,46,77,0.35)"
+                ? "0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25)"
                 : "none",
+              border: generating
+                ? "0.5px solid rgba(200, 200, 220, 0.06)"
+                : canGenerate
+                  ? "none"
+                  : "0.5px solid rgba(200, 200, 220, 0.06)",
+              letterSpacing: "0.02em",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
             {generating ? "Анализирую..." : canGenerate ? "Сделать шаг" : "Вставь её ответ"}

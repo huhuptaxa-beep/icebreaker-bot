@@ -50,7 +50,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     try {
       const sub = await getSubscription();
       setBalance(sub.free_remaining + sub.paid_remaining);
-    } catch {}
+    } catch { }
   }, []);
 
   useEffect(() => {
@@ -153,18 +153,28 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
         />
       </div>
 
+      {/* ========== NAME INPUT MODAL — Premium ========== */}
       {showNameModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.6)" }}
+          style={{ background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(8px)" }}
           onClick={() => setShowNameModal(false)}
         >
           <div
             className="mx-6 w-full max-w-sm rounded-2xl p-6"
-            style={{ background: "#1A1A1A" }}
+            style={{
+              background: "rgba(15, 15, 18, 0.95)",
+              border: "0.5px solid rgba(200, 200, 220, 0.08)",
+              boxShadow: "0 25px 50px rgba(0, 0, 0, 0.5)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-white font-semibold text-lg mb-4">Имя девушки</h2>
+            <h2
+              className="font-bold text-lg mb-4"
+              style={{ color: "rgba(255, 255, 255, 0.9)" }}
+            >
+              Имя девушки
+            </h2>
             <input
               type="text"
               value={newGirlName}
@@ -173,20 +183,31 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
               placeholder="Введи имя..."
               autoFocus
               className="w-full px-4 py-3 rounded-xl text-sm outline-none text-white placeholder:text-gray-600"
-              style={{ background: "#111111", border: "1px solid rgba(255,255,255,0.08)" }}
+              style={{
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "0.5px solid rgba(200, 200, 220, 0.1)",
+              }}
             />
             <div className="flex gap-3 mt-5">
               <button
                 onClick={() => setShowNameModal(false)}
-                className="flex-1 py-3 rounded-xl text-sm font-medium text-gray-400"
-                style={{ background: "#111111" }}
+                className="flex-1 py-3 rounded-xl text-sm font-medium"
+                style={{
+                  background: "rgba(255, 255, 255, 0.04)",
+                  color: "rgba(200, 200, 220, 0.4)",
+                  border: "0.5px solid rgba(200, 200, 220, 0.06)",
+                }}
               >
                 Отмена
               </button>
               <button
                 onClick={handleConfirmCreate}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold text-white"
-                style={{ background: "linear-gradient(135deg, #EF4444, #F43F5E)" }}
+                className="flex-1 py-3 rounded-xl text-sm font-bold"
+                style={{
+                  background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
+                  color: "#050505",
+                  boxShadow: "0 4px 15px rgba(212, 175, 55, 0.25)",
+                }}
               >
                 Создать
               </button>

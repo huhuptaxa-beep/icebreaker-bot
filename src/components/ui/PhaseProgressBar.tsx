@@ -31,8 +31,8 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
           className="relative rounded-full overflow-hidden"
           style={{
             width: 50,
-            height: 6,
-            background: "rgba(255,255,255,0.06)",
+            height: 5,
+            background: "linear-gradient(90deg, rgba(168, 168, 176, 0.1), rgba(200, 200, 220, 0.12))",
           }}
         >
           <div
@@ -40,17 +40,23 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
             style={{
               width: `${progress}%`,
               background: isComplete
-                ? "linear-gradient(90deg, #F7C35F, #FFD977)"
-                : "linear-gradient(90deg, #FF2E4D, #FF5A5F)",
+                ? "linear-gradient(90deg, #AD8B3A, #F9E076, #FFE8A0, #F9E076, #AD8B3A)"
+                : "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
+              backgroundSize: isComplete ? "200% 100%" : "100% 100%",
+              animation: isComplete ? "shimmer-progress 3s infinite linear" : "none",
               boxShadow: isComplete
-                ? "0 0 8px rgba(247,195,95,0.3)"
-                : "0 0 8px rgba(255,46,77,0.3)",
+                ? "0 0 8px rgba(212, 175, 55, 0.4)"
+                : "0 0 6px rgba(212, 175, 55, 0.2)",
             }}
           />
         </div>
         <span
           className="text-[9px] font-bold"
-          style={{ color: "rgba(255,255,255,0.35)" }}
+          style={{
+            background: "linear-gradient(135deg, rgba(200, 200, 220, 0.4), rgba(200, 200, 220, 0.25))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}
         >
           {Math.round(progress)}%
         </span>
@@ -63,8 +69,10 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
       <span
         className="text-[10px] font-semibold uppercase mb-1"
         style={{
-          letterSpacing: "1.5px",
-          color: "rgba(255,255,255,0.5)",
+          letterSpacing: "2px",
+          background: "linear-gradient(135deg, rgba(200, 200, 220, 0.5), rgba(200, 200, 220, 0.3))",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
         }}
       >
         Соблазнение
@@ -73,8 +81,8 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
         <div
           className="relative rounded-full overflow-hidden flex-1"
           style={{
-            height: 8,
-            background: "rgba(255,255,255,0.06)",
+            height: 7,
+            background: "linear-gradient(90deg, rgba(168, 168, 176, 0.08), rgba(200, 200, 220, 0.1))",
           }}
         >
           <div
@@ -83,22 +91,26 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
               width: `${progress}%`,
               ...(isComplete
                 ? {
-                    background: "linear-gradient(90deg, #F7C35F, #FFD977, #FFF5CC, #FFD977, #F7C35F)",
-                    backgroundSize: "200% 100%",
-                    animation: "shimmer-progress 3s infinite linear",
-                    boxShadow: "0 0 12px rgba(247,195,95,0.4)",
-                  }
+                  background: "linear-gradient(90deg, #AD8B3A, #F9E076, #FFE8A0, #F9E076, #AD8B3A)",
+                  backgroundSize: "200% 100%",
+                  animation: "shimmer-progress 3s infinite linear",
+                  boxShadow: "0 0 12px rgba(212, 175, 55, 0.5)",
+                }
                 : {
-                    background: "linear-gradient(90deg, #FF2E4D, #FF5A5F)",
-                    boxShadow: "0 0 12px rgba(255,46,77,0.4)",
-                  }),
+                  background: "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
+                  boxShadow: "0 0 10px rgba(212, 175, 55, 0.3)",
+                }),
             }}
           />
         </div>
         <div className="flex items-center gap-1">
           <span
             className="text-[11px] font-bold"
-            style={{ color: "rgba(255,255,255,0.5)" }}
+            style={{
+              background: "linear-gradient(135deg, rgba(200, 200, 220, 0.5), rgba(200, 200, 220, 0.35))",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
           >
             {Math.round(progress)}%
           </span>
@@ -106,7 +118,7 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
             <span
               className="text-[11px] font-bold animate-delta-pop"
               style={{
-                color: showDelta > 0 ? "#4ADE80" : "#FF2E4D",
+                color: showDelta > 0 ? "#4ADE80" : "#FF4466",
               }}
             >
               {showDelta > 0 ? `+${showDelta}` : showDelta}
