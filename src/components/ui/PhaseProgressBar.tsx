@@ -61,15 +61,6 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
   // Large — static, compact, right-aligned via parent
   return (
     <div className="flex items-center gap-2 ml-auto flex-shrink-0" style={{ maxWidth: 160 }}>
-      <span
-        className="text-[9px] font-semibold uppercase flex-shrink-0"
-        style={{
-          letterSpacing: "1.5px",
-          color: "rgba(200, 200, 220, 0.35)",
-        }}
-      >
-        Соблазнение
-      </span>
       <div
         className="relative rounded-full overflow-hidden"
         style={{

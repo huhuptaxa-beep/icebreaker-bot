@@ -357,7 +357,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           borderBottom: "0.5px solid rgba(200, 200, 220, 0.06)",
         }}
       >
-        <div className="flex items-center gap-3 px-5 py-3"
+        <div className="flex items-center gap-3 px-5 py-3 w-full overflow-hidden"
           style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
         >
           <button
@@ -368,34 +368,37 @@ const ChatPage: React.FC<ChatPageProps> = ({
             ← Назад
           </button>
           <span
-            className="font-semibold flex-shrink-0 truncate"
+            className="font-semibold flex-1 min-w-0 text-center truncate"
             style={{
-              maxWidth: "40%",
               color: "rgba(255, 255, 255, 0.9)",
               letterSpacing: "0.01em",
             }}
           >
             {girlName}
           </span>
-          {freeRemaining !== null && (
-            <span
-              className="text-[10px] font-bold flex-shrink-0 px-2 py-1 rounded-lg"
-              style={{
-                background: "rgba(212, 175, 55, 0.08)",
-                border: "0.5px solid rgba(212, 175, 55, 0.15)",
-                color: (freeRemaining + (paidRemaining || 0)) > 3
-                  ? "rgba(212, 175, 55, 0.6)"
-                  : "rgba(200, 200, 220, 0.6)",
-              }}
-            >
-              ★ {freeRemaining + (paidRemaining || 0)}
-            </span>
-          )}
-          <PhaseProgressBar
-            interest={currentInterest}
-            size="large"
-            delta={interestDelta}
-          />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {freeRemaining !== null && (
+              <span
+                className="text-[10px] font-bold px-2 py-1 rounded-lg"
+                style={{
+                  background: "rgba(212, 175, 55, 0.08)",
+                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
+                  color: (freeRemaining + (paidRemaining || 0)) > 3
+                    ? "rgba(212, 175, 55, 0.6)"
+                    : "rgba(200, 200, 220, 0.6)",
+                }}
+              >
+                ★ {freeRemaining + (paidRemaining || 0)}
+              </span>
+            )}
+            <div className="flex-shrink-0" style={{ maxWidth: 140 }}>
+              <PhaseProgressBar
+                interest={currentInterest}
+                size="large"
+                delta={interestDelta}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -427,17 +430,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
         {isNewDialog && (
           <>
-            <div className="flex flex-col items-center py-8">
-              <div
-                className="w-16 h-16 rounded-3xl flex items-center justify-center mb-4"
-                style={{
-                  background: "rgba(212, 175, 55, 0.06)",
-                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
-                }}
-              >
-                <span className="text-3xl">💬</span>
-              </div>
-              <p className="text-white/90 font-semibold text-base mb-1">Начни переписку</p>
+            <div className="flex flex-col items-center py-6 space-y-2">
+              <p className="text-white/90 font-semibold text-base">Начни переписку</p>
               <p
                 className="text-xs text-center leading-relaxed px-4"
                 style={{ color: "rgba(200, 200, 220, 0.5)" }}
