@@ -27,6 +27,12 @@ interface ChatPageProps {
   onSubscribe?: () => void;
 }
 
+type ProgressChipPhase = "initial" | "enter" | "fly";
+interface ProgressChipState {
+  value: number;
+  phase: ProgressChipPhase;
+}
+
 const ChatPage: React.FC<ChatPageProps> = ({
   conversationId,
   onBack,
@@ -70,8 +76,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const copyToastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const progressChipTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const interestTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [contactToastVisible, setContactToastVisible] = useState(false);
   const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [progressChip, setProgressChip] = useState<ProgressChipState | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const isNewDialog = messages.length === 0;
 
@@ -142,6 +152,25 @@ const ChatPage: React.FC<ChatPageProps> = ({
     newMessageTimeouts.current.push(timeout);
   };
 
+  const triggerProgressChip = (value: number) => {
+    if (value <= 0) return;
+    if (prefersReducedMotion) {
+      setProgressChip({ value, phase: "enter" });
+      const remove = window.setTimeout(() => setProgressChip(null), 900);
+      progressChipTimers.current.push(remove);
+      return;
+    }
+    setProgressChip({ value, phase: "initial" });
+    const enterTimer = window.setTimeout(() => {
+      setProgressChip((prev) => (prev ? { ...prev, phase: "enter" } : prev));
+    }, 40);
+    const flyTimer = window.setTimeout(() => {
+      setProgressChip((prev) => (prev ? { ...prev, phase: "fly" } : prev));
+    }, 230);
+    const removeTimer = window.setTimeout(() => setProgressChip(null), 560);
+    progressChipTimers.current.push(enterTimer, flyTimer, removeTimer);
+  };
+
   const triggerContactToast = () => {
     if (contactToastTimer.current) {
       clearTimeout(contactToastTimer.current);
@@ -151,6 +180,25 @@ const ChatPage: React.FC<ChatPageProps> = ({
       setContactToastVisible(false);
       contactToastTimer.current = null;
     }, 1000);
+  };
+
+  const getProgressChipStyle = (phase: ProgressChipPhase) => {
+    if (prefersReducedMotion) {
+      return {
+        opacity: 1,
+        transform: "translate(-2px, -16px)",
+        transition: "none",
+      };
+    }
+    const presets: Record<ProgressChipPhase, { opacity: number; transform: string }> = {
+      initial: { opacity: 0, transform: "translate(-6px, -6px) scale(0.85)" },
+      enter: { opacity: 1, transform: "translate(-2px, -18px) scale(1)" },
+      fly: { opacity: 0, transform: "translate(26px, -26px) scale(0.6)" },
+    };
+    return {
+      ...presets[phase],
+      transition: "opacity 200ms ease, transform 340ms cubic-bezier(0.25, 0.9, 0.3, 1.1)",
+    };
   };
 
   const CHAT_TUTORIAL_STEPS: TutorialStep[] = [
@@ -191,9 +239,24 @@ const ChatPage: React.FC<ChatPageProps> = ({
   }, [conversationId]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleChange = () => setPrefersReducedMotion(media.matches);
+    handleChange();
+    if (media.addEventListener) {
+      media.addEventListener("change", handleChange);
+      return () => media.removeEventListener("change", handleChange);
+    }
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, []);
+
+  useEffect(() => {
     return () => {
       copyFlashTimeouts.current.forEach(clearTimeout);
       newMessageTimeouts.current.forEach(clearTimeout);
+      progressChipTimers.current.forEach(clearTimeout);
+      interestTimers.current.forEach(clearTimeout);
       clearCopyToastTimers();
       if (contactToastTimer.current) {
         clearTimeout(contactToastTimer.current);
@@ -273,7 +336,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
           setCurrentInterest(newInterest);
           if (diff !== 0) {
             setInterestDelta(diff);
-            setTimeout(() => setInterestDelta(null), 1600);
+            const clearDelta = window.setTimeout(() => setInterestDelta(null), 1600);
+            interestTimers.current.push(clearDelta);
           }
         }
 
@@ -393,7 +457,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           >
             {girlName}
           </span>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 relative" style={{ minHeight: 32 }}>
             {freeRemaining !== null && (
               <span
                 className="text-[10px] font-bold px-2 py-1 rounded-lg"
@@ -408,12 +472,30 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 ★ {freeRemaining + (paidRemaining || 0)}
               </span>
             )}
-            <div className="flex-shrink-0" style={{ maxWidth: 140 }}>
+            <div className="relative flex-shrink-0" style={{ maxWidth: 140 }}>
               <PhaseProgressBar
                 interest={currentInterest}
                 size="large"
                 delta={interestDelta}
               />
+              {progressChip && (
+                <span
+                  className="text-[10px] font-bold px-2 py-1 rounded-full"
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: -4,
+                    background: "rgba(212, 175, 55, 0.95)",
+                    color: "#050505",
+                    letterSpacing: "0.05em",
+                    pointerEvents: "none",
+                    boxShadow: "0 8px 20px rgba(0,0,0,0.45)",
+                    ...getProgressChipStyle(progressChip.phase),
+                  }}
+                >
+                  +{progressChip.value}%
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -820,7 +902,25 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setSuggestions([]);
                   setPendingAction(null);
                   setCurrentPhase(3);
-                  setCurrentInterest(prev => Math.max(prev, 40));
+                  const nextInterest = Math.max(currentInterest, 40);
+                  const diff = Math.round(nextInterest - currentInterest);
+                  if (diff !== 0) {
+                    triggerProgressChip(diff);
+                  }
+                  const barDelay = prefersReducedMotion ? 0 : 120;
+                  const interestTimer = window.setTimeout(() => {
+                    setCurrentInterest((prev) => {
+                      const target = Math.max(prev, 40);
+                      const appliedDiff = Math.round(target - prev);
+                      if (appliedDiff !== 0) {
+                        setInterestDelta(appliedDiff);
+                        const clearDelta = window.setTimeout(() => setInterestDelta(null), prefersReducedMotion ? 0 : 1500);
+                        interestTimers.current.push(clearDelta);
+                      }
+                      return target;
+                    });
+                  }, barDelay);
+                  interestTimers.current.push(interestTimer);
                   setShowTelegramStart(true);
                   setConfirmResult({ type: "telegram_success" });
                   triggerContactToast();
