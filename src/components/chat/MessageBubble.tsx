@@ -27,8 +27,14 @@ const MessageBubble: React.FC<Props> = ({ text, role, copiedRecently, animateEnt
     } catch { }
   };
 
+  const animationClass = animateEntry
+    ? isMine
+      ? "chat-message-enter-user"
+      : "chat-message-enter-default"
+    : "animate-fadeIn";
+
   return (
-    <div className={`flex ${isMine ? "justify-end" : "justify-start"} ${animateEntry ? "chat-message-enter" : "animate-fadeIn"}`}>
+    <div className={`flex ${isMine ? "justify-end" : "justify-start"} ${animationClass}`}>
       <div className="max-w-[75%]">
         <div
           className="relative z-10 px-5 py-3.5 rounded-2xl text-[14px] leading-relaxed"
@@ -54,6 +60,7 @@ const MessageBubble: React.FC<Props> = ({ text, role, copiedRecently, animateEnt
             style={{
               display: "block",
               width: "50%",
+              minWidth: 120,
               height: 34,
               marginTop: -16,
               paddingTop: 18,

@@ -62,9 +62,8 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
 
   const handleSelect = (suggestion: string[], index: number) => {
     setSelectedIndex(index);
-    // Small delay for visual feedback before action
+    onSelect(suggestion);
     setTimeout(() => {
-      onSelect(suggestion);
       setSelectedIndex(null);
       setPressedIndex(null);
     }, 200);

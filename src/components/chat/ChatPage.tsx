@@ -60,10 +60,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const isSavingRef = useRef(false);
 
   const [pasteLabel, setPasteLabel] = useState<string | null>(null);
-  const [copyToastVisible, setCopyToastVisible] = useState(false);
+  const [copyToast, setCopyToast] = useState<{
+    message: string;
+    tone: "success" | "error";
+    phase: "intro" | "visible" | "outro";
+  } | null>(null);
   const [copyFlashMap, setCopyFlashMap] = useState<Record<string, boolean>>({});
   const [newMessageAnimationMap, setNewMessageAnimationMap] = useState<Record<string, boolean>>({});
-  const copyToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyToastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -73,27 +77,42 @@ const ChatPage: React.FC<ChatPageProps> = ({
     () => localStorage.getItem("tutorial_chat_done") !== "true"
   );
 
-  const triggerCopyToast = () => {
-    setCopyToastVisible(true);
-    if (copyToastTimerRef.current) clearTimeout(copyToastTimerRef.current);
-    copyToastTimerRef.current = setTimeout(() => setCopyToastVisible(false), 1000);
+  const clearCopyToastTimers = () => {
+    copyToastTimers.current.forEach(clearTimeout);
+    copyToastTimers.current = [];
+  };
+
+  const TOAST_TRANSITION_IN = 200;
+  const TOAST_TRANSITION_OUT = 260;
+  const TOAST_VISIBLE_MS = 1200;
+
+  const triggerCopyToast = (message = "✓ Скопировано", tone: "success" | "error" = "success") => {
+    clearCopyToastTimers();
+    setCopyToast({ message, tone, phase: "intro" });
+
+    const toVisible = setTimeout(() => {
+      setCopyToast((prev) => (prev ? { ...prev, phase: "visible" } : null));
+    }, TOAST_TRANSITION_IN);
+
+    const toExit = setTimeout(() => {
+      setCopyToast((prev) => (prev ? { ...prev, phase: "outro" } : null));
+    }, TOAST_VISIBLE_MS);
+
+    const removeToast = setTimeout(() => {
+      setCopyToast(null);
+    }, TOAST_VISIBLE_MS + TOAST_TRANSITION_OUT);
+
+    copyToastTimers.current.push(toVisible, toExit, removeToast);
   };
 
   const markCopyFlash = (ids: string[]) => {
-    if (!ids.length) return;
-    setCopyFlashMap((prev) => {
-      const next = { ...prev };
-      ids.forEach((id) => {
-        next[id] = true;
-      });
-      return next;
-    });
+    const lastId = ids[ids.length - 1];
+    if (!lastId) return;
+    setCopyFlashMap((prev) => ({ ...prev, [lastId]: true }));
     const timeout = setTimeout(() => {
       setCopyFlashMap((prev) => {
         const next = { ...prev };
-        ids.forEach((id) => {
-          delete next[id];
-        });
+        delete next[lastId];
         return next;
       });
     }, 1200);
@@ -162,9 +181,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return () => {
       copyFlashTimeouts.current.forEach(clearTimeout);
       newMessageTimeouts.current.forEach(clearTimeout);
-      if (copyToastTimerRef.current) {
-        clearTimeout(copyToastTimerRef.current);
-      }
+      clearCopyToastTimers();
     };
   }, []);
 
@@ -300,7 +317,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         triggerCopyToast();
       } catch (err) {
         console.error(err);
-        showToast("Не удалось скопировать сообщение", "error");
+        triggerCopyToast("Не удалось скопировать. Скопируй вручную", "error");
       }
     }
 
@@ -543,11 +560,29 @@ const ChatPage: React.FC<ChatPageProps> = ({
         loading={generating}
       />
 
-      {copyToastVisible && (
+      {copyToast && (
         <div
-          className="fixed left-1/2 -translate-x-1/2 bottom-32 copy-toast px-4 py-2 rounded-full text-[13px] font-semibold text-white pointer-events-none select-none"
+          className="fixed left-1/2 copy-toast px-4 py-2 rounded-full text-[13px] font-semibold pointer-events-none select-none"
+          data-phase={copyToast.phase}
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom) + 96px)",
+            zIndex: 60,
+            color: copyToast.tone === "error" ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.92)",
+            background: copyToast.tone === "error"
+              ? "rgba(90, 25, 25, 0.88)"
+              : "rgba(30, 30, 38, 0.9)",
+            border: copyToast.tone === "error"
+              ? "1px solid rgba(255, 99, 132, 0.35)"
+              : "1px solid rgba(212, 175, 55, 0.25)",
+            boxShadow: copyToast.tone === "error"
+              ? "0 14px 32px rgba(255, 99, 132, 0.25)"
+              : "0 16px 36px rgba(0, 0, 0, 0.45)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            transform: "translateX(-50%)",
+          }}
         >
-          ✓ Сообщение скопировано
+          {copyToast.message}
         </div>
       )}
 

@@ -391,7 +391,19 @@
    CHAT MESSAGE APPEAR
 =========================== */
 
-@keyframes chatMessageIn {
+@keyframes chatMessageInUser {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes chatMessageInDefault {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.97);
@@ -403,34 +415,35 @@
   }
 }
 
-.chat-message-enter {
-  animation: chatMessageIn 0.24s cubic-bezier(0.21, 0.61, 0.35, 1) forwards;
+.chat-message-enter-user {
+  animation: chatMessageInUser 0.22s ease-out forwards;
 }
 
-@keyframes copyToastFade {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, 10px);
-  }
-  15% {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-  80% {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -6px);
-  }
+.chat-message-enter-default {
+  animation: chatMessageInDefault 0.24s cubic-bezier(0.21, 0.61, 0.35, 1) forwards;
 }
 
 .copy-toast {
-  animation: copyToastFade 1s ease forwards;
-  background: rgba(20, 20, 25, 0.85);
-  border: 0.5px solid rgba(212, 175, 55, 0.3);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translate(-50%, 6px);
+}
+
+.copy-toast[data-phase="intro"] {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+  opacity: 0;
+  transform: translate(-50%, 6px);
+}
+
+.copy-toast[data-phase="visible"] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.copy-toast[data-phase="outro"] {
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition: opacity 260ms ease-in, transform 260ms ease-in;
 }
 
 /* ===========================
