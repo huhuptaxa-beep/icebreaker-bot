@@ -192,9 +192,9 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
 
   const cardBackground = highlighted ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.04)";
   const cardBorder = highlighted
-    ? "0.5px solid rgba(212, 175, 55, 0.65)"
+    ? "0.5px solid rgba(212, 175, 55, 0.4)"
     : "0.5px solid rgba(200, 200, 220, 0.08)";
-  const cardShadow = highlighted ? "0 8px 28px rgba(212, 175, 55, 0.25)" : undefined;
+  const cardShadow = highlighted ? "0 4px 18px rgba(212, 175, 55, 0.15)" : undefined;
 
   return (
     <div
@@ -281,7 +281,6 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
                 </div>
                 <div className="flex items-center gap-1 text-[11px] font-medium text-white/50">
                   <span>{formatDate(conv.created_at)}</span>
-                  <span className="w-1 h-1 rounded-full bg-white/25" />
                 </div>
               </div>
               <span
@@ -329,7 +328,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
           <svg
             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
             className="w-4 h-4 flex-shrink-0"
-            style={{ color: "rgba(200, 200, 220, 0.25)" }}
+            style={{ color: "rgba(255, 255, 255, 0.55)" }}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
@@ -380,10 +379,6 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
     label,
     convs: safeConvs.filter((conv) => getSectionLabel(conv.created_at) === label),
   }));
-  const highlightedProgress = highlightedConv
-    ? Math.round(Math.min(Math.max(highlightedConv.effective_interest ?? 0, 0), 100))
-    : 0;
-  const highlightedProgressState = highlightedConv ? getProgressState(highlightedConv.effective_interest) : null;
   let animationCounter = 0;
 
   return (
@@ -428,24 +423,20 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
                 border: "0.5px solid rgba(212, 175, 55, 0.2)",
               }}
             >
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <span
-                  style={{
-                    background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  <span style={{ fontSize: 16 }}>★</span>
-                  {balance ?? "—"}
-                </span>
-                <span className="text-[12px]" style={{ color: "rgba(255,255,255,0.7)" }}>
-                  | Active dialogs: {safeConvs.length}
-                </span>
-              </div>
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontWeight: 700,
+                }}
+              >
+                <span style={{ fontSize: 16 }}>★</span>
+                {balance ?? "—"}
+              </span>
             </button>
 
             {/* New Chat — gold button */}
@@ -517,96 +508,13 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
 
         {!loading && safeConvs.length > 0 && (
           <div className="px-4 pt-4 pb-4 space-y-5">
-            {highlightedConv && (
-              <div
-                className="rounded-[28px] p-4 flex items-center gap-4 border transition-transform active:scale-[0.98]"
-                style={{
-                  background: "linear-gradient(135deg, rgba(15,15,20,0.95), rgba(35,35,45,0.95))",
-                  borderColor: "rgba(212,175,55,0.4)",
-                  boxShadow: "0 15px 40px rgba(212,175,55,0.2)",
-                }}
-              >
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{
-                    background: "linear-gradient(135deg, #707078, #B0B0B8, #D4D4DC, #B0B0B8)",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontFamily: "'Georgia', 'Times New Roman', serif",
-                      fontSize: 20,
-                      color: "#1A1A1E",
-                      letterSpacing: "0.03em",
-                    }}
-                  >
-                    {(highlightedConv.girl_name || "?").charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-white text-base font-semibold truncate">
-                        {highlightedConv.girl_name || "Selected dialog"}
-                      </p>
-                      <p className="text-xs font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.6)" }}>
-                        Continue the conversation where you left off.
-                      </p>
-                    </div>
-                    {highlightedProgressState && (
-                      <span
-                        className="text-[11px] font-semibold px-2 py-0.5 rounded-full uppercase whitespace-nowrap"
-                        style={{
-                          background: highlightedProgressState.badgeBg,
-                          color: highlightedProgressState.badgeText,
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        {highlightedProgressState.label}
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className="w-full rounded-full overflow-hidden"
-                    style={{
-                      height: 6,
-                      background: "rgba(255,255,255,0.08)",
-                      boxShadow: "inset 0 0 0 0.5px rgba(255,255,255,0.08)",
-                    }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${highlightedProgress}%`,
-                        background: PROGRESS_BAR_GRADIENT,
-                        boxShadow: PROGRESS_BAR_GLOW,
-                      }}
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={() => onSelect(highlightedConv.id)}
-                  className="px-4 py-2 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-all"
-                  style={{
-                    background: "linear-gradient(135deg, #AD8B3A, #F9E076)",
-                    color: "#050505",
-                    boxShadow: "0 8px 30px rgba(212, 175, 55, 0.3)",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  Continue
-                </button>
-              </div>
-            )}
-
             {groupedSections.map((section) => {
               if (!section.convs.length) return null;
               return (
                 <div key={section.label} className="space-y-3">
                   <div
-                    className="text-[11px] font-semibold uppercase tracking-[0.2em] px-1"
-                    style={{ color: "rgba(255,255,255,0.4)" }}
+                    className="text-[12px] font-semibold uppercase tracking-[0.25em] px-1 mt-8 first:mt-0"
+                    style={{ color: "rgba(255,255,255,0.45)" }}
                   >
                     {section.label}
                   </div>
