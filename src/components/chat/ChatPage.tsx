@@ -89,6 +89,22 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const balancePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [contactToastVisible, setContactToastVisible] = useState(false);
   const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestionsRef = useRef<HTMLDivElement | null>(null);
+  const telegramCardRef = useRef<HTMLDivElement | null>(null);
+  const contactSelectorRef = useRef<HTMLDivElement | null>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [showActionHint, setShowActionHint] = useState(false);
+  const pendingScrollTarget = useRef<HTMLElement | null>(null);
+  const [contactToastVisible, setContactToastVisible] = useState(false);
+  const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestionsRef = useRef<HTMLDivElement | null>(null);
+  const telegramCardRef = useRef<HTMLDivElement | null>(null);
+  const contactSelectorRef = useRef<HTMLDivElement | null>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [showActionHint, setShowActionHint] = useState(false);
+  const pendingScrollTarget = useRef<HTMLElement | null>(null);
+  const [contactToastVisible, setContactToastVisible] = useState(false);
+  const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isNewDialog = messages.length === 0;
 
@@ -236,15 +252,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setDraftGirlReply(clipText);
         setPasteLabel("Вставлено ✓");
         setTimeout(() => setPasteLabel(null), 1500);
-        triggerPasteFeedback();
       }
     } catch { }
-  };
-
-  const triggerPasteFeedback = () => {
-    if (prefersReducedMotion) return;
-    triggerGoldToast("Ответ учтён");
-    triggerProgressChip(0, "+");
   };
 
   const refreshConversation = async () => {
