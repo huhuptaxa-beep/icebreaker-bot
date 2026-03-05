@@ -336,8 +336,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
           setCurrentInterest(newInterest);
           if (diff !== 0) {
             setInterestDelta(diff);
-            const clearDelta = window.setTimeout(() => setInterestDelta(null), 1600);
-            interestTimers.current.push(clearDelta);
+            setTimeout(() => setInterestDelta(null), 1600);
           }
         }
 
