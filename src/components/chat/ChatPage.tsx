@@ -12,6 +12,8 @@ import SuggestionsPanel from "./SuggestionsPanel";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
 import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
 
+const PASTE_PROGRESS_GAIN = 2;
+
 const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
   try {
     const tg = (window as any).Telegram?.WebApp?.HapticFeedback;
@@ -84,7 +86,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const progressChipTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const interestTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const pendingPasteRewardRef = useRef<number | null>(null);
+  const pendingPasteRewardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [goldToastMessage, setGoldToastMessage] = useState<string | null>(null);
   const goldToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -226,6 +228,50 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }, 1000);
   };
 
+  const triggerGoldToast = (message = "Ответ учтён") => {
+    if (goldToastTimer.current) {
+      clearTimeout(goldToastTimer.current);
+    }
+    setGoldToastMessage(message);
+    goldToastTimer.current = window.setTimeout(() => {
+      setGoldToastMessage(null);
+      goldToastTimer.current = null;
+    }, 1000);
+  };
+
+  const triggerPasteReward = () => {
+    triggerGoldToast("Ответ учтён");
+    triggerBalancePulse(1);
+
+    if (pendingPasteRewardRef.current) {
+      clearTimeout(pendingPasteRewardRef.current);
+      pendingPasteRewardRef.current = null;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCurrentInterest((prev) => {
+        const target = Math.min(prev + PASTE_PROGRESS_GAIN, 100);
+        const appliedDiff = target - prev;
+        if (appliedDiff > 0) {
+          setInterestDelta(appliedDiff);
+          const clearDelta = window.setTimeout(
+            () => setInterestDelta(null),
+            prefersReducedMotion ? 0 : 1500
+          );
+          interestTimers.current.push(clearDelta);
+          triggerProgressChip(appliedDiff);
+        } else {
+          triggerProgressChip(0, "%");
+        }
+        return target;
+      });
+      pendingPasteRewardRef.current = null;
+    }, prefersReducedMotion ? 0 : 120);
+
+    pendingPasteRewardRef.current = timer;
+    interestTimers.current.push(timer);
+  };
+
   const getProgressChipStyle = (phase: ProgressChipPhase) => {
     if (prefersReducedMotion) {
       return {
@@ -270,6 +316,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setDraftGirlReply(clipText);
         setPasteLabel("Вставлено ✓");
         setTimeout(() => setPasteLabel(null), 1500);
+        triggerPasteReward();
       }
     } catch {}
   };
@@ -321,6 +368,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
       if (balancePulseTimer.current) {
         clearTimeout(balancePulseTimer.current);
         balancePulseTimer.current = null;
+      }
+      if (goldToastTimer.current) {
+        clearTimeout(goldToastTimer.current);
+        goldToastTimer.current = null;
+      }
+      if (pendingPasteRewardRef.current) {
+        clearTimeout(pendingPasteRewardRef.current);
+        pendingPasteRewardRef.current = null;
       }
     };
   }, []);
@@ -813,6 +868,23 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
+      {goldToastMessage && (
+        <div
+          className="fixed left-1/2 px-4 py-2 rounded-full text-[12px] font-semibold pointer-events-none select-none"
+          style={{
+            top: "calc(env(safe-area-inset-top) + 60px)",
+            transform: "translateX(-50%)",
+            background: "rgba(28, 22, 12, 0.92)",
+            border: "0.5px solid rgba(212, 175, 55, 0.35)",
+            color: "rgba(255, 247, 231, 0.92)",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.45)",
+            zIndex: 75,
+          }}
+        >
+          {goldToastMessage}
+        </div>
+      )}
+
       {/* TELEGRAM START BUTTON */}
       {showTelegramStart && suggestions.length === 0 && !generating && (
         <div className="px-5 py-6">
@@ -920,7 +992,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               }}
             >
               <p className="text-sm font-semibold" style={{ color: "rgba(200, 200, 220, 0.7)" }}>
-                ❌ Контакт не получен
+                Контакт не получен
               </p>
               <p className="text-xs mt-1" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
                 AI пересчитает стратегию
@@ -937,7 +1009,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               }}
             >
               <p className="text-sm font-semibold" style={{ color: "#D4AF37" }}>
-                🎉 Свидание назначено
+                Свидание назначено
               </p>
               <p className="text-xs mt-1" style={{ color: "rgba(212, 175, 55, 0.5)" }}>
                 Удачи!
@@ -954,7 +1026,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               }}
             >
               <p className="text-sm font-semibold" style={{ color: "rgba(200, 200, 220, 0.7)" }}>
-                ❌ Отказала
+                Отказала
               </p>
               <p className="text-xs mt-1" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
                 AI пересчитает стратегию
@@ -1094,7 +1166,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               borderRadius: 18,
             }}
           >
-            ✅ Она согласилась
+            Она согласилась
           </button>
 
           <button
@@ -1119,7 +1191,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               borderRadius: 18,
             }}
           >
-            ❌ Отказала
+            Отказала
           </button>
         </div>
       )}
