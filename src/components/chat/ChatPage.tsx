@@ -82,6 +82,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progressChip, setProgressChip] = useState<ProgressChipState | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [balancePulse, setBalancePulse] = useState(false);
+  const [balanceDeltaLabel, setBalanceDeltaLabel] = useState<string | null>(null);
+  const balancePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isNewDialog = messages.length === 0;
 
@@ -163,11 +166,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
     setProgressChip({ value, phase: "initial" });
     const enterTimer = window.setTimeout(() => {
       setProgressChip((prev) => (prev ? { ...prev, phase: "enter" } : prev));
-    }, 40);
+    }, 140);
     const flyTimer = window.setTimeout(() => {
       setProgressChip((prev) => (prev ? { ...prev, phase: "fly" } : prev));
-    }, 230);
-    const removeTimer = window.setTimeout(() => setProgressChip(null), 560);
+    }, 380);
+    const removeTimer = window.setTimeout(() => setProgressChip(null), 720);
     progressChipTimers.current.push(enterTimer, flyTimer, removeTimer);
   };
 
@@ -179,6 +182,19 @@ const ChatPage: React.FC<ChatPageProps> = ({
     contactToastTimer.current = setTimeout(() => {
       setContactToastVisible(false);
       contactToastTimer.current = null;
+    }, 1000);
+  };
+
+  const triggerBalancePulse = (amount: number) => {
+    if (balancePulseTimer.current) {
+      clearTimeout(balancePulseTimer.current);
+    }
+    setBalancePulse(true);
+    setBalanceDeltaLabel(amount > 0 ? `+${amount}` : "+1");
+    balancePulseTimer.current = window.setTimeout(() => {
+      setBalancePulse(false);
+      setBalanceDeltaLabel(null);
+      balancePulseTimer.current = null;
     }, 1000);
   };
 
@@ -261,6 +277,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
       if (contactToastTimer.current) {
         clearTimeout(contactToastTimer.current);
         contactToastTimer.current = null;
+      }
+      if (balancePulseTimer.current) {
+        clearTimeout(balancePulseTimer.current);
+        balancePulseTimer.current = null;
       }
     };
   }, []);
@@ -415,14 +435,17 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }
   };
 
-  const canGenerate = (() => {
-    if (generating) return false;
-    if (isNewDialog) return !!(openerFacts.trim() || draftGirlReply.trim());
-    if (showTelegramStart) return false;
-    const lastMsg = messages[messages.length - 1];
-    const hasUnansweredGirl = lastMsg?.role === "girl";
-    return !!(draftGirlReply.trim() || hasUnansweredGirl);
-  })();
+const canGenerate = (() => {
+  if (generating) return false;
+  if (isNewDialog) return !!(openerFacts.trim() || draftGirlReply.trim());
+  if (showTelegramStart) return false;
+  const lastMsg = messages[messages.length - 1];
+  const hasUnansweredGirl = lastMsg?.role === "girl";
+  return !!(draftGirlReply.trim() || hasUnansweredGirl);
+})();
+
+  const hasContactAction = availableActions.includes("contact");
+  const secondaryActions = availableActions.filter((action) => action !== "contact");
 
   return (
     <div className="flex flex-col h-[100dvh]" style={{ background: "#050505" }}>
@@ -456,26 +479,51 @@ const ChatPage: React.FC<ChatPageProps> = ({
           >
             {girlName}
           </span>
-          <div className="flex items-center gap-2 flex-shrink-0 relative" style={{ minHeight: 32 }}>
+          <div className="flex items-center gap-2 flex-shrink-0" style={{ minHeight: 32 }}>
             {freeRemaining !== null && (
-              <span
-                className="text-[10px] font-bold px-2 py-1 rounded-lg"
-                style={{
-                  background: "rgba(212, 175, 55, 0.08)",
-                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
-                  color: (freeRemaining + (paidRemaining || 0)) > 3
-                    ? "rgba(212, 175, 55, 0.6)"
-                    : "rgba(200, 200, 220, 0.6)",
-                }}
-              >
-                ★ {freeRemaining + (paidRemaining || 0)}
-              </span>
+              <div className="relative flex-shrink-0">
+                <span
+                  className="text-[10px] font-bold px-2 py-1 rounded-lg inline-flex items-center gap-1"
+                  style={{
+                    background: balancePulse
+                      ? "linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.12))"
+                      : "rgba(212, 175, 55, 0.08)",
+                    border: balancePulse
+                      ? "0.5px solid rgba(212, 175, 55, 0.55)"
+                      : "0.5px solid rgba(212, 175, 55, 0.15)",
+                    color: "rgba(255, 255, 255, 0.85)",
+                    boxShadow: balancePulse ? "0 8px 24px rgba(212, 175, 55, 0.35)" : "none",
+                    transform: balancePulse ? "scale(1.08)" : "scale(1)",
+                    transition: prefersReducedMotion
+                      ? "none"
+                      : "transform 260ms ease, box-shadow 260ms ease, background 260ms ease",
+                  }}
+                >
+                  ★ {freeRemaining + (paidRemaining || 0)}
+                </span>
+                {balanceDeltaLabel && (
+                  <span
+                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{
+                      position: "absolute",
+                      right: -4,
+                      top: -12,
+                      background: "rgba(245, 208, 126, 0.95)",
+                      color: "#1A1305",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
+                    }}
+                  >
+                    {balanceDeltaLabel} баллов
+                  </span>
+                )}
+              </div>
             )}
             <div className="relative flex-shrink-0" style={{ maxWidth: 140 }}>
               <PhaseProgressBar
                 interest={currentInterest}
                 size="large"
                 delta={interestDelta}
+                prefersReducedMotion={prefersReducedMotion}
               />
               {progressChip && (
                 <span
@@ -512,7 +560,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               <div className="flex items-center gap-3 py-2">
                 <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)" }} />
                 <span className="text-[11px] font-medium" style={{ color: "rgba(59,130,246,0.5)" }}>
-                  📱 Telegram
+                  Telegram
                 </span>
                 <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)" }} />
               </div>
@@ -646,6 +694,38 @@ const ChatPage: React.FC<ChatPageProps> = ({
         )}
       </div>
 
+      {hasContactAction && !generating && !pendingAction && (
+        <div className="px-5 pt-2 pb-4">
+          <div
+            className="rounded-2xl px-5 py-4 flex flex-col gap-3"
+            style={{
+              background: "rgba(18, 18, 24, 0.95)",
+              border: "0.5px solid rgba(212, 175, 55, 0.2)",
+              boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
+            }}
+          >
+            <p
+              className="text-base font-semibold text-center"
+              style={{ color: "rgba(255, 255, 255, 0.95)", letterSpacing: "0.02em" }}
+            >
+              Момент для сближения
+            </p>
+            <button
+              onClick={() => handleGenerate("contact")}
+              className="w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-transform"
+              style={{
+                background: "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)",
+                color: "#050505",
+                border: "none",
+                boxShadow: "0 10px 28px rgba(212, 175, 55, 0.35)",
+              }}
+            >
+              Взять Telegram
+            </button>
+          </div>
+        </div>
+      )}
+
       <SuggestionsPanel
         suggestions={suggestions}
         onSelect={handleSelectSuggestion}
@@ -731,59 +811,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 boxShadow: "0 0 18px rgba(212, 175, 55, 0.35)",
               }}
             >
-              ⚡ Сгенерировать первое сообщение
+              Сгенерировать первое сообщение
             </button>
           </div>
         </div>
       )}
 
       {/* ACTION BUTTONS */}
-      {availableActions.length > 0 && !generating && !pendingAction && (
+      {secondaryActions.length > 0 && !generating && !pendingAction && (
         <div className="px-5 py-2 flex gap-2">
-          {availableActions.includes("contact") && (
-            <div className="flex-1 flex flex-col gap-1.5">
-              <p
-                className="text-[11px] font-semibold uppercase tracking-[0.25em] text-center"
-                style={{ color: "rgba(212, 175, 55, 0.6)" }}
-              >
-                ✨ Момент для сближения
-              </p>
-              <p className="text-[12px] text-center" style={{ color: "rgba(200, 200, 220, 0.3)" }}>
-                AI определил момент для сближения
-              </p>
-              <div
-                className="rounded-2xl px-4 py-4 flex flex-col gap-2"
-                style={{
-                  background: "rgba(22, 22, 32, 0.9)",
-                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-                }}
-              >
-                <span className="text-[11px] font-semibold uppercase" style={{ color: "rgba(212, 175, 55, 0.6)", letterSpacing: "0.2em" }}>
-                  AI рекомендует
-                </span>
-                <div className="flex flex-col gap-1">
-                  <p className="text-white text-sm font-semibold">Пора брать Telegram</p>
-                  <p className="text-[12px]" style={{ color: "rgba(200, 200, 220, 0.55)" }}>
-                    Пока интерес высокий, закрепи контакт.
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleGenerate("contact")}
-                  className="w-full py-2.5 rounded-2xl font-semibold text-sm active:scale-[0.98] transition-transform"
-                  style={{
-                    background: "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)",
-                    color: "#050505",
-                    boxShadow: "0 0 15px rgba(212, 175, 55, 0.35)",
-                    border: "none",
-                  }}
-                >
-                  📱 Взять Telegram
-                </button>
-              </div>
-            </div>
-          )}
-          {availableActions.includes("date") && (
+          {secondaryActions.includes("date") && (
             <div className="flex-1 flex flex-col gap-1.5">
               <button
                 onClick={() => handleGenerate("date")}
@@ -794,11 +831,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   border: "0.5px solid rgba(34,197,94,0.2)",
                 }}
               >
-                ☕ Позвать на свидание
+                Позвать на свидание
               </button>
             </div>
           )}
-          {availableActions.includes("reengage") && (
+          {secondaryActions.includes("reengage") && (
             <div className="flex-1 flex flex-col gap-1.5">
               <button
                 onClick={() => handleGenerate("reengage")}
@@ -809,7 +846,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   border: "0.5px solid rgba(212, 175, 55, 0.2)",
                 }}
               >
-                🔥 Написать ей
+                Написать ей
               </button>
             </div>
           )}
@@ -828,7 +865,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
               }}
             >
               <p className="text-sm font-semibold" style={{ color: "#D4AF37" }}>
-                ✅ Telegram получен
+                Telegram получен
               </p>
               <p className="text-xs mt-1" style={{ color: "rgba(212, 175, 55, 0.5)" }}>
                 AI рекомендует закрепить контакт
@@ -889,10 +926,19 @@ const ChatPage: React.FC<ChatPageProps> = ({
       {/* CONFIRMATION BUTTONS - TELEGRAM */}
       {pendingAction === "contact" && !generating && !confirmResult && (
         <div className="px-5 py-2 flex flex-col gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "rgba(200, 200, 220, 0.3)" }}>
+          <p
+            className="text-sm font-semibold text-center"
+            style={{ color: "rgba(255, 255, 255, 0.85)", letterSpacing: "0.015em" }}
+          >
             Удалось взять Telegram?
           </p>
-          <div className="flex gap-2">
+          <div
+            className="flex rounded-2xl overflow-hidden"
+            style={{
+              border: "0.5px solid rgba(212, 175, 55, 0.25)",
+              background: "rgba(255, 255, 255, 0.02)",
+            }}
+          >
             <button
               onClick={async () => {
                 haptic("heavy");
@@ -903,9 +949,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setCurrentPhase(3);
                   const nextInterest = Math.max(currentInterest, 40);
                   const diff = Math.round(nextInterest - currentInterest);
+                  const gain = diff > 0 ? diff : 5;
                   if (diff !== 0) {
                     triggerProgressChip(diff);
                   }
+                  triggerBalancePulse(gain);
                   const barDelay = prefersReducedMotion ? 0 : 120;
                   const interestTimer = window.setTimeout(() => {
                     setCurrentInterest((prev) => {
@@ -929,15 +977,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   showToast("Ошибка подтверждения", "error");
                 }
               }}
-              className="flex-1 py-2.5 text-sm font-semibold"
+              className="flex-1 py-3 text-sm font-semibold transition-colors"
               style={{
-                background: "rgba(212, 175, 55, 0.1)",
-                color: "#D4AF37",
-                border: "0.5px solid rgba(212, 175, 55, 0.3)",
-                borderRadius: 18,
+                background: "linear-gradient(135deg, rgba(245, 208, 126, 0.35), rgba(212, 175, 55, 0.15))",
+                color: "#1A1305",
+                borderRight: "0.5px solid rgba(212, 175, 55, 0.25)",
               }}
             >
-              ✅ Telegram получен
+              Telegram получен
             </button>
             <button
               onClick={async () => {
@@ -953,15 +1000,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   showToast("Ошибка подтверждения", "error");
                 }
               }}
-              className="flex-1 py-2.5 text-sm font-semibold"
+              className="flex-1 py-3 text-sm font-semibold"
               style={{
-                background: "rgba(255, 255, 255, 0.03)",
-                color: "rgba(200, 200, 220, 0.4)",
-                border: "0.5px solid rgba(200, 200, 220, 0.08)",
-                borderRadius: 18,
+                background: "rgba(20, 20, 24, 0.8)",
+                color: "rgba(200, 200, 220, 0.6)",
               }}
             >
-              ✕ Пока нет
+              Пока нет
             </button>
           </div>
         </div>

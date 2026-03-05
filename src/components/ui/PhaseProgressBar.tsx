@@ -4,12 +4,14 @@ interface PhaseProgressBarProps {
   interest: number;
   size?: "small" | "large";
   delta?: number | null;
+  prefersReducedMotion?: boolean;
 }
 
 const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
   interest,
   size = "large",
   delta,
+  prefersReducedMotion = false,
 }) => {
   const progress = Math.min(Math.max(interest, 0), 100);
   const isComplete = progress >= 100;
@@ -36,11 +38,14 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
           }}
         >
           <div
-            className="h-full rounded-full transition-all duration-500"
+            className="h-full rounded-full"
             style={{
               width: `${progress}%`,
               background: "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
               boxShadow: "0 0 6px rgba(212, 175, 55, 0.2)",
+              transition: prefersReducedMotion
+                ? "none"
+                : "width 500ms cubic-bezier(0.25, 0.9, 0.3, 1.05)",
             }}
           />
         </div>
@@ -71,17 +76,24 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
         }}
       >
         <div
-          className="h-full rounded-full transition-all duration-500"
+          className="h-full rounded-full"
           style={{
             width: `${progress}%`,
             background: isComplete
               ? "linear-gradient(90deg, #AD8B3A, #F9E076, #FFE8A0, #F9E076, #AD8B3A)"
               : "linear-gradient(90deg, #AD8B3A, #D4AF37, #F9E076)",
             backgroundSize: isComplete ? "200% 100%" : "100% 100%",
-            animation: isComplete ? "shimmer-progress 3s infinite linear" : "none",
+            animation: isComplete
+              ? prefersReducedMotion
+                ? "none"
+                : "shimmer-progress 3s infinite linear"
+              : "none",
             boxShadow: isComplete
               ? "0 0 8px rgba(212, 175, 55, 0.4)"
               : "0 0 5px rgba(212, 175, 55, 0.2)",
+            transition: prefersReducedMotion
+              ? "none"
+              : "width 520ms cubic-bezier(0.25, 0.9, 0.3, 1.05)",
           }}
         />
       </div>
@@ -98,7 +110,9 @@ const PhaseProgressBar: React.FC<PhaseProgressBarProps> = ({
           <span
             className="text-[10px] font-bold animate-delta-pop"
             style={{
-              color: showDelta > 0 ? "#4ADE80" : "rgba(200, 200, 220, 0.5)",
+              color: showDelta > 0
+                ? "#F5D07E"
+                : "rgba(200, 200, 220, 0.5)",
             }}
           >
             {showDelta > 0 ? `+${showDelta}` : showDelta}
