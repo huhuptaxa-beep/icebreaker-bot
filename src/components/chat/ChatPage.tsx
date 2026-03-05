@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Message,
   chatGenerate,
@@ -111,6 +111,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [showActionHint, setShowActionHint] = useState(false);
   const pendingScrollTarget = useRef<HTMLElement | null>(null);
+  const actionBlockVisibilityRef = useRef({
+    suggestions: false,
+    telegramCard: false,
+    contactSelector: false,
+  });
 
   const isNewDialog = messages.length === 0;
 
@@ -380,11 +385,98 @@ const ChatPage: React.FC<ChatPageProps> = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  const updateNearBottom = useCallback(() => {
+    if (!scrollRef.current) return;
+    const el = scrollRef.current;
+    const distance = el.scrollHeight - el.clientHeight - el.scrollTop;
+    setIsNearBottom(distance <= 200);
+  }, []);
+
+  const scrollToElement = useCallback(
+    (element: HTMLElement | null) => {
+      if (!element) return;
+      element.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "nearest",
+      });
+    },
+    [prefersReducedMotion]
+  );
+
+  const focusActionBlock = useCallback(
+    (ref: { current: HTMLElement | null }) => {
+      if (typeof window === "undefined") return;
+      window.requestAnimationFrame(() => {
+        const node = ref.current;
+        if (!node) return;
+        pendingScrollTarget.current = node;
+        if (isNearBottom) {
+          scrollToElement(node);
+          setShowActionHint(false);
+        } else {
+          setShowActionHint(true);
+        }
+      });
+    },
+    [isNearBottom, scrollToElement]
+  );
+
+  const handleActionHintClick = useCallback(() => {
+    if (pendingScrollTarget.current) {
+      scrollToElement(pendingScrollTarget.current);
     }
-  }, [messages, suggestions]);
+    setShowActionHint(false);
+  }, [scrollToElement]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handler = () => updateNearBottom();
+    el.addEventListener("scroll", handler, { passive: true });
+    updateNearBottom();
+    return () => {
+      el.removeEventListener("scroll", handler);
+    };
+  }, [updateNearBottom]);
+
+  useEffect(() => {
+    if (isNearBottom) setShowActionHint(false);
+  }, [isNearBottom]);
+
+  useEffect(() => {
+    const visibility = {
+      suggestions: suggestions.length > 0,
+      telegramCard: showTelegramStart && suggestions.length === 0 && !generating,
+      contactSelector: pendingAction === "contact" && !generating && !confirmResult,
+    };
+
+    const refMap = {
+      suggestions: suggestionsRef,
+      telegramCard: telegramCardRef,
+      contactSelector: contactSelectorRef,
+    };
+
+    (Object.keys(visibility) as Array<keyof typeof visibility>).forEach((key) => {
+      if (visibility[key] && !actionBlockVisibilityRef.current[key]) {
+        focusActionBlock(refMap[key]);
+      }
+    });
+
+    const anyVisible = Object.values(visibility).some(Boolean);
+    if (!anyVisible) {
+      pendingScrollTarget.current = null;
+      setShowActionHint(false);
+    }
+
+    actionBlockVisibilityRef.current = visibility;
+  }, [
+    suggestions.length,
+    showTelegramStart,
+    generating,
+    pendingAction,
+    confirmResult,
+    focusActionBlock,
+  ]);
 
   /* ================= GENERATE ================= */
 
@@ -817,7 +909,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
-      <SuggestionsPanel suggestions={suggestions} onSelect={handleSelectSuggestion} loading={generating} />
+      <div ref={suggestionsRef}>
+        <SuggestionsPanel
+          suggestions={suggestions}
+          onSelect={handleSelectSuggestion}
+          loading={generating}
+          prefersReducedMotion={prefersReducedMotion}
+        />
+      </div>
 
       {copyToast && (
         <div
@@ -885,9 +984,33 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
+      {showActionHint && (
+        <div
+          className="fixed left-1/2 z-60"
+          style={{
+            bottom: "calc(env(safe-area-inset-bottom) + 96px)",
+            transform: "translateX(-50%)",
+          }}
+        >
+          <button
+            onClick={handleActionHintClick}
+            className="px-4 py-2 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition-transform"
+            style={{
+              background: "rgba(15, 15, 20, 0.92)",
+              border: "0.5px solid rgba(212, 175, 55, 0.35)",
+              color: "rgba(255, 255, 255, 0.9)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+            }}
+          >
+            ⬇︎ К действиям
+          </button>
+        </div>
+      )}
+
       {/* TELEGRAM START BUTTON */}
       {showTelegramStart && suggestions.length === 0 && !generating && (
-        <div className="px-5 py-6">
+        <div className="px-5 py-6" ref={telegramCardRef}>
           <div
             className="rounded-3xl px-5 py-5 flex flex-col gap-3"
             style={{
@@ -1038,7 +1161,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       {/* CONFIRMATION BUTTONS - TELEGRAM */}
       {pendingAction === "contact" && !generating && !confirmResult && (
-        <div className="px-5 py-2 flex flex-col gap-3">
+        <div className="px-5 py-2 flex flex-col gap-3" ref={contactSelectorRef}>
           <p
             className="text-sm font-semibold text-center"
             style={{ color: "rgba(255, 255, 255, 0.85)", letterSpacing: "0.015em" }}
