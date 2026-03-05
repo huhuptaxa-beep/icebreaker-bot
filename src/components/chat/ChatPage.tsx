@@ -18,7 +18,7 @@ const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
     if (tg?.impactOccurred) {
       tg.impactOccurred(type);
     }
-  } catch { }
+  } catch {}
 };
 
 interface ChatPageProps {
@@ -48,7 +48,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [openerFacts, setOpenerFacts] = useState("");
 
   const [availableActions, setAvailableActions] = useState<string[]>([]);
-  const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(
+    null
+  );
   const [currentPhase, setCurrentPhase] = useState<number>(1);
   const [showTelegramStart, setShowTelegramStart] = useState(false);
   const [currentInterest, setCurrentInterest] = useState<number>(5);
@@ -73,20 +75,32 @@ const ChatPage: React.FC<ChatPageProps> = ({
     phase: "intro" | "visible" | "outro";
   } | null>(null);
   const [copyFlashMap, setCopyFlashMap] = useState<Record<string, boolean>>({});
-  const [newMessageAnimationMap, setNewMessageAnimationMap] = useState<Record<string, boolean>>({});
+  const [newMessageAnimationMap, setNewMessageAnimationMap] = useState<
+    Record<string, boolean>
+  >({});
+
   const copyToastTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const progressChipTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const interestTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pendingPasteRewardRef = useRef<number | null>(null);
+
   const [goldToastMessage, setGoldToastMessage] = useState<string | null>(null);
   const goldToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [progressChip, setProgressChip] = useState<ProgressChipState | null>(null);
+
+  const [progressChip, setProgressChip] = useState<ProgressChipState | null>(
+    null
+  );
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
   const [balancePulse, setBalancePulse] = useState(false);
-  const [balanceDeltaLabel, setBalanceDeltaLabel] = useState<string | null>(null);
+  const [balanceDeltaLabel, setBalanceDeltaLabel] = useState<string | null>(
+    null
+  );
   const balancePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ✅ single declarations (duplicates removed)
   const [contactToastVisible, setContactToastVisible] = useState(false);
   const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
@@ -95,22 +109,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const [isNearBottom, setIsNearBottom] = useState(true);
   const [showActionHint, setShowActionHint] = useState(false);
   const pendingScrollTarget = useRef<HTMLElement | null>(null);
-  const [contactToastVisible, setContactToastVisible] = useState(false);
-  const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suggestionsRef = useRef<HTMLDivElement | null>(null);
-  const telegramCardRef = useRef<HTMLDivElement | null>(null);
-  const contactSelectorRef = useRef<HTMLDivElement | null>(null);
-  const [isNearBottom, setIsNearBottom] = useState(true);
-  const [showActionHint, setShowActionHint] = useState(false);
-  const pendingScrollTarget = useRef<HTMLElement | null>(null);
-  const [contactToastVisible, setContactToastVisible] = useState(false);
-  const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isNewDialog = messages.length === 0;
 
-  const [showTutorial, setShowTutorial] = useState(
-    () => localStorage.getItem("tutorial_chat_done") !== "true"
-  );
+  const [showTutorial, setShowTutorial] = useState(() => {
+    return localStorage.getItem("tutorial_chat_done") !== "true";
+  });
 
   const clearCopyToastTimers = () => {
     copyToastTimers.current.forEach(clearTimeout);
@@ -121,7 +125,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const TOAST_TRANSITION_OUT = 260;
   const TOAST_VISIBLE_MS = 1200;
 
-  const triggerCopyToast = (message = "✓ Скопировано", tone: "success" | "error" = "success") => {
+  const triggerCopyToast = (
+    message = "✓ Скопировано",
+    tone: "success" | "error" = "success"
+  ) => {
     clearCopyToastTimers();
     setCopyToast({ message, tone, phase: "intro" });
 
@@ -227,7 +234,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
         transition: "none",
       };
     }
-    const presets: Record<ProgressChipPhase, { opacity: number; transform: string }> = {
+    const presets: Record<
+      ProgressChipPhase,
+      { opacity: number; transform: string }
+    > = {
       initial: { opacity: 0, transform: "translate(-6px, -6px) scale(0.85)" },
       enter: { opacity: 1, transform: "translate(-2px, -18px) scale(1)" },
       fly: { opacity: 0, transform: "translate(26px, -26px) scale(0.6)" },
@@ -239,8 +249,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   const CHAT_TUTORIAL_STEPS: TutorialStep[] = [
-    { targetId: "field-facts", text: "Опиши девушку: хобби, интересы, факты\nиз описания, детали фото.\nЧем больше напишешь — тем лучше", position: "top" },
-    { targetId: "field-girl-message", text: "Если она написала первая —\nвставь её сообщение сюда", position: "top" },
+    {
+      targetId: "field-facts",
+      text: "Опиши девушку: хобби, интересы, факты\nиз описания, детали фото.\nЧем больше напишешь — тем лучше",
+      position: "top",
+    },
+    {
+      targetId: "field-girl-message",
+      text: "Если она написала первая —\nвставь её сообщение сюда",
+      position: "top",
+    },
     { targetId: "btn-generate", text: "Нажми и получи 3 варианта сообщений", position: "top" },
     { text: "Я подскажу когда взять контакт\nили позвать на свидание.\nУдачи! 🔥", position: "top" },
   ];
@@ -253,7 +271,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setPasteLabel("Вставлено ✓");
         setTimeout(() => setPasteLabel(null), 1500);
       }
-    } catch { }
+    } catch {}
   };
 
   const refreshConversation = async () => {
@@ -272,7 +290,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
   };
 
   useEffect(() => {
-    refreshConversation().catch(() => { });
+    refreshConversation().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
   useEffect(() => {
@@ -308,14 +327,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop =
-        scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, suggestions]);
 
   /* ================= GENERATE ================= */
 
-  const handleGenerate = async (actionOverride?: "date" | "contact" | "reengage" | "telegram_first") => {
+  const handleGenerate = async (
+    actionOverride?: "date" | "contact" | "reengage" | "telegram_first"
+  ) => {
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
 
@@ -337,25 +357,13 @@ const ChatPage: React.FC<ChatPageProps> = ({
     setAvailableActions([]);
 
     try {
-      let res;
+      let res: any;
 
       if (facts && !actionOverride) {
-        res = await chatGenerate(
-          conversationId,
-          null,
-          "opener",
-          facts
-        );
+        res = await chatGenerate(conversationId, null, "opener", facts);
       } else {
         const action = actionOverride ?? "normal";
-
-        res = await chatGenerate(
-          conversationId,
-          girlText || null,
-          action,
-          undefined
-        );
-
+        res = await chatGenerate(conversationId, girlText || null, action, undefined);
         if (!actionOverride) setDraftGirlReply("");
       }
 
@@ -370,6 +378,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setSuggestions(res.suggestions || []);
         setAvailableActions(res.available_actions || []);
         if (res.phase) setCurrentPhase(res.phase);
+
         if (res.interest !== undefined) {
           const oldInterest = currentInterest;
           const newInterest = res.interest;
@@ -394,7 +403,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
       setOpenerFacts("");
       await refreshConversation();
-
     } catch (err) {
       console.error(err);
       setSuggestions([]);
@@ -424,7 +432,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
     if (localBatch.length) {
       setMessages((prev) => [...prev, ...localBatch]);
-      markNewMessageAnimation(localBatch.map((item) => item.id), true);
+      markNewMessageAnimation(
+        localBatch.map((item) => item.id),
+        true
+      );
     }
 
     setSuggestions([]);
@@ -446,7 +457,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
       for (const text of suggestion) {
         await chatSave(conversationId, text, "user");
       }
-
       await refreshConversation();
     } catch (err) {
       console.error(err);
@@ -456,21 +466,20 @@ const ChatPage: React.FC<ChatPageProps> = ({
     }
   };
 
-const canGenerate = (() => {
-  if (generating) return false;
-  if (isNewDialog) return !!(openerFacts.trim() || draftGirlReply.trim());
-  if (showTelegramStart) return false;
-  const lastMsg = messages[messages.length - 1];
-  const hasUnansweredGirl = lastMsg?.role === "girl";
-  return !!(draftGirlReply.trim() || hasUnansweredGirl);
-})();
+  const canGenerate = (() => {
+    if (generating) return false;
+    if (isNewDialog) return !!(openerFacts.trim() || draftGirlReply.trim());
+    if (showTelegramStart) return false;
+    const lastMsg = messages[messages.length - 1];
+    const hasUnansweredGirl = lastMsg?.role === "girl";
+    return !!(draftGirlReply.trim() || hasUnansweredGirl);
+  })();
 
   const hasContactAction = availableActions.includes("contact");
   const secondaryActions = availableActions.filter((action) => action !== "contact");
 
   return (
     <div className="flex flex-col h-[100dvh]" style={{ background: "#050505" }}>
-
       {/* ========== HEADER ========== */}
       <div
         className="sticky top-0 z-40"
@@ -481,7 +490,8 @@ const canGenerate = (() => {
           borderBottom: "0.5px solid rgba(200, 200, 220, 0.06)",
         }}
       >
-        <div className="flex items-center gap-3 px-5 py-3 w-full overflow-hidden"
+        <div
+          className="flex items-center gap-3 px-5 py-3 w-full overflow-hidden"
           style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
         >
           <button
@@ -500,6 +510,7 @@ const canGenerate = (() => {
           >
             {girlName}
           </span>
+
           <div className="flex items-center gap-2 flex-shrink-0" style={{ minHeight: 32 }}>
             {freeRemaining !== null && (
               <div className="relative flex-shrink-0">
@@ -539,6 +550,7 @@ const canGenerate = (() => {
                 )}
               </div>
             )}
+
             <div className="relative flex-shrink-0" style={{ maxWidth: 140 }}>
               <PhaseProgressBar
                 interest={currentInterest}
@@ -570,20 +582,28 @@ const canGenerate = (() => {
       </div>
 
       {/* ========== CONTENT ========== */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto px-5 py-5 space-y-5"
-      >
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
         {messages.map((msg, index) => (
           <React.Fragment key={msg.id}>
-            {/* Telegram separator */}
             {currentChannel === "telegram" && index === 0 && (
               <div className="flex items-center gap-3 py-2">
-                <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)" }} />
+                <div
+                  className="flex-1 h-px"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)",
+                  }}
+                />
                 <span className="text-[11px] font-medium" style={{ color: "rgba(59,130,246,0.5)" }}>
                   Telegram
                 </span>
-                <div className="flex-1 h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)" }} />
+                <div
+                  className="flex-1 h-px"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)",
+                  }}
+                />
               </div>
             )}
             <MessageBubble
@@ -613,9 +633,7 @@ const canGenerate = (() => {
                 <div className="relative z-10">
                   <textarea
                     value={draftGirlReply}
-                    onChange={(e) =>
-                      setDraftGirlReply(e.target.value)
-                    }
+                    onChange={(e) => setDraftGirlReply(e.target.value)}
                     id="field-girl-message"
                     placeholder="Вставь её сообщение, если написала первая"
                     className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-[rgba(200,200,220,0.4)]"
@@ -654,9 +672,7 @@ const canGenerate = (() => {
             <div className="w-full">
               <textarea
                 value={openerFacts}
-                onChange={(e) =>
-                  setOpenerFacts(e.target.value)
-                }
+                onChange={(e) => setOpenerFacts(e.target.value)}
                 id="field-facts"
                 placeholder="Напиши факты о девушке: хобби, интересы, детали фото..."
                 className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none placeholder:text-[rgba(212,175,55,0.35)]"
@@ -677,9 +693,7 @@ const canGenerate = (() => {
               <div className="relative z-10">
                 <textarea
                   value={draftGirlReply}
-                  onChange={(e) =>
-                    setDraftGirlReply(e.target.value)
-                  }
+                  onChange={(e) => setDraftGirlReply(e.target.value)}
                   placeholder="Вставь её ответ..."
                   className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-[rgba(200,200,220,0.4)]"
                   style={{
@@ -748,11 +762,7 @@ const canGenerate = (() => {
         </div>
       )}
 
-      <SuggestionsPanel
-        suggestions={suggestions}
-        onSelect={handleSelectSuggestion}
-        loading={generating}
-      />
+      <SuggestionsPanel suggestions={suggestions} onSelect={handleSelectSuggestion} loading={generating} />
 
       {copyToast && (
         <div
@@ -761,16 +771,22 @@ const canGenerate = (() => {
           style={{
             bottom: "calc(env(safe-area-inset-bottom) + 96px)",
             zIndex: 60,
-            color: copyToast.tone === "error" ? "rgba(255, 255, 255, 0.9)" : "rgba(255, 255, 255, 0.92)",
-            background: copyToast.tone === "error"
-              ? "rgba(90, 25, 25, 0.88)"
-              : "rgba(30, 30, 38, 0.9)",
-            border: copyToast.tone === "error"
-              ? "1px solid rgba(255, 99, 132, 0.35)"
-              : "1px solid rgba(212, 175, 55, 0.25)",
-            boxShadow: copyToast.tone === "error"
-              ? "0 14px 32px rgba(255, 99, 132, 0.25)"
-              : "0 16px 36px rgba(0, 0, 0, 0.45)",
+            color:
+              copyToast.tone === "error"
+                ? "rgba(255, 255, 255, 0.9)"
+                : "rgba(255, 255, 255, 0.92)",
+            background:
+              copyToast.tone === "error"
+                ? "rgba(90, 25, 25, 0.88)"
+                : "rgba(30, 30, 38, 0.9)",
+            border:
+              copyToast.tone === "error"
+                ? "1px solid rgba(255, 99, 132, 0.35)"
+                : "1px solid rgba(212, 175, 55, 0.25)",
+            boxShadow:
+              copyToast.tone === "error"
+                ? "0 14px 32px rgba(255, 99, 132, 0.25)"
+                : "0 16px 36px rgba(0, 0, 0, 0.45)",
             backdropFilter: "blur(10px)",
             WebkitBackdropFilter: "blur(10px)",
             transform: "translateX(-50%)",
@@ -894,6 +910,7 @@ const canGenerate = (() => {
               </p>
             </div>
           )}
+
           {confirmResult.type === "telegram_fail" && (
             <div
               className="px-4 py-3 rounded-2xl"
@@ -910,6 +927,7 @@ const canGenerate = (() => {
               </p>
             </div>
           )}
+
           {confirmResult.type === "date_success" && (
             <div
               className="px-4 py-3 rounded-2xl"
@@ -926,6 +944,7 @@ const canGenerate = (() => {
               </p>
             </div>
           )}
+
           {confirmResult.type === "date_fail" && (
             <div
               className="px-4 py-3 rounded-2xl"
@@ -954,6 +973,7 @@ const canGenerate = (() => {
           >
             Удалось взять Telegram?
           </p>
+
           <div
             className="flex rounded-2xl overflow-hidden"
             style={{
@@ -970,13 +990,14 @@ const canGenerate = (() => {
                   setSuggestions([]);
                   setPendingAction(null);
                   setCurrentPhase(3);
+
                   const nextInterest = Math.max(currentInterest, 40);
                   const diff = Math.round(nextInterest - currentInterest);
                   const gain = diff > 0 ? diff : 5;
-                  if (diff !== 0) {
-                    triggerProgressChip(diff);
-                  }
+
+                  if (diff !== 0) triggerProgressChip(diff);
                   triggerBalancePulse(gain);
+
                   const barDelay = prefersReducedMotion ? 0 : 120;
                   const interestTimer = window.setTimeout(() => {
                     setCurrentInterest((prev) => {
@@ -984,13 +1005,18 @@ const canGenerate = (() => {
                       const appliedDiff = Math.round(target - prev);
                       if (appliedDiff !== 0) {
                         setInterestDelta(appliedDiff);
-                        const clearDelta = window.setTimeout(() => setInterestDelta(null), prefersReducedMotion ? 0 : 1500);
+                        const clearDelta = window.setTimeout(
+                          () => setInterestDelta(null),
+                          prefersReducedMotion ? 0 : 1500
+                        );
                         interestTimers.current.push(clearDelta);
                       }
                       return target;
                     });
                   }, barDelay);
+
                   interestTimers.current.push(interestTimer);
+
                   setShowTelegramStart(true);
                   setConfirmResult({ type: "telegram_success" });
                   triggerContactToast();
@@ -1009,6 +1035,7 @@ const canGenerate = (() => {
             >
               Telegram получен
             </button>
+
             <button
               onClick={async () => {
                 haptic("light");
@@ -1029,7 +1056,8 @@ const canGenerate = (() => {
                 color: "rgba(220, 224, 236, 0.75)",
                 boxShadow: "inset -6px 0 14px rgba(255,255,255,0.04)",
                 borderLeft: "0.5px solid rgba(255, 255, 255, 0.08)",
-                backgroundImage: "linear-gradient(135deg, rgba(32,32,40,0.88), rgba(18,18,24,0.94)), linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.08))",
+                backgroundImage:
+                  "linear-gradient(135deg, rgba(32,32,40,0.88), rgba(18,18,24,0.94)), linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.08))",
                 backgroundBlendMode: "normal, screen",
               }}
             >
@@ -1068,6 +1096,7 @@ const canGenerate = (() => {
           >
             ✅ Она согласилась
           </button>
+
           <button
             onClick={async () => {
               haptic("light");
@@ -1107,21 +1136,22 @@ const canGenerate = (() => {
               background: generating
                 ? "rgba(255, 255, 255, 0.04)"
                 : canGenerate
-                  ? "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)"
-                  : "rgba(255, 255, 255, 0.03)",
+                ? "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)"
+                : "rgba(255, 255, 255, 0.03)",
               color: generating
                 ? "rgba(200, 200, 220, 0.3)"
                 : canGenerate
-                  ? "#050505"
-                  : "rgba(200, 200, 220, 0.2)",
-              boxShadow: canGenerate && !generating
-                ? "0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25)"
-                : "none",
+                ? "#050505"
+                : "rgba(200, 200, 220, 0.2)",
+              boxShadow:
+                canGenerate && !generating
+                  ? "0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25)"
+                  : "none",
               border: generating
                 ? "0.5px solid rgba(200, 200, 220, 0.06)"
                 : canGenerate
-                  ? "none"
-                  : "0.5px solid rgba(200, 200, 220, 0.06)",
+                ? "none"
+                : "0.5px solid rgba(200, 200, 220, 0.06)",
               letterSpacing: "0.02em",
               position: "relative",
               overflow: "hidden",
