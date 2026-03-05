@@ -1,18 +1,35 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface SuggestionsPanelProps {
   suggestions: string[][];
   onSelect: (suggestion: string[]) => void;
   loading?: boolean;
+  prefersReducedMotion?: boolean;
 }
 
 const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   suggestions,
   onSelect,
   loading,
+  prefersReducedMotion = false,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [pressedIndex, setPressedIndex] = useState<number | null>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+        highlightTimerRef.current = null;
+      }
+      if (pressTimerRef.current) {
+        clearTimeout(pressTimerRef.current);
+        pressTimerRef.current = null;
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -62,11 +79,44 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
 
   const handleSelect = (suggestion: string[], index: number) => {
     setSelectedIndex(index);
+    setPressedIndex(null);
     onSelect(suggestion);
-    setTimeout(() => {
+
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+
+    if (prefersReducedMotion) {
       setSelectedIndex(null);
-      setPressedIndex(null);
-    }, 200);
+      return;
+    }
+
+    highlightTimerRef.current = window.setTimeout(() => {
+      setSelectedIndex(null);
+      highlightTimerRef.current = null;
+    }, 150);
+  };
+
+  const handlePointerDown = (index: number) => {
+    setPressedIndex(index);
+    if (prefersReducedMotion) return;
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    pressTimerRef.current = window.setTimeout(() => {
+      setPressedIndex((prev) => (prev === index ? null : prev));
+      pressTimerRef.current = null;
+    }, 80);
+  };
+
+  const releasePress = () => {
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+      pressTimerRef.current = null;
+    }
+    setPressedIndex(null);
   };
 
   return (
@@ -89,39 +139,43 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
       {suggestions.map((suggestion, i) => {
         const isSelected = selectedIndex === i;
         const isPressed = pressedIndex === i && selectedIndex !== i;
-        const scale = isSelected ? 0.96 : isPressed ? 0.985 : 1;
+        const scale = prefersReducedMotion ? 1 : isSelected ? 0.96 : isPressed ? 0.98 : 1;
+        const highlightBackground = isSelected
+          ? "linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.08))"
+          : "rgba(255, 255, 255, 0.03)";
+        const highlightBorder = isSelected
+          ? "0.5px solid rgba(212, 175, 55, 0.6)"
+          : "0.5px solid rgba(200, 200, 220, 0.08)";
 
         return (
           <button
             key={i}
             onClick={() => handleSelect(suggestion, i)}
-            onPointerDown={() => setPressedIndex(i)}
-            onPointerUp={() => setPressedIndex(null)}
-            onPointerLeave={() => setPressedIndex(null)}
-            onPointerCancel={() => setPressedIndex(null)}
+            onPointerDown={() => handlePointerDown(i)}
+            onPointerUp={releasePress}
+            onPointerLeave={releasePress}
+            onPointerCancel={releasePress}
             className="w-full text-left transition-all duration-300"
             style={{
-              background: isSelected
-                ? "rgba(212, 175, 55, 0.08)"
-                : "rgba(255, 255, 255, 0.03)",
-              border: isSelected
-                ? "0.5px solid rgba(212, 175, 55, 0.6)"
-                : "0.5px solid rgba(200, 200, 220, 0.08)",
+              background: highlightBackground,
+              border: highlightBorder,
               borderRadius: 16,
               padding: "16px 18px",
               display: "flex",
               alignItems: "flex-start",
               gap: 14,
-              animation: "fadeSlideUp 300ms ease-out forwards",
+              animation: prefersReducedMotion ? "none" : "fadeSlideUp 300ms ease-out forwards",
               animationDelay: `${i * 100}ms`,
-              opacity: 0,
+              opacity: prefersReducedMotion ? 1 : 0,
               backdropFilter: "blur(25px)",
               WebkitBackdropFilter: "blur(25px)",
               boxShadow: isSelected
-                ? "0 0 15px rgba(212, 175, 55, 0.5), 0 0 30px rgba(212, 175, 55, 0.15)"
+                ? "0 0 18px rgba(212, 175, 55, 0.35), 0 0 30px rgba(212, 175, 55, 0.18)"
                 : "0 2px 8px rgba(0, 0, 0, 0.15)",
               transform: `scale(${scale})`,
-              transition: "transform 0.2s ease, border 0.3s ease, background 0.3s ease",
+              transition: prefersReducedMotion
+                ? "none"
+                : "transform 120ms cubic-bezier(0.33, 1, 0.68, 1), border 0.3s ease, background 0.3s ease",
             }}
           >
             {/* Number badge — gold circle */}

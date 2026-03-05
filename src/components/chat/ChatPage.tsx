@@ -30,6 +30,7 @@ interface ChatPageProps {
 type ProgressChipPhase = "initial" | "enter" | "fly";
 interface ProgressChipState {
   value: number;
+  label?: string;
   phase: ProgressChipPhase;
 }
 
@@ -78,13 +79,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const progressChipTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const interestTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [contactToastVisible, setContactToastVisible] = useState(false);
-  const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPasteRewardRef = useRef<number | null>(null);
+  const [goldToastMessage, setGoldToastMessage] = useState<string | null>(null);
+  const goldToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [progressChip, setProgressChip] = useState<ProgressChipState | null>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [balancePulse, setBalancePulse] = useState(false);
   const [balanceDeltaLabel, setBalanceDeltaLabel] = useState<string | null>(null);
   const balancePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [contactToastVisible, setContactToastVisible] = useState(false);
+  const contactToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isNewDialog = messages.length === 0;
 
@@ -134,7 +138,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
     copyFlashTimeouts.current.push(timeout);
   };
 
-  const markNewMessageAnimation = (ids: string[]) => {
+  const markNewMessageAnimation = (ids: string[], fromSuggestion = false) => {
     if (!ids.length) return;
     setNewMessageAnimationMap((prev) => {
       const next = { ...prev };
@@ -143,6 +147,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       });
       return next;
     });
+    const duration = prefersReducedMotion ? 0 : fromSuggestion ? 260 : 600;
     const timeout = setTimeout(() => {
       setNewMessageAnimationMap((prev) => {
         const next = { ...prev };
@@ -151,19 +156,19 @@ const ChatPage: React.FC<ChatPageProps> = ({
         });
         return next;
       });
-    }, 600);
+    }, duration);
     newMessageTimeouts.current.push(timeout);
   };
 
-  const triggerProgressChip = (value: number) => {
-    if (value <= 0) return;
+  const triggerProgressChip = (value: number, label?: string) => {
+    if (value <= 0 && !label) return;
     if (prefersReducedMotion) {
-      setProgressChip({ value, phase: "enter" });
+      setProgressChip({ value, label, phase: "enter" });
       const remove = window.setTimeout(() => setProgressChip(null), 900);
       progressChipTimers.current.push(remove);
       return;
     }
-    setProgressChip({ value, phase: "initial" });
+    setProgressChip({ value, label, phase: "initial" });
     const enterTimer = window.setTimeout(() => {
       setProgressChip((prev) => (prev ? { ...prev, phase: "enter" } : prev));
     }, 140);
@@ -231,8 +236,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setDraftGirlReply(clipText);
         setPasteLabel("Вставлено ✓");
         setTimeout(() => setPasteLabel(null), 1500);
+        triggerPasteFeedback();
       }
     } catch { }
+  };
+
+  const triggerPasteFeedback = () => {
+    if (prefersReducedMotion) return;
+    triggerGoldToast("Ответ учтён");
+    triggerProgressChip(0, "+");
   };
 
   const refreshConversation = async () => {
@@ -403,7 +415,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
     if (localBatch.length) {
       setMessages((prev) => [...prev, ...localBatch]);
-      markNewMessageAnimation(localBatch.map((item) => item.id));
+      markNewMessageAnimation(localBatch.map((item) => item.id), true);
     }
 
     setSuggestions([]);
@@ -540,7 +552,7 @@ const canGenerate = (() => {
                     ...getProgressChipStyle(progressChip.phase),
                   }}
                 >
-                  +{progressChip.value}%
+                  +{progressChip.label ?? `${progressChip.value}%`}
                 </span>
               )}
             </div>
@@ -570,6 +582,7 @@ const canGenerate = (() => {
               role={msg.role}
               copiedRecently={!!copyFlashMap[msg.id]}
               animateEntry={!!newMessageAnimationMap[msg.id]}
+              prefersReducedMotion={prefersReducedMotion}
             />
           </React.Fragment>
         ))}
@@ -935,8 +948,9 @@ const canGenerate = (() => {
           <div
             className="flex rounded-2xl overflow-hidden"
             style={{
-              border: "0.5px solid rgba(212, 175, 55, 0.25)",
-              background: "rgba(255, 255, 255, 0.02)",
+              border: "0.5px solid rgba(245, 208, 126, 0.35)",
+              background: "linear-gradient(135deg, rgba(22, 22, 28, 0.95), rgba(32, 32, 40, 0.92))",
+              boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
             }}
           >
             <button
@@ -979,9 +993,9 @@ const canGenerate = (() => {
               }}
               className="flex-1 py-3 text-sm font-semibold transition-colors"
               style={{
-                background: "linear-gradient(135deg, rgba(245, 208, 126, 0.35), rgba(212, 175, 55, 0.15))",
+                background: "linear-gradient(145deg, rgba(245, 208, 126, 0.5), rgba(212, 175, 55, 0.28))",
                 color: "#1A1305",
-                borderRight: "0.5px solid rgba(212, 175, 55, 0.25)",
+                borderRight: "0.5px solid rgba(245, 208, 126, 0.4)",
               }}
             >
               Telegram получен
@@ -1002,8 +1016,12 @@ const canGenerate = (() => {
               }}
               className="flex-1 py-3 text-sm font-semibold"
               style={{
-                background: "rgba(20, 20, 24, 0.8)",
-                color: "rgba(200, 200, 220, 0.6)",
+                background: "linear-gradient(135deg, rgba(32, 32, 40, 0.85), rgba(18, 18, 24, 0.92))",
+                color: "rgba(220, 224, 236, 0.75)",
+                boxShadow: "inset -6px 0 14px rgba(255,255,255,0.04)",
+                borderLeft: "0.5px solid rgba(255, 255, 255, 0.08)",
+                backgroundImage: "linear-gradient(135deg, rgba(32,32,40,0.88), rgba(18,18,24,0.94)), linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.08))",
+                backgroundBlendMode: "normal, screen",
               }}
             >
               Пока нет
