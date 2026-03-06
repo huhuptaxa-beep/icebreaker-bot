@@ -109,7 +109,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 800,
-          temperature: 0.9,
+          temperature: 1.0,
           system: [{ type: "text", text: OPENER_GENERATOR_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: generatorUserPrompt }]
         })
