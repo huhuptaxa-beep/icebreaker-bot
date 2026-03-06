@@ -37,7 +37,7 @@ const ActionIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
     <path
       d="M13 3L4 14H11L11 21L20 10H13L13 3Z"
-      stroke="white"
+      stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"

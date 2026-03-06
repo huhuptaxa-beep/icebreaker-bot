@@ -71,6 +71,16 @@
     @apply h-full;
   }
 
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+  }
+
   body {
     @apply antialiased;
     background: #050505;
@@ -655,11 +665,14 @@
 }
 @layer components {
   .command-center-shell {
+    width: 100%;
+    max-width: 100%;
     min-height: 100dvh;
     display: flex;
     flex-direction: column;
     padding: max(8px, env(safe-area-inset-top)) 18px calc(130px + env(safe-area-inset-bottom)) 18px;
     background: radial-gradient(120% 80% at 50% 0%, #1A1A22 0%, #0E0E12 60%, #0A0A0D 100%);
+    overflow-x: hidden;
   }
 
   .command-center-body {
@@ -865,9 +878,9 @@
     border: none;
     font-weight: 600;
     font-size: 15px;
-    background: linear-gradient(140deg, #ff2e4d, #ff5a5f);
-    color: #fff;
-    box-shadow: 0 12px 30px rgba(255, 46, 77, 0.35);
+    background: linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076);
+    color: #050505;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25);
   }
 
   .opener-button:disabled {
@@ -988,13 +1001,13 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(140deg, #FF2E4D, #FF5A5F);
+    background: linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076);
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    box-shadow: 0 16px 35px rgba(255, 46, 77, 0.35);
+    color: #050505;
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25);
     transform: translateY(-6px);
   }
 
