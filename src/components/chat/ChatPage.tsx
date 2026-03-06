@@ -9,10 +9,14 @@ import {
 import { useAppToast } from "@/components/ui/AppToast";
 import MessageBubble from "./MessageBubble";
 import SuggestionsPanel from "./SuggestionsPanel";
+import HeartAnalysis from "./HeartAnalysis";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
 import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
 
 const PASTE_PROGRESS_GAIN = 2;
+const HEART_MIN_DURATION = 1200;
+const HEART_ANIMATION_DURATION = 500;
+const HEART_HOLD_DURATION = 300;
 
 const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
   try {
@@ -116,6 +120,14 @@ const ChatPage: React.FC<ChatPageProps> = ({
     telegramCard: false,
     contactSelector: false,
   });
+  const [analysisVisible, setAnalysisVisible] = useState(false);
+  const [analysisStatusText, setAnalysisStatusText] = useState("Анализирую её ответ");
+  const [analysisDiffLabel, setAnalysisDiffLabel] = useState<string | null>(null);
+  const [analysisFillPercent, setAnalysisFillPercent] = useState(0);
+  const [analysisEmitParticles, setAnalysisEmitParticles] = useState(false);
+  const analysisStartTimeRef = useRef(0);
+  const analysisTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const analysisActiveRef = useRef(false);
 
   const isNewDialog = messages.length === 0;
 
@@ -126,6 +138,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const clearCopyToastTimers = () => {
     copyToastTimers.current.forEach(clearTimeout);
     copyToastTimers.current = [];
+  };
+
+  const clearAnalysisTimers = () => {
+    analysisTimers.current.forEach(clearTimeout);
+    analysisTimers.current = [];
   };
 
   const TOAST_TRANSITION_IN = 200;
@@ -277,6 +294,75 @@ const ChatPage: React.FC<ChatPageProps> = ({
     interestTimers.current.push(timer);
   };
 
+  const resetAnalysisOverlay = useCallback(() => {
+    analysisActiveRef.current = false;
+    setAnalysisVisible(false);
+    setAnalysisDiffLabel(null);
+    setAnalysisEmitParticles(false);
+    setAnalysisStatusText("Анализирую её ответ");
+  }, []);
+
+  const scheduleAnalysisFinish = useCallback(() => {
+    const elapsed = Date.now() - analysisStartTimeRef.current;
+    const wait = Math.max(0, HEART_MIN_DURATION - elapsed);
+    const timer = window.setTimeout(() => {
+      resetAnalysisOverlay();
+    }, wait);
+    analysisTimers.current.push(timer);
+  }, [resetAnalysisOverlay]);
+
+  const startAnalysisOverlay = useCallback(
+    (startValue: number) => {
+      clearAnalysisTimers();
+      analysisStartTimeRef.current = Date.now();
+      analysisActiveRef.current = true;
+      setAnalysisVisible(true);
+      setAnalysisStatusText("Анализирую её ответ");
+      setAnalysisDiffLabel(null);
+      setAnalysisEmitParticles(false);
+      setAnalysisFillPercent(startValue);
+    },
+    [clearAnalysisTimers]
+  );
+
+  const triggerAnalysisResult = useCallback(
+    (startValue: number, endValue: number) => {
+      if (!analysisActiveRef.current) return;
+      const diff = Math.round(endValue - startValue);
+      setAnalysisDiffLabel(
+        diff === 0 ? null : `${diff > 0 ? "+" : ""}${diff} интерес`
+      );
+      setAnalysisEmitParticles(!prefersReducedMotion && diff > 0);
+      const duration = prefersReducedMotion ? 0 : HEART_ANIMATION_DURATION;
+      setAnalysisFillPercent(endValue);
+      const statusTimer = window.setTimeout(() => {
+        setAnalysisStatusText("Подбираю лучший ответ");
+        setAnalysisDiffLabel(null);
+        setAnalysisEmitParticles(false);
+        const holdTimer = window.setTimeout(() => {
+          scheduleAnalysisFinish();
+        }, prefersReducedMotion ? 0 : HEART_HOLD_DURATION);
+        analysisTimers.current.push(holdTimer);
+      }, duration);
+      analysisTimers.current.push(statusTimer);
+    },
+    [prefersReducedMotion, scheduleAnalysisFinish]
+  );
+
+  const abortAnalysisOverlay = useCallback(
+    (message?: string) => {
+      if (!analysisActiveRef.current) return;
+      if (message) {
+        setAnalysisStatusText(message);
+      }
+      const holdTimer = window.setTimeout(() => {
+        scheduleAnalysisFinish();
+      }, prefersReducedMotion ? 0 : 200);
+      analysisTimers.current.push(holdTimer);
+    },
+    [prefersReducedMotion, scheduleAnalysisFinish]
+  );
+
   const getProgressChipStyle = (phase: ProgressChipPhase) => {
     if (prefersReducedMotion) {
       return {
@@ -382,8 +468,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
         clearTimeout(pendingPasteRewardRef.current);
         pendingPasteRewardRef.current = null;
       }
+      clearAnalysisTimers();
+      resetAnalysisOverlay();
     };
-  }, []);
+  }, [resetAnalysisOverlay]);
 
   const updateNearBottom = useCallback(() => {
     if (!scrollRef.current) return;
@@ -499,6 +587,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
       return;
     }
 
+    const shouldShowAnalysis = !actionOverride;
+    const startingInterest = currentInterest;
+    if (shouldShowAnalysis) {
+      startAnalysisOverlay(startingInterest);
+    }
+
     setGenerating(true);
     setSuggestions([]);
     setAvailableActions([]);
@@ -518,9 +612,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setSuggestions([]);
         showToast("Генерации закончились. Купи пакет!", "error");
         onSubscribe?.();
+        if (shouldShowAnalysis) {
+          abortAnalysisOverlay("Недостаточно данных");
+        }
       } else if (res.error) {
         setSuggestions([]);
         showToast("Не удалось сгенерировать ответ", "error");
+        if (shouldShowAnalysis) {
+          abortAnalysisOverlay("Не удалось проанализировать");
+        }
       } else {
         setSuggestions(res.suggestions || []);
         setAvailableActions(res.available_actions || []);
@@ -535,6 +635,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
             setInterestDelta(diff);
             setTimeout(() => setInterestDelta(null), 1600);
           }
+          if (shouldShowAnalysis) {
+            triggerAnalysisResult(oldInterest, newInterest);
+          }
+        } else if (shouldShowAnalysis) {
+          triggerAnalysisResult(startingInterest, startingInterest);
         }
 
         if (res.free_remaining !== undefined) setFreeRemaining(res.free_remaining);
@@ -554,6 +659,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
       console.error(err);
       setSuggestions([]);
       showToast("Не удалось сгенерировать ответ", "error");
+      if (shouldShowAnalysis) {
+        abortAnalysisOverlay("Не удалось проанализировать");
+      }
     } finally {
       setGenerating(false);
       isGeneratingRef.current = false;
@@ -910,12 +1018,22 @@ const ChatPage: React.FC<ChatPageProps> = ({
       )}
 
       <div ref={suggestionsRef}>
-        <SuggestionsPanel
-          suggestions={suggestions}
-          onSelect={handleSelectSuggestion}
-          loading={generating}
-          prefersReducedMotion={prefersReducedMotion}
-        />
+        {analysisVisible ? (
+          <HeartAnalysis
+            percent={analysisFillPercent}
+            statusText={analysisStatusText}
+            diffLabel={analysisDiffLabel}
+            emitParticles={analysisEmitParticles}
+            prefersReducedMotion={prefersReducedMotion}
+          />
+        ) : (
+          <SuggestionsPanel
+            suggestions={suggestions}
+            onSelect={handleSelectSuggestion}
+            loading={generating}
+            prefersReducedMotion={prefersReducedMotion}
+          />
+        )}
       </div>
 
       {copyToast && (

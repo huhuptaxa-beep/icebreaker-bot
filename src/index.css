@@ -573,3 +573,83 @@
     transform: translateY(-2px);
   }
 }
+
+@layer components {
+  .heart-analysis {
+    @apply flex flex-col items-center justify-center text-center gap-4 py-6 px-4;
+    min-height: 280px;
+    opacity: 0;
+    animation: heartOverlayFade 200ms ease forwards;
+  }
+
+  .heart-stage {
+    position: relative;
+    width: 220px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .heart-svg {
+    filter: drop-shadow(0 18px 45px rgba(0, 0, 0, 0.45));
+  }
+
+  .heart-diff-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #F9E076;
+  }
+
+  .heart-status-text {
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .heart-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .heart-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #AD8B3A, #F9E076);
+    opacity: 0;
+    animation: heartParticleFly 900ms ease-out infinite;
+  }
+
+  .heart-particle-1 { top: 20%; left: 10%; animation-delay: 0ms; }
+  .heart-particle-2 { top: 10%; left: 70%; animation-delay: 120ms; }
+  .heart-particle-3 { top: 50%; left: 5%; animation-delay: 240ms; }
+  .heart-particle-4 { top: 65%; left: 85%; animation-delay: 360ms; }
+  .heart-particle-5 { top: 30%; left: 90%; animation-delay: 480ms; }
+  .heart-particle-6 { top: 75%; left: 20%; animation-delay: 600ms; }
+  .heart-particle-7 { top: 40%; left: 80%; animation-delay: 720ms; }
+  .heart-particle-8 { top: 15%; left: 35%; animation-delay: 840ms; }
+}
+
+@keyframes heartOverlayFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heartParticleFly {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.4);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-15px, 30px, 0) scale(0.9);
+  }
+}
