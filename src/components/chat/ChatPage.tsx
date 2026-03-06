@@ -1,4 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import {
   Message,
   chatGenerate,
@@ -15,8 +22,6 @@ import CommandHeader from "./command-center/CommandHeader";
 import MiniContext from "./command-center/MiniContext";
 import GirlReplyInput from "./command-center/GirlReplyInput";
 import WorkingZone from "./command-center/WorkingZone";
-import BottomNavigation from "./command-center/BottomNavigation";
-
 const HEART_MIN_DURATION = 1200;
 const HEART_ANIMATION_DURATION = 500;
 const HEART_HOLD_DURATION = 300;
@@ -36,6 +41,12 @@ interface ChatPageProps {
   onSubscribe?: () => void;
   onPrevConversation?: () => void;
   onNextConversation?: () => void;
+  onOpenHistory: (payload: { conversationId: string; girlName: string; messages: Message[] }) => void;
+  onActionStateChange?: (state: { generating: boolean; canGenerate: boolean }) => void;
+}
+
+export interface ChatPageHandle {
+  triggerGenerate: () => void;
 }
 
 type ProgressChipPhase = "initial" | "enter" | "fly";
@@ -45,13 +56,18 @@ interface ProgressChipState {
   phase: ProgressChipPhase;
 }
 
-const ChatPage: React.FC<ChatPageProps> = ({
-  conversationId,
-  onBack,
-  onSubscribe,
-  onPrevConversation,
-  onNextConversation,
-}) => {
+const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
+  {
+    conversationId,
+    onBack,
+    onSubscribe,
+    onPrevConversation,
+    onNextConversation,
+    onOpenHistory,
+    onActionStateChange,
+  },
+  ref
+) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<string[][]>([]);
   const [generating, setGenerating] = useState(false);
@@ -709,6 +725,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return !!(draftGirlReply.trim() || hasUnansweredGirl);
   })();
 
+  useEffect(() => {
+    onActionStateChange?.({ generating, canGenerate });
+  }, [generating, canGenerate, onActionStateChange]);
+
   const workingState: "analysis" | "suggestions" | "idle" | "action" | "opener" = analysisVisible
     ? "analysis"
     : pendingAction
@@ -718,6 +738,12 @@ const ChatPage: React.FC<ChatPageProps> = ({
     : isNewConversation
     ? "opener"
     : "idle";
+
+  useImperativeHandle(ref, () => ({
+    triggerGenerate: () => {
+      handleGenerate();
+    },
+  }));
 
   return (
     <div
@@ -735,7 +761,16 @@ const ChatPage: React.FC<ChatPageProps> = ({
       <div className="command-center-body" ref={scrollRef}>
         <div className="mini-context-section">
           <p className="mini-context-label">История переписки</p>
-          <MiniContext messages={messages} onOpenHistory={() => {}} />
+          <MiniContext
+            messages={messages}
+            onOpenHistory={() =>
+              onOpenHistory({
+                conversationId,
+                girlName,
+                messages,
+              })
+            }
+          />
         </div>
 
         {!isNewConversation && (
@@ -883,14 +918,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       </div>
 
-      <BottomNavigation
-        onDialogs={onBack}
-        onAction={() => handleGenerate()}
-        onProfile={() => {}}
-        actionDisabled={!canGenerate || generating}
-        actionLoading={generating}
-      />
-
       {copyToast && (
         <div
           className="fixed left-1/2 copy-toast px-4 py-2 rounded-full text-[13px] font-semibold pointer-events-none select-none"
@@ -966,6 +993,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default ChatPage;

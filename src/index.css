@@ -942,6 +942,7 @@
     scroll-padding-right: 50%;
     padding: 0 0 16px;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
     position: relative;
     z-index: 5;
   }
@@ -1022,6 +1023,20 @@
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .bottom-nav-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .bottom-nav-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
   }
 
   .bottom-nav-icon {

@@ -342,7 +342,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({
    MAIN PAGE
 ============================== */
 
-interface ConversationsPageProps {
+interface DialogsPageProps {
   conversations: Conversation[];
   onSelect: (id: string) => void;
   onCreate: () => void;
@@ -352,7 +352,7 @@ interface ConversationsPageProps {
   balance?: number;
 }
 
-const ConversationsPage: React.FC<ConversationsPageProps> = ({
+const DialogsPage: React.FC<DialogsPageProps> = ({
   conversations,
   onSelect,
   onCreate,
@@ -384,7 +384,10 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
   return (
     <div
       className="flex flex-col h-[100dvh] animate-fadeIn"
-      style={{ background: "#050505" }}
+      style={{
+        background: "#050505",
+        paddingBottom: "calc(120px + env(safe-area-inset-bottom))",
+      }}
       onClick={() => openId && setOpenId(null)}
     >
       {/* ========== UNIFIED TOP BAR — Title + Badges on one line ========== */}
@@ -560,4 +563,4 @@ const ConversationsPage: React.FC<ConversationsPageProps> = ({
   );
 };
 
-export default ConversationsPage;
+export default DialogsPage;

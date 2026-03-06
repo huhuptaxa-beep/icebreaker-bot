@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Conversation,
+  Message,
   createConversation,
   getConversations,
   deleteConversation,
   getSubscription,
 } from "@/api/chatApi";
 import { useAppToast } from "@/components/ui/AppToast";
-import ConversationsPage from "./ConversationsPage";
-import ChatPage from "./ChatPage";
+import DialogsPage from "./DialogsPage";
+import ChatPage, { ChatPageHandle } from "./ChatPage";
+import HistoryPage from "./HistoryPage";
+import ProfilePage from "./ProfilePage";
 import SubscriptionPage from "@/components/SubscriptionPage";
+import BottomNavigation from "./command-center/BottomNavigation";
 
-type View = "list" | "chat" | "subscription";
+type Screen = "dialogs" | "chat" | "history" | "profile";
 
 interface ChatAppProps {
   telegramId: number | null;
@@ -19,26 +23,44 @@ interface ChatAppProps {
   onHapticSuccess?: () => void;
 }
 
+interface HistoryView {
+  conversationId: string;
+  girlName: string;
+  messages: Message[];
+}
+
 const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   const { showToast } = useAppToast();
-  const [view, setView] = useState<View>("list");
+  const [activeScreen, setActiveScreen] = useState<Screen>("dialogs");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [lastConversationId, setLastConversationId] = useState<string | null>(null);
+  const [historyView, setHistoryView] = useState<HistoryView | null>(null);
   const [loading, setLoading] = useState(false);
-
   const [balance, setBalance] = useState<number | undefined>(undefined);
+  const [showSubscription, setShowSubscription] = useState(false);
 
   const [showNameModal, setShowNameModal] = useState(false);
   const [newGirlName, setNewGirlName] = useState("");
+
+  const [actionState, setActionState] = useState({ generating: false, canGenerate: false });
+
+  const chatPageRef = useRef<ChatPageHandle>(null);
+
+  useEffect(() => {
+    if (activeConversationId) {
+      setLastConversationId(activeConversationId);
+    }
+  }, [activeConversationId]);
 
   const fetchConversations = useCallback(async () => {
     if (!telegramId) return;
     setLoading(true);
     try {
       const data = await getConversations();
-      setConversations(
-        Array.isArray(data) ? data.filter((c) => c && c.id) : []
-      );
+      const normalized = Array.isArray(data) ? data.filter((c) => c && c.id) : [];
+      setConversations(normalized);
+      setLastConversationId((prev) => prev ?? normalized[0]?.id ?? null);
     } catch {
       setConversations([]);
     } finally {
@@ -50,7 +72,9 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     try {
       const sub = await getSubscription();
       setBalance(sub.free_remaining + sub.paid_remaining);
-    } catch { }
+    } catch {
+      setBalance(undefined);
+    }
   }, []);
 
   useEffect(() => {
@@ -81,7 +105,8 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
       }
       setConversations((prev) => [conv, ...prev.filter((c) => c && c.id)]);
       setActiveConversationId(conv.id);
-      setView("chat");
+      setLastConversationId(conv.id);
+      setActiveScreen("chat");
     } catch {
       showToast("Не удалось создать диалог", "error");
     } finally {
@@ -97,6 +122,13 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     try {
       await deleteConversation(id);
       setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (activeConversationId === id) {
+        setActiveConversationId(null);
+        setActiveScreen("dialogs");
+      }
+      if (lastConversationId === id) {
+        setLastConversationId(null);
+      }
       showToast("Диалог удалён", "success");
     } catch {
       showToast("Не удалось удалить диалог", "error");
@@ -104,79 +136,146 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   };
 
   /* ===========================
-     NAVIGATION
+     NAVIGATION HELPERS
   =========================== */
 
-  const handleSelect = (id: string) => {
+  const openConversation = (id: string | null) => {
     if (!id) return;
     setActiveConversationId(id);
-    setView("chat");
+    setLastConversationId(id);
+    setActiveScreen("chat");
   };
 
-  const handleBack = () => {
-    setView("list");
-    setActiveConversationId(null);
+  const handleSelect = (id: string) => {
+    openConversation(id);
+  };
+
+  const handleBackToDialogs = () => {
+    if (activeConversationId) {
+      setLastConversationId(activeConversationId);
+    }
+    setActiveScreen("dialogs");
     fetchConversations();
   };
 
+  const handleOpenHistory = (payload: HistoryView) => {
+    setHistoryView(payload);
+    setActiveScreen("history");
+  };
+
+  const handleHistoryBack = () => {
+    setHistoryView(null);
+    setActiveScreen("chat");
+  };
+
+  const handleProfileOpen = () => {
+    setActiveScreen("profile");
+  };
+
+  const handleDialogsOpen = () => {
+    setActiveScreen("dialogs");
+  };
+
+  const handleAction = () => {
+    if (activeScreen === "chat") {
+      if (!actionState.generating && actionState.canGenerate) {
+        chatPageRef.current?.triggerGenerate();
+      }
+      return;
+    }
+    const fallback = lastConversationId ?? conversations[0]?.id ?? null;
+    if (fallback) {
+      openConversation(fallback);
+    } else {
+      showToast("Нет активных диалогов", "warning");
+    }
+  };
+
+  const actionDisabled = activeScreen === "chat"
+    ? (!actionState.canGenerate || actionState.generating)
+    : conversations.length === 0;
+  const actionLoading = activeScreen === "chat" ? actionState.generating : false;
+
   /* ===========================
-     RENDER
+     SCREEN CONTENT
   =========================== */
 
-  if (view === "subscription") {
-    return <SubscriptionPage onBack={() => setView("list")} />;
-  }
+  const activeIndex = activeConversationId
+    ? conversations.findIndex((c) => c.id === activeConversationId)
+    : -1;
+  const prevConversationId =
+    activeIndex > 0 ? conversations[activeIndex - 1]?.id ?? null : null;
+  const nextConversationId =
+    activeIndex >= 0 && activeIndex < conversations.length - 1
+      ? conversations[activeIndex + 1]?.id ?? null
+      : null;
 
-  if (view === "chat" && activeConversationId) {
-    const activeIndex = conversations.findIndex((c) => c.id === activeConversationId);
-    const prevConversationId =
-      activeIndex > 0 ? conversations[activeIndex - 1]?.id ?? null : null;
-    const nextConversationId =
-      activeIndex >= 0 && activeIndex < conversations.length - 1
-        ? conversations[activeIndex + 1]?.id ?? null
-        : null;
+  const handlePrevConversation =
+    prevConversationId !== null ? () => openConversation(prevConversationId) : undefined;
+  const handleNextConversation =
+    nextConversationId !== null ? () => openConversation(nextConversationId) : undefined;
 
-    const handlePrevConversation =
-      prevConversationId !== null
-        ? () => {
-            setActiveConversationId(prevConversationId);
-          }
-        : undefined;
-    const handleNextConversation =
-      nextConversationId !== null
-        ? () => {
-            setActiveConversationId(nextConversationId);
-          }
-        : undefined;
+  let screenContent: React.ReactNode = null;
 
-    return (
-      <div key="chat" className="animate-fadeIn">
-        <ChatPage
-          conversationId={activeConversationId}
-          onBack={handleBack}
-          onSubscribe={() => setView("subscription")}
-          onPrevConversation={handlePrevConversation}
-          onNextConversation={handleNextConversation}
-        />
-      </div>
+  if (activeScreen === "chat" && activeConversationId) {
+    screenContent = (
+      <ChatPage
+        ref={chatPageRef}
+        conversationId={activeConversationId}
+        onBack={handleBackToDialogs}
+        onSubscribe={() => setShowSubscription(true)}
+        onPrevConversation={handlePrevConversation}
+        onNextConversation={handleNextConversation}
+        onOpenHistory={handleOpenHistory}
+        onActionStateChange={setActionState}
+      />
+    );
+  } else if (activeScreen === "history" && historyView) {
+    screenContent = (
+      <HistoryPage
+        girlName={historyView.girlName}
+        messages={historyView.messages}
+        onBack={handleHistoryBack}
+      />
+    );
+  } else if (activeScreen === "profile") {
+    screenContent = (
+      <ProfilePage telegramId={telegramId} conversations={conversations} balance={balance} />
+    );
+  } else {
+    screenContent = (
+      <DialogsPage
+        conversations={conversations}
+        onSelect={handleSelect}
+        onCreate={handleCreate}
+        onDelete={handleDelete}
+        onSubscribe={() => setShowSubscription(true)}
+        loading={loading}
+        balance={balance}
+      />
     );
   }
 
   return (
     <>
-      <div key="list" className="animate-fadeIn">
-        <ConversationsPage
-          conversations={conversations}
-          onSelect={handleSelect}
-          onCreate={handleCreate}
-          onDelete={handleDelete}
-          onSubscribe={() => setView("subscription")}
-          loading={loading}
-          balance={balance}
-        />
-      </div>
+      <div className="min-h-[100dvh] relative">{screenContent}</div>
 
-      {/* ========== NAME INPUT MODAL — Premium ========== */}
+      <BottomNavigation
+        onDialogs={handleDialogsOpen}
+        onAction={handleAction}
+        onProfile={handleProfileOpen}
+        actionDisabled={actionDisabled}
+        actionLoading={actionLoading}
+      />
+
+      {/* Subscription overlay */}
+      {showSubscription && (
+        <div className="fixed inset-0 z-50" style={{ background: "rgba(0,0,0,0.8)" }}>
+          <SubscriptionPage onBack={() => setShowSubscription(false)} />
+        </div>
+      )}
+
+      {/* Name input modal */}
       {showNameModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"

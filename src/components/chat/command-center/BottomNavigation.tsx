@@ -54,20 +54,29 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
 }) => {
   return (
     <nav className="bottom-navigation">
-      <button onClick={onDialogs} className="bottom-nav-icon" aria-label="Диалоги">
-        <ChatIcon />
-      </button>
-      <button
-        onClick={onAction}
-        className="bottom-nav-action"
-        disabled={actionDisabled}
-        aria-label="Главное действие"
-      >
-        {actionLoading ? <span className="bottom-nav-spinner" /> : <ActionIcon />}
-      </button>
-      <button onClick={onProfile} className="bottom-nav-icon" aria-label="Профиль">
-        <ProfileIcon />
-      </button>
+      <div className="bottom-nav-column">
+        <button onClick={onDialogs} className="bottom-nav-icon" aria-label="Диалоги">
+          <ChatIcon />
+        </button>
+        <span className="bottom-nav-label">Chats</span>
+      </div>
+      <div className="bottom-nav-column">
+        <button
+          onClick={onAction}
+          className="bottom-nav-action"
+          disabled={actionDisabled}
+          aria-label="Главное действие"
+        >
+          {actionLoading ? <span className="bottom-nav-spinner" /> : <ActionIcon />}
+        </button>
+        <span className="bottom-nav-label">Action</span>
+      </div>
+      <div className="bottom-nav-column">
+        <button onClick={onProfile} className="bottom-nav-icon" aria-label="Профиль">
+          <ProfileIcon />
+        </button>
+        <span className="bottom-nav-label">Profile</span>
+      </div>
     </nav>
   );
 };
