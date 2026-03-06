@@ -99,6 +99,8 @@ serve(async (req) => {
 
     /* =====================
        PROMPT BASE
+       System prompt СТАТИЧНЫЙ — не добавлять динамические данные!
+       Это критично для работы кэша.
     ===================== */
 
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY")
@@ -120,7 +122,6 @@ serve(async (req) => {
     if (action_type === "reengage")
       fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
 
-    // Первое сообщение в Telegram — мини-промпт надстройка
     if (action_type === "telegram_first")
       fullSystemPrompt += "\n\n" + TELEGRAM_FIRST_MESSAGE
 
@@ -196,38 +197,10 @@ serve(async (req) => {
             phase_message_count: (conv.phase_message_count || 0) + 1
           })
           .eq("id", conversation_id)
-
-        // Передаём стратегию в system prompt
-        fullSystemPrompt += `
-
-CURRENT_PHASE: ${strategyResult.phase}
-EFFECTIVE_INTEREST: ${strategyResult.effectiveInterest}
-NEXT_OBJECTIVE: ${strategyResult.nextObjective}
-`
-
-        // Намёки на свидание в зависимости от interest (только для Telegram)
-        if (strategyResult && (conv.channel || "app") === "telegram") {
-          if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateStrongHint) {
-            fullSystemPrompt += "\nОдин из трёх вариантов ДОЛЖЕН содержать намёк на встречу вживую."
-          } else if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateHint) {
-            fullSystemPrompt += "\nОдин из трёх вариантов МОЖЕТ содержать лёгкий вскользь намёк на встречу вживую, без давления."
-          }
-        }
-      }
-
-      // Fallback: загружаем стратегию из БД для action без incoming_message
-      if (!strategyResult && conv) {
-        fullSystemPrompt += `
-CURRENT_PHASE: ${conv.phase || 1}
-EFFECTIVE_INTEREST: ${conv.effective_interest || 3}
-NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "contact" ? "TELEGRAM_INVITE" : action_type === "telegram_first" ? "RESTART_PLAY" : "REWARM"}
-`
       }
 
       /* =====================================================
          AVAILABLE ACTIONS
-         =====================================================
-         Кнопки действий показываются на фронте рядом с вариантами.
       ===================================================== */
 
       available_actions = []
@@ -238,12 +211,10 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
       const totalMessages = (conv.phase_message_count || 0) + (strategyResult ? 1 : 0)
       const channel = conv.channel || "app"
 
-      // Диалог затух
       if (currentFreshness < 0.6) {
         available_actions.push("reengage")
       }
 
-      // Telegram: interest >= 30, phase === 2, минимум сообщений, канал app
       if (currentInterest >= STRATEGY_CONFIG.interest.thresholds.telegram &&
           currentPhase === 2 &&
           totalMessages >= STRATEGY_CONFIG.phase.minMessagesForTelegram &&
@@ -251,7 +222,6 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
         available_actions.push("contact")
       }
 
-      // Date: interest >= 95, phase >= 4, минимум сообщений, канал telegram
       if (currentInterest >= STRATEGY_CONFIG.interest.thresholds.date &&
           currentPhase >= 4 &&
           totalMessages >= STRATEGY_CONFIG.phase.minMessagesForDate &&
@@ -268,7 +238,7 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
         .select("role, text, created_at")
         .eq("conversation_id", conversation_id)
         .order("created_at", { ascending: false })
-        .limit(40)
+        .limit(20)
 
       const history = (historyDesc || []).reverse()
 
@@ -280,7 +250,6 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
         })
       }
 
-      // Разрешаем пустую историю для telegram_first (первое сообщение в Telegram)
       if (history.length === 0 && action_type !== "telegram_first") {
         return new Response(
           JSON.stringify({ error: "No messages" }),
@@ -341,6 +310,34 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
     )
 
     /* =====================
+       STRATEGY BLOCK — вставляется в user prompt, НЕ в system prompt
+       Это позволяет system prompt оставаться статичным для кэша
+    ===================== */
+
+    let strategyBlock = ""
+
+    if (strategyResult) {
+      strategyBlock = `[СТРАТЕГИЯ]\nФаза: ${strategyResult.phase}\nИнтерес: ${strategyResult.effectiveInterest}\nДиректива: ${strategyResult.nextObjective}`
+
+      const channel = messageType === "reply" ? ((await supabase.from("conversations").select("channel").eq("id", conversation_id).single()).data?.channel || "app") : "app"
+      if (channel === "telegram") {
+        if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateStrongHint) {
+          strategyBlock += "\nОдин из трёх вариантов ДОЛЖЕН содержать намёк на встречу вживую."
+        } else if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateHint) {
+          strategyBlock += "\nОдин из трёх вариантов МОЖЕТ содержать лёгкий намёк на встречу, без давления."
+        }
+      }
+    } else if (messageType === "reply") {
+      const fallbackObjective = action_type === "date" ? "DATE_INVITE" : action_type === "contact" ? "TELEGRAM_INVITE" : action_type === "telegram_first" ? "RESTART_PLAY" : "REWARM"
+      const { data: convFallback } = await supabase.from("conversations").select("phase, effective_interest").eq("id", conversation_id).single()
+      strategyBlock = `[СТРАТЕГИЯ]\nФаза: ${convFallback?.phase || 1}\nИнтерес: ${convFallback?.effective_interest || 3}\nДиректива: ${fallbackObjective}`
+    }
+
+    const finalUserPrompt = strategyBlock
+      ? strategyBlock + "\n\n" + userPrompt
+      : userPrompt
+
+    /* =====================
        CLAUDE API
     ===================== */
 
@@ -361,7 +358,7 @@ NEXT_OBJECTIVE: ${action_type === "date" ? "DATE_INVITE" : action_type === "cont
             { type: "text", text: fullSystemPrompt, cache_control: { type: "ephemeral" } }
           ],
           messages: [
-            { role: "user", content: userPrompt }
+            { role: "user", content: finalUserPrompt }
           ]
         })
       }
