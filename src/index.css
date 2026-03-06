@@ -783,48 +783,42 @@
     pointer-events: none;
   }
 
-  .mini-context-section {
+  .history-card {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: opacity 200ms ease, transform 200ms ease;
   }
 
-  .mini-context-label {
+  .history-card:hover,
+  .history-card:focus-visible {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .history-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .history-card-label {
     font-size: 12px;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.45);
-    background: transparent;
-    border: none;
-    text-align: left;
-    padding: 0;
-    cursor: pointer;
-    outline: none;
-    transition: color 200ms ease;
+    color: rgba(255, 255, 255, 0.5);
   }
 
-  .history-link {
-    display: block;
-    margin: 20px auto 10px;
-    text-align: center;
+  .history-card-arrow {
     font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.75);
-    cursor: pointer;
-    transition: opacity 200ms ease;
-    opacity: 0.85;
-  }
-
-  .history-link:hover,
-  .history-link:active {
-    opacity: 1;
-  }
-
-  .mini-context-label:hover,
-  .mini-context-label:focus-visible {
-    color: rgba(255, 255, 255, 0.75);
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .mini-context {
@@ -833,6 +827,11 @@
     gap: 6px;
     font-size: 13px;
     color: rgba(255, 255, 255, 0.85);
+  }
+
+  .mini-context-empty {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13px;
   }
 
   .mini-context-row {
@@ -910,6 +909,29 @@
     overflow: visible;
   }
 
+  .command-working.ai-scan {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .command-working.ai-scan::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 120, 0.35), transparent);
+    animation: aiScan 1.6s infinite;
+    pointer-events: none;
+  }
+
+  @keyframes aiScan {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
   .working-zone {
     flex: 1;
     display: flex;
@@ -924,6 +946,11 @@
     text-align: center;
     max-width: 260px;
     color: rgba(255, 255, 255, 0.8);
+  }
+
+  .working-zone-idle-loading .working-zone-idle-title {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
   }
 
   .working-zone-idle-title {

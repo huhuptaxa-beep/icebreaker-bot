@@ -422,6 +422,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
   const handleTextareaPaste = async () => {
     try {
+      if (typeof navigator === "undefined" || !navigator.clipboard?.readText) {
+        showToast("Буфер обмена недоступен", "error");
+        return;
+      }
       const clipText = await navigator.clipboard.readText();
       if (clipText) {
         setDraftGirlReply(clipText);
@@ -429,7 +433,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         setTimeout(() => setPasteLabel(null), 1500);
         triggerPasteReward();
       }
-    } catch {}
+    } catch (error) {
+      console.error("Clipboard read failed", error);
+      showToast("Не удалось прочитать буфер обмена", "error");
+    }
   };
 
   const refreshConversation = async () => {
@@ -784,11 +791,33 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     });
   }, [conversationId, girlName, messages, onOpenHistory]);
 
+  const handleHistoryCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleHistoryOpen();
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     triggerGenerate: () => {
       handleGenerate();
     },
   }));
+
+  const idleTitle = generating
+    ? "AI анализирует сообщение"
+    : showActionNudge
+    ? "Готов подобрать ответ"
+    : "AI готов проанализировать ответ";
+
+  const idleSubtitle = generating
+    ? null
+    : showActionNudge
+    ? "Нажми ⚡ чтобы получить варианты"
+    : "Вставь её сообщение и нажми ⚡";
+
+  const isIdleState = workingState === "idle";
+  const isAiScanActive = generating && isIdleState;
 
   return (
     <div
@@ -804,24 +833,29 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       />
 
       <div className="command-center-body" ref={scrollRef}>
-        {!isNewConversation && (
-          <GirlReplyInput
-            value={draftGirlReply}
-            onChange={setDraftGirlReply}
-            onPaste={handleTextareaPaste}
-            pasteLabel={pasteLabel}
-            disabled={generating}
-          />
-        )}
+        <GirlReplyInput
+          value={draftGirlReply}
+          onChange={setDraftGirlReply}
+          onPaste={handleTextareaPaste}
+          pasteLabel={pasteLabel}
+          disabled={generating}
+        />
 
-        <div className="mini-context-section">
-          <button type="button" className="mini-context-label history-link" onClick={handleHistoryOpen}>
-            История переписки →
-          </button>
-          <MiniContext messages={messages} onOpenHistory={handleHistoryOpen} />
+        <div
+          className="history-card"
+          role="button"
+          tabIndex={0}
+          onClick={handleHistoryOpen}
+          onKeyDown={handleHistoryCardKeyDown}
+        >
+          <div className="history-card-header">
+            <span className="history-card-label">История переписки</span>
+            <span className="history-card-arrow">→</span>
+          </div>
+          <MiniContext messages={messages} />
         </div>
 
-        <div className="command-working" ref={suggestionsRef}>
+        <div className={`command-working${isAiScanActive ? " ai-scan" : ""}`} ref={suggestionsRef}>
           <WorkingZone
             state={workingState}
             analysis={
@@ -842,13 +876,9 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
               />
             }
             idle={
-              <div className="working-zone-idle">
-                <p className="working-zone-idle-title">
-                  {showActionNudge ? "Готов подобрать ответ" : "AI готов проанализировать ответ"}
-                </p>
-                <p className="working-zone-idle-text">
-                  {showActionNudge ? "Нажми ⚡ чтобы получить варианты" : "Вставь её сообщение и нажми ⚡"}
-                </p>
+              <div className={`working-zone-idle${generating ? " working-zone-idle-loading" : ""}`}>
+                <p className="working-zone-idle-title">{idleTitle}</p>
+                {idleSubtitle && <p className="working-zone-idle-text">{idleSubtitle}</p>}
               </div>
             }
             action={
