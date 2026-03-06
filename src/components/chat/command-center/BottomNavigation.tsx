@@ -8,6 +8,7 @@ interface BottomNavigationProps {
   actionLoading?: boolean;
   activeTab: "dialogs" | "chat" | "profile";
   actionPulse?: boolean;
+  actionNudge?: boolean;
 }
 
 const ChatIcon = () => (
@@ -55,6 +56,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   actionLoading,
   activeTab,
   actionPulse,
+  actionNudge,
 }) => {
   return (
     <nav className="bottom-navigation">
@@ -67,7 +69,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
       <div className={`bottom-nav-column ${activeTab === "chat" ? "active" : ""}`}>
         <button
           onClick={onAction}
-          className={`bottom-nav-action ${actionPulse ? "pulse" : ""}`}
+          className={`bottom-nav-action ${actionPulse ? "pulse" : ""} ${actionNudge ? "action-nudge" : ""}`}
           disabled={actionDisabled}
           aria-label="Главное действие"
         >

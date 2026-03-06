@@ -65,6 +65,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     onNextConversation,
     onOpenHistory,
     onActionStateChange,
+    onActionNudgeChange,
   },
   ref
 ) => {
@@ -122,6 +123,8 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     null
   );
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [showActionNudge, setShowActionNudge] = useState(false);
+  const actionNudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [balancePulse, setBalancePulse] = useState(false);
   const [balanceDeltaLabel, setBalanceDeltaLabel] = useState<string | null>(
@@ -289,6 +292,28 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     triggerBalancePulse(1);
   };
 
+  useEffect(() => {
+    const hasText = draftGirlReply.trim().length > 0;
+    if (hasText) {
+      if (!actionNudgeTimer.current && !showActionNudge) {
+        actionNudgeTimer.current = window.setTimeout(() => {
+          setShowActionNudge(true);
+          actionNudgeTimer.current = null;
+        }, 1200);
+      }
+    } else {
+      setShowActionNudge(false);
+      if (actionNudgeTimer.current) {
+        clearTimeout(actionNudgeTimer.current);
+        actionNudgeTimer.current = null;
+      }
+    }
+  }, [draftGirlReply, showActionNudge]);
+
+  useEffect(() => {
+    onActionNudgeChange?.(showActionNudge);
+  }, [showActionNudge, onActionNudgeChange]);
+
   const resetAnalysisOverlay = useCallback(() => {
     analysisActiveRef.current = false;
     setAnalysisVisible(false);
@@ -447,6 +472,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       progressChipTimers.current.forEach(clearTimeout);
       interestTimers.current.forEach(clearTimeout);
       clearCopyToastTimers();
+      if (actionNudgeTimer.current) {
+        clearTimeout(actionNudgeTimer.current);
+        actionNudgeTimer.current = null;
+      }
       if (contactToastTimer.current) {
         clearTimeout(contactToastTimer.current);
         contactToastTimer.current = null;
@@ -566,6 +595,12 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const handleGenerate = async (
     actionOverride?: "date" | "contact" | "reengage" | "telegram_first"
   ) => {
+    setShowActionNudge(false);
+    if (actionNudgeTimer.current) {
+      clearTimeout(actionNudgeTimer.current);
+      actionNudgeTimer.current = null;
+    }
+
     if (isGeneratingRef.current) return;
     isGeneratingRef.current = true;
 
@@ -808,8 +843,12 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
             }
             idle={
               <div className="working-zone-idle">
-                <p className="working-zone-idle-title">AI готов проанализировать ответ</p>
-                <p className="working-zone-idle-text">Вставь её сообщение и нажми ⚡</p>
+                <p className="working-zone-idle-title">
+                  {showActionNudge ? "Готов подобрать ответ" : "AI готов проанализировать ответ"}
+                </p>
+                <p className="working-zone-idle-text">
+                  {showActionNudge ? "Нажми ⚡ чтобы получить варианты" : "Вставь её сообщение и нажми ⚡"}
+                </p>
               </div>
             }
             action={

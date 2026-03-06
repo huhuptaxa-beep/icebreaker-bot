@@ -60,7 +60,10 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
       ? "chat"
       : "dialogs";
 
-  const actionPulse = activeScreen === "chat" && actionState.canGenerate && !actionState.generating;
+  const [actionNudge, setActionNudge] = useState(false);
+
+  const actionPulse =
+    activeScreen === "chat" && actionState.canGenerate && !actionState.generating;
 
   const fetchConversations = useCallback(async () => {
     if (!telegramId) return;
@@ -237,6 +240,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
         onNextConversation={handleNextConversation}
         onOpenHistory={handleOpenHistory}
         onActionStateChange={setActionState}
+        onActionNudgeChange={setActionNudge}
       />
     );
   } else if (activeScreen === "history" && historyView) {
@@ -277,6 +281,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
         actionLoading={actionLoading}
         activeTab={navActive}
         actionPulse={actionPulse}
+        actionNudge={actionNudge}
       />
 
       {/* Subscription overlay */}

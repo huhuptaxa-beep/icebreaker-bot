@@ -1182,9 +1182,28 @@
     color: #F9E076;
   }
 
+  .bottom-nav-action.action-nudge {
+    animation: actionNudgePulse 1.8s ease-out infinite;
+  }
+
   @keyframes spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  @keyframes actionNudgePulse {
+    0% {
+      transform: translateY(-6px) scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 215, 120, 0.5);
+    }
+    70% {
+      transform: translateY(-6px) scale(1.04);
+      box-shadow: 0 0 0 14px rgba(255, 215, 120, 0);
+    }
+    100% {
+      transform: translateY(-6px) scale(1);
+      box-shadow: 0 0 0 0 rgba(255, 215, 120, 0);
     }
   }
 
