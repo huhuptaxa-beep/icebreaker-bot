@@ -14,9 +14,11 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   prefersReducedMotion = false,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [pressedIndex, setPressedIndex] = useState<number | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -77,6 +79,35 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
 
   if (suggestions.length === 0) return null;
 
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const midpoint = container.scrollLeft + container.clientWidth / 2;
+      let nearestIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      Array.from(container.children).forEach((child, index) => {
+        if (!(child instanceof HTMLElement)) return;
+        const childCenter = child.offsetLeft + child.clientWidth / 2;
+        const distance = Math.abs(midpoint - childCenter);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      });
+
+      setActiveIndex(nearestIndex);
+    };
+
+    handleScroll();
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, [suggestions.length]);
+
   const handleSelect = (suggestion: string[], index: number) => {
     setSelectedIndex(index);
     setPressedIndex(null);
@@ -120,122 +151,72 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   };
 
   return (
-    <div className="px-5 py-3 flex flex-col gap-3 animate-fadeIn">
-      <span
-        style={{
-          fontSize: 12,
-          fontWeight: 500,
-          marginBottom: 6,
-          letterSpacing: "0.05em",
-          textTransform: "uppercase",
-          background: "linear-gradient(135deg, rgba(200, 200, 220, 0.4), rgba(200, 200, 220, 0.25))",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        AI предлагает 3 стратегии ответа
-      </span>
+    <div className="suggestions-wrap">
+      <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
+      <div className="suggestions-carousel" ref={scrollRef}>
+        {suggestions.map((suggestion, i) => {
+          const isSelected = selectedIndex === i;
+          const isPressed = pressedIndex === i && selectedIndex !== i;
+          const scale = prefersReducedMotion ? 1 : isSelected ? 0.97 : isPressed ? 0.99 : 1;
+          const highlightBackground = isSelected
+            ? "linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.08))"
+            : "rgba(255, 255, 255, 0.04)";
+          const highlightBorder = isSelected
+            ? "1px solid rgba(212, 175, 55, 0.35)"
+            : "1px solid rgba(255, 255, 255, 0.08)";
 
-      {suggestions.map((suggestion, i) => {
-        const isSelected = selectedIndex === i;
-        const isPressed = pressedIndex === i && selectedIndex !== i;
-        const scale = prefersReducedMotion ? 1 : isSelected ? 0.96 : isPressed ? 0.98 : 1;
-        const highlightBackground = isSelected
-          ? "linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.08))"
-          : "rgba(255, 255, 255, 0.03)";
-        const highlightBorder = isSelected
-          ? "0.5px solid rgba(212, 175, 55, 0.6)"
-          : "0.5px solid rgba(200, 200, 220, 0.08)";
-
-        return (
-          <button
-            key={i}
-            onClick={() => handleSelect(suggestion, i)}
-            onPointerDown={() => handlePointerDown(i)}
-            onPointerUp={releasePress}
-            onPointerLeave={releasePress}
-            onPointerCancel={releasePress}
-            className="w-full text-left transition-all duration-300"
-            style={{
-              background: highlightBackground,
-              border: highlightBorder,
-              borderRadius: 16,
-              padding: "16px 18px",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 14,
-              animation: prefersReducedMotion ? "none" : "fadeSlideUp 300ms ease-out forwards",
-              animationDelay: `${i * 100}ms`,
-              opacity: prefersReducedMotion ? 1 : 0,
-              backdropFilter: "blur(25px)",
-              WebkitBackdropFilter: "blur(25px)",
-              boxShadow: isSelected
-                ? "0 0 18px rgba(212, 175, 55, 0.35), 0 0 30px rgba(212, 175, 55, 0.18)"
-                : "0 2px 8px rgba(0, 0, 0, 0.15)",
-              transform: `scale(${scale})`,
-              transition: prefersReducedMotion
-                ? "none"
-                : "transform 120ms cubic-bezier(0.33, 1, 0.68, 1), border 0.3s ease, background 0.3s ease",
-            }}
-          >
-            {/* Number badge — gold circle */}
-            <span
+          return (
+            <button
+              key={i}
+              onClick={() => handleSelect(suggestion, i)}
+              onPointerDown={() => handlePointerDown(i)}
+              onPointerUp={releasePress}
+              onPointerLeave={releasePress}
+              onPointerCancel={releasePress}
+              className="suggestion-card"
               style={{
-                background: isSelected
-                  ? "linear-gradient(135deg, #AD8B3A, #F9E076)"
-                  : "rgba(212, 175, 55, 0.12)",
-                color: isSelected ? "#050505" : "#D4AF37",
-                borderRadius: 999,
-                width: 28,
-                height: 28,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 13,
-                fontWeight: 700,
-                flexShrink: 0,
-                marginTop: 2,
-                border: isSelected
-                  ? "none"
-                  : "0.5px solid rgba(212, 175, 55, 0.2)",
+                background: highlightBackground,
+                border: highlightBorder,
+                transform: `scale(${scale})`,
                 boxShadow: isSelected
-                  ? "0 0 10px rgba(212, 175, 55, 0.3)"
-                  : "none",
-                transition: "all 0.3s ease",
+                  ? "0 0 24px rgba(212, 175, 55, 0.25)"
+                  : "0 10px 35px rgba(0,0,0,0.25)",
               }}
             >
-              {i + 1}
-            </span>
+              <span
+                className="suggestion-badge"
+                style={{
+                  background: isSelected
+                    ? "linear-gradient(135deg, #AD8B3A, #F9E076)"
+                    : "rgba(212, 175, 55, 0.12)",
+                  color: isSelected ? "#050505" : "#D4AF37",
+                  border: isSelected ? "none" : "0.5px solid rgba(212, 175, 55, 0.2)",
+                  boxShadow: isSelected ? "0 0 12px rgba(212, 175, 55, 0.3)" : "none",
+                }}
+              >
+                {i + 1}
+              </span>
+              <div className="suggestion-text">
+                {suggestion.map((part, partIndex) => (
+                  <React.Fragment key={partIndex}>
+                    {partIndex > 0 && <div className="suggestion-divider" />}
+                    <div className="suggestion-line">{part}</div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
-            {/* Text content */}
-            <div style={{ flex: 1, lineHeight: 1.6 }}>
-              {suggestion.map((part, partIndex) => (
-                <React.Fragment key={partIndex}>
-                  {partIndex > 0 && (
-                    <div
-                      style={{
-                        height: "0.5px",
-                        background: "linear-gradient(90deg, transparent, rgba(200, 200, 220, 0.1), transparent)",
-                        margin: "10px 0",
-                      }}
-                    />
-                  )}
-                  <div
-                    style={{
-                      color: "rgba(255, 255, 255, 0.85)",
-                      fontSize: 14,
-                      fontWeight: 400,
-                      letterSpacing: "0.01em",
-                    }}
-                  >
-                    {part}
-                  </div>
-                </React.Fragment>
-              ))}
-            </div>
-          </button>
-        );
-      })}
+      <div className="suggestions-dots">
+        {suggestions.map((_, idx) => (
+          <span
+            key={idx}
+            className={`suggestion-dot ${activeIndex === idx ? "active" : ""}`}
+          />
+        ))}
+      </div>
     </div>
   );
 };
