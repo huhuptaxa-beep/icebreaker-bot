@@ -422,22 +422,57 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   ];
 
   const handleTextareaPaste = async () => {
+    const applyPastedText = (text: string) => {
+      if (!text) return;
+      setDraftGirlReply(text);
+      setPasteLabel("Вставлено ✓");
+      setTimeout(() => setPasteLabel(null), 1500);
+      triggerPasteReward();
+    };
+
     try {
-      if (typeof navigator === "undefined" || !navigator.clipboard?.readText) {
-        showToast("Буфер обмена недоступен", "error");
-        return;
-      }
-      const clipText = await navigator.clipboard.readText();
-      if (clipText) {
-        setDraftGirlReply(clipText);
-        setPasteLabel("Вставлено ✓");
-        setTimeout(() => setPasteLabel(null), 1500);
-        triggerPasteReward();
+      if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+        const clipText = await navigator.clipboard.readText();
+        if (clipText) {
+          applyPastedText(clipText);
+          return;
+        }
       }
     } catch (error) {
-      console.error("Clipboard read failed", error);
-      showToast("Не удалось прочитать буфер обмена", "error");
+      console.warn("Clipboard API blocked, using fallback", error);
     }
+
+    if (typeof document === "undefined") return;
+
+    const hiddenInput = document.createElement("textarea");
+    hiddenInput.style.position = "fixed";
+    hiddenInput.style.opacity = "0";
+    hiddenInput.style.pointerEvents = "none";
+    hiddenInput.style.top = "0";
+    hiddenInput.style.left = "0";
+
+    const handlePaste = (event: ClipboardEvent) => {
+      const text = event.clipboardData?.getData("text") ?? "";
+      if (text) {
+        applyPastedText(text);
+      }
+      cleanup();
+    };
+
+    function cleanup() {
+      hiddenInput.removeEventListener("paste", handlePaste);
+      hiddenInput.removeEventListener("blur", cleanup);
+      if (hiddenInput.parentNode) {
+        hiddenInput.parentNode.removeChild(hiddenInput);
+      }
+    }
+
+    hiddenInput.addEventListener("paste", handlePaste);
+    hiddenInput.addEventListener("blur", cleanup);
+
+    document.body.appendChild(hiddenInput);
+    hiddenInput.focus();
+    hiddenInput.select();
   };
 
   const refreshConversation = async () => {
@@ -847,6 +882,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           disabled={generating}
         />
 
+        <div className="history-title">История переписки</div>
         <div
           className="history-card"
           role="button"
@@ -854,10 +890,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           onClick={handleHistoryOpen}
           onKeyDown={handleHistoryCardKeyDown}
         >
-          <div className="history-card-header">
-            <span className="history-card-label">История переписки</span>
-            <span className="history-card-arrow">→</span>
-          </div>
           <MiniContext messages={messages} />
         </div>
 

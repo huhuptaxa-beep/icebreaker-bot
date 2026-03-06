@@ -8,18 +8,23 @@ interface GirlReplyInputProps {
   disabled?: boolean;
 }
 
-const GirlReplyInput: React.FC<GirlReplyInputProps> = ({ value, onChange, onPaste, pasteLabel, disabled }) => {
+const GirlReplyInput: React.FC<GirlReplyInputProps> = ({
+  value,
+  onChange,
+  onPaste,
+  pasteLabel,
+}) => {
   return (
     <div className="girl-reply-input">
       <p className="girl-reply-label">Ответ девушки</p>
       <textarea
+        className="girl-reply-textarea"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Вставь сообщение из чата"
         aria-label="Ответ девушки"
-        disabled={disabled}
       />
-      <button type="button" onClick={onPaste} disabled={disabled}>
+      <button type="button" className="paste-button" onClick={onPaste}>
         {pasteLabel ?? "Вставить из чата"}
       </button>
     </div>

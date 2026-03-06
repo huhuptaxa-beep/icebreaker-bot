@@ -6,6 +6,7 @@ interface CommandHeaderProps {
   onNext?: () => void;
   onPrevConversation?: () => void;
   onNextConversation?: () => void;
+  disabled?: boolean;
 }
 
 const ArrowIcon: React.FC<{ direction: "left" | "right" }> = ({ direction }) => (
@@ -25,6 +26,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
   onNext,
   onPrevConversation,
   onNextConversation,
+  disabled = false,
 }) => {
   const handleSwipe = (direction: "left" | "right") => {
     if (direction === "left") {
@@ -73,7 +75,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
       : "linear-gradient(90deg, #8f8f8f, #d6d6d6)";
 
   return (
-    <header className="command-header">
+    <header className={`command-header${disabled ? " header-disabled" : ""}`}>
       <div className="command-header-row">
         <button
           onClick={onPrevConversation ?? onPrev}
