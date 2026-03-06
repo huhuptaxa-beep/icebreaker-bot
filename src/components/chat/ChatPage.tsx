@@ -34,11 +34,6 @@ interface ChatPageProps {
   conversationId: string;
   onBack: () => void;
   onSubscribe?: () => void;
-  onPrevConversation?: () => void;
-  onNextConversation?: () => void;
-  onOpenProfile?: () => void;
-  conversationIndex?: number;
-  conversationCount?: number;
 }
 
 type ProgressChipPhase = "initial" | "enter" | "fly";
@@ -97,6 +92,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const progressChipTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const interestTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const pendingPasteRewardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [goldToastMessage, setGoldToastMessage] = useState<string | null>(null);
   const goldToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -401,9 +399,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setShowTelegramStart(true);
       }
     }
-    if (data.effective_interest !== undefined) {
-      setCurrentInterest(data.effective_interest);
-    }
+    setCurrentInterest(data.effective_interest || 5);
   };
 
   useEffect(() => {
@@ -429,6 +425,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       copyFlashTimeouts.current.forEach(clearTimeout);
       newMessageTimeouts.current.forEach(clearTimeout);
       progressChipTimers.current.forEach(clearTimeout);
+      interestTimers.current.forEach(clearTimeout);
       clearCopyToastTimers();
       if (contactToastTimer.current) {
         clearTimeout(contactToastTimer.current);
@@ -441,6 +438,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
       if (goldToastTimer.current) {
         clearTimeout(goldToastTimer.current);
         goldToastTimer.current = null;
+      }
+      if (pendingPasteRewardRef.current) {
+        clearTimeout(pendingPasteRewardRef.current);
+        pendingPasteRewardRef.current = null;
       }
       clearAnalysisTimers();
       resetAnalysisOverlay();
@@ -603,11 +604,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
         if (res.interest !== undefined) {
           const oldInterest = currentInterest;
           const newInterest = res.interest;
+          const diff = Math.round(newInterest - oldInterest);
           setCurrentInterest(newInterest);
-          const diff = newInterest - oldInterest;
-          setInterestDelta(diff);
           if (diff !== 0) {
-            triggerProgressChip(diff);
+            setInterestDelta(diff);
+            setTimeout(() => setInterestDelta(null), 1600);
           }
           if (shouldShowAnalysis) {
             triggerAnalysisResult(oldInterest, newInterest);
@@ -704,9 +705,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return !!(draftGirlReply.trim() || hasUnansweredGirl);
   })();
 
-  const hasContactAction = availableActions.includes("contact");
-  const secondaryActions = availableActions.filter((action) => action !== "contact");
-
   const lastMessage = messages[messages.length - 1];
   const formatRelativeTime = (timestamp?: string) => {
     if (!timestamp) return "только что";
@@ -739,10 +737,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       <CommandHeader
         girlName={girlName}
         interest={currentInterest}
-        onPrev={onPrevConversation}
-        onNext={onNextConversation}
-        conversationIndex={conversationIndex}
-        conversationCount={conversationCount}
+        onPrev={onBack}
         lastSource={currentChannel === "telegram" ? "Telegram" : "Приложение"}
         lastTimeAgo={formatRelativeTime(lastMessage?.created_at)}
         momentumLabel={null}
@@ -759,19 +754,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
           onChange={setDraftGirlReply}
           onPaste={handleTextareaPaste}
           pasteLabel={pasteLabel}
+          disabled={generating}
         />
-
-        {isNewDialog && (
-          <div className="command-opener-facts">
-            <label htmlFor="field-facts">Опиши девушку</label>
-            <textarea
-              id="field-facts"
-              value={openerFacts}
-              onChange={(e) => setOpenerFacts(e.target.value)}
-              placeholder="Хобби, интересы, детали фото..."
-            />
-          </div>
-        )}
 
         <div className="command-working" ref={suggestionsRef}>
           <WorkingZone
@@ -797,157 +781,18 @@ const ChatPage: React.FC<ChatPageProps> = ({
               <div className="working-zone-idle">
                 <p className="working-zone-idle-title">Готов к анализу</p>
                 <p className="working-zone-idle-text">
-                  Вставь её ответ и нажми «Сделать шаг», чтобы получить 3 варианта сообщений
+                  Вставь её ответ или опиши ситуацию, чтобы подобрать следующий шаг.
                 </p>
               </div>
             }
           />
         </div>
-
-        {hasContactAction && !generating && !pendingAction && (
-          <div className="command-card">
-            <p className="command-card-title">Момент для сближения</p>
-            <button onClick={() => handleGenerate("contact")} className="command-card-btn">
-              Взять Telegram
-            </button>
-          </div>
-        )}
-
-        {secondaryActions.length > 0 && !generating && !pendingAction && (
-          <div className="command-secondary-actions">
-            {secondaryActions.includes("date") && (
-              <button onClick={() => handleGenerate("date")}>
-                Позвать на свидание
-              </button>
-            )}
-            {secondaryActions.includes("reengage") && (
-              <button onClick={() => handleGenerate("reengage")}>
-                Написать ей
-              </button>
-            )}
-          </div>
-        )}
-
-        {confirmResult && (
-          <div className="command-confirm-result">
-            {confirmResult.type === "telegram_success" && <p>Telegram получен</p>}
-            {confirmResult.type === "telegram_fail" && <p>Контакт не получен</p>}
-            {confirmResult.type === "date_success" && <p>Свидание назначено</p>}
-            {confirmResult.type === "date_fail" && <p>Отказала</p>}
-          </div>
-        )}
-
-        {pendingAction === "contact" && !generating && !confirmResult && (
-          <div className="command-contact-selector" ref={contactSelectorRef}>
-            <p>Удалось взять Telegram?</p>
-            <div className="command-contact-buttons">
-              <button
-                onClick={async () => {
-                  haptic("heavy");
-                  try {
-                    await confirmAction(conversationId, "telegram_success");
-                    setSuggestions([]);
-                    setPendingAction(null);
-                    setCurrentPhase(3);
-                    triggerBalancePulse(5);
-                    setShowTelegramStart(true);
-                    setConfirmResult({ type: "telegram_success" });
-                    triggerContactToast();
-                    setTimeout(() => setConfirmResult(null), 3000);
-                  } catch (err) {
-                    console.error(err);
-                    showToast("Ошибка подтверждения", "error");
-                  }
-                }}
-              >
-                Telegram получен
-              </button>
-              <button
-                onClick={async () => {
-                  haptic("light");
-                  try {
-                    await confirmAction(conversationId, "telegram_fail");
-                    setSuggestions([]);
-                    setPendingAction(null);
-                    setConfirmResult({ type: "telegram_fail" });
-                    setTimeout(() => setConfirmResult(null), 3000);
-                  } catch (err) {
-                    console.error(err);
-                    showToast("Ошибка подтверждения", "error");
-                  }
-                }}
-              >
-                Пока нет
-              </button>
-            </div>
-          </div>
-        )}
-
-        {pendingAction === "date" && !generating && !confirmResult && (
-          <div className="command-date-selector">
-            <button
-              onClick={async () => {
-                haptic("heavy");
-                try {
-                  await confirmAction(conversationId, "date_success");
-                  setSuggestions([]);
-                  setPendingAction(null);
-                  setCurrentPhase(5);
-                  setConfirmResult({ type: "date_success" });
-                  setTimeout(() => setConfirmResult(null), 3000);
-                } catch (err) {
-                  console.error(err);
-                  showToast("Ошибка подтверждения", "error");
-                }
-              }}
-            >
-              Она согласилась
-            </button>
-            <button
-              onClick={async () => {
-                haptic("light");
-                try {
-                  await confirmAction(conversationId, "date_fail");
-                  setSuggestions([]);
-                  setPendingAction(null);
-                  setConfirmResult({ type: "date_fail" });
-                  setTimeout(() => setConfirmResult(null), 3000);
-                } catch (err) {
-                  console.error(err);
-                  showToast("Ошибка подтверждения", "error");
-                }
-              }}
-            >
-              Отказала
-            </button>
-          </div>
-        )}
-
-        {showTelegramStart && suggestions.length === 0 && !generating && (
-          <div className="command-telegram-card" ref={telegramCardRef}>
-            <p>Сгенерировать первое сообщение</p>
-            <button
-              onClick={() => {
-                handleGenerate("telegram_first");
-                setShowTelegramStart(false);
-              }}
-            >
-              Сгенерировать
-            </button>
-          </div>
-        )}
-
-        {showActionHint && (
-          <div className="command-action-hint">
-            <button onClick={handleActionHintClick}>⬇︎ К действиям</button>
-          </div>
-        )}
       </div>
 
       <BottomNavigation
         onDialogs={onBack}
         onAction={() => handleGenerate()}
-        onProfile={onOpenProfile}
+        onProfile={() => {}}
         actionDisabled={!canGenerate || generating}
         actionLoading={generating}
       />
@@ -1027,7 +872,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
       )}
     </div>
   );
-
 };
 
 export default ChatPage;
