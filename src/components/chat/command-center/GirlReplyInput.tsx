@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 
 interface GirlReplyInputProps {
   value: string;
@@ -14,11 +14,20 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({
   onPaste,
   pasteLabel,
 }) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
   return (
-    <div className="girl-reply-input">
+    <div
+      className="girl-reply-input"
+      onClick={(event) => {
+        if ((event.target as HTMLElement)?.closest("button")) return;
+        textareaRef.current?.focus();
+      }}
+    >
       <p className="girl-reply-label">Ответ девушки</p>
       <textarea
         className="girl-reply-textarea"
+        ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Вставь сообщение из чата"

@@ -794,8 +794,7 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.5);
-    margin-top: 4px;
-    margin-bottom: 8px;
+    margin: 0 0 8px 0;
   }
 
   .history-card {
@@ -873,10 +872,10 @@
   }
 
   .paste-button {
-    font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 8px;
-    opacity: 0.8;
+    font-size: 10px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    opacity: 0.75;
     align-self: flex-end;
     border: 1px solid rgba(255, 255, 255, 0.16);
     background: rgba(255, 255, 255, 0.08);

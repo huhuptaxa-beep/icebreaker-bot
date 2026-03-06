@@ -848,13 +848,13 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     ? "AI анализирует сообщение"
     : showActionNudge
     ? "Готов подобрать ответ"
-    : "AI готов проанализировать ответ";
+    : "Вставь сообщение девушки";
 
   const idleSubtitle = generating
     ? null
     : showActionNudge
     ? "Нажми ⚡ чтобы получить варианты"
-    : "Вставь её сообщение и нажми ⚡";
+    : "и нажми ⚡";
 
   const isIdleState = workingState === "idle";
   const isAiScanActive = generating && isIdleState;
