@@ -14,11 +14,11 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({ value, onChange, onPast
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Вставь её ответ..."
+        placeholder={"Ответ девушки\nВставь сообщение из чата"}
         disabled={disabled}
       />
       <button type="button" onClick={onPaste} disabled={disabled}>
-        {pasteLabel ?? "Вставить"}
+        {pasteLabel ?? "📋 Вставить из чата"}
       </button>
     </div>
   );

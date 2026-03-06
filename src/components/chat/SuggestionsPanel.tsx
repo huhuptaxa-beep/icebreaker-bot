@@ -17,6 +17,8 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const [pressedIndex, setPressedIndex] = useState<number | null>(null);
   const [flyingIndex, setFlyingIndex] = useState<number | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [entranceActive, setEntranceActive] = useState(false);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectionAnimationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -97,6 +99,18 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   if (suggestions.length === 0) return null;
 
   useEffect(() => {
+    if (prefersReducedMotion || loading || suggestions.length === 0) {
+      setEntranceActive(false);
+      return;
+    }
+    setEntranceActive(true);
+    const timer = window.setTimeout(() => setEntranceActive(false), 320);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [suggestions, loading, prefersReducedMotion]);
+
+  useEffect(() => {
     const container = scrollRef.current;
     if (!container) return;
 
@@ -146,6 +160,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
 
   const handlePointerDown = (index: number, event: React.PointerEvent<HTMLButtonElement>) => {
     setPressedIndex(index);
+    setHoveredIndex(null);
     swipeTrackerRef.current[index] = {
       startX: event.clientX,
       startY: event.clientY,
@@ -243,8 +258,6 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     startAnimatedSelection(suggestion, index);
   };
 
-  const showEntranceAnimation = !prefersReducedMotion && suggestions.length > 0 && !loading;
-
   return (
     <div className="suggestions-wrap">
       <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
@@ -253,7 +266,10 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
         {suggestions.map((suggestion, i) => {
           const isSelected = selectedIndex === i;
           const isPressed = pressedIndex === i && selectedIndex !== i;
-          const scale = prefersReducedMotion ? 1 : isSelected ? 0.97 : isPressed ? 0.99 : 1;
+          const isHovered = hoveredIndex === i && !prefersReducedMotion;
+          const baseScale = prefersReducedMotion ? 1 : isSelected ? 0.97 : isPressed ? 0.99 : 1;
+          const hoverBoost = isHovered && !isSelected && !isPressed ? 1.03 : 1;
+          const scale = baseScale * hoverBoost;
           const highlightBackground = isSelected
             ? "linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.08))"
             : "rgba(255, 255, 255, 0.04)";
@@ -266,14 +282,19 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
           const opacity = isFlying ? 0 : 1;
           const transition = isFlying
             ? "transform 320ms ease-out, opacity 320ms ease-out, box-shadow 0.3s ease"
-            : "transform 160ms cubic-bezier(0.33, 1, 0.68, 1), box-shadow 0.3s ease";
+            : "transform 180ms ease, box-shadow 180ms ease";
+          const boxShadow = isSelected
+            ? "0 0 24px rgba(212, 175, 55, 0.25)"
+            : isHovered
+            ? "0 10px 25px rgba(0,0,0,0.35)"
+            : "0 10px 25px rgba(0,0,0,0.25)";
 
           return (
             <div
               key={i}
-              className={`suggestion-card-wrapper ${showEntranceAnimation ? "animate" : ""}`}
+              className={`suggestion-card-wrapper ${entranceActive ? "animate" : ""}`}
               style={{
-                animationDelay: showEntranceAnimation ? `${i * 40}ms` : undefined,
+                animationDelay: entranceActive ? `${i * 40}ms` : undefined,
               }}
             >
               <button
@@ -283,6 +304,16 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                 onPointerUp={() => handlePointerEnd(i)}
                 onPointerLeave={() => handlePointerEnd(i)}
                 onPointerCancel={() => handlePointerEnd(i)}
+                onPointerEnter={(event) => {
+                  if (event.pointerType === "mouse") {
+                    setHoveredIndex(i);
+                  }
+                }}
+                onPointerOut={(event) => {
+                  if (event.pointerType === "mouse") {
+                    setHoveredIndex((prev) => (prev === i ? null : prev));
+                  }
+                }}
                 className="suggestion-card"
                 style={{
                   background: highlightBackground,
@@ -290,9 +321,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                   transform,
                   opacity,
                   transition,
-                  boxShadow: isSelected
-                    ? "0 0 24px rgba(212, 175, 55, 0.25)"
-                    : "0 10px 35px rgba(0,0,0,0.25)",
+                  boxShadow,
                 }}
               >
                 <div className="suggestion-text">

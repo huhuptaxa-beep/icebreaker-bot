@@ -770,7 +770,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
       <div className="command-center-body" ref={scrollRef}>
         <div className="mini-context-section">
-          <button type="button" className="mini-context-label" onClick={handleHistoryOpen}>
+          <button type="button" className="mini-context-label history-link" onClick={handleHistoryOpen}>
             История переписки →
           </button>
           <MiniContext messages={messages} onOpenHistory={handleHistoryOpen} />
