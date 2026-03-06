@@ -34,6 +34,8 @@ interface ChatPageProps {
   conversationId: string;
   onBack: () => void;
   onSubscribe?: () => void;
+  onPrevConversation?: () => void;
+  onNextConversation?: () => void;
 }
 
 type ProgressChipPhase = "initial" | "enter" | "fly";
@@ -47,6 +49,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
   conversationId,
   onBack,
   onSubscribe,
+  onPrevConversation,
+  onNextConversation,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<string[][]>([]);
@@ -715,9 +719,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     ? "opener"
     : "idle";
 
-  const headerCredits =
-    freeRemaining !== null ? freeRemaining + (paidRemaining || 0) : paidRemaining ?? null;
-
   return (
     <div
       className="command-center-shell"
@@ -727,10 +728,8 @@ const ChatPage: React.FC<ChatPageProps> = ({
         girlName={girlName}
         interest={currentInterest}
         onPrev={onBack}
-        momentumLabel={null}
-        credits={headerCredits}
-        balancePulse={balancePulse}
-        balanceDeltaLabel={balanceDeltaLabel}
+        onPrevConversation={onPrevConversation}
+        onNextConversation={onNextConversation}
       />
 
       <div className="command-center-body" ref={scrollRef}>

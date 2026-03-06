@@ -128,12 +128,35 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   }
 
   if (view === "chat" && activeConversationId) {
+    const activeIndex = conversations.findIndex((c) => c.id === activeConversationId);
+    const prevConversationId =
+      activeIndex > 0 ? conversations[activeIndex - 1]?.id ?? null : null;
+    const nextConversationId =
+      activeIndex >= 0 && activeIndex < conversations.length - 1
+        ? conversations[activeIndex + 1]?.id ?? null
+        : null;
+
+    const handlePrevConversation =
+      prevConversationId !== null
+        ? () => {
+            setActiveConversationId(prevConversationId);
+          }
+        : undefined;
+    const handleNextConversation =
+      nextConversationId !== null
+        ? () => {
+            setActiveConversationId(nextConversationId);
+          }
+        : undefined;
+
     return (
       <div key="chat" className="animate-fadeIn">
         <ChatPage
           conversationId={activeConversationId}
           onBack={handleBack}
           onSubscribe={() => setView("subscription")}
+          onPrevConversation={handlePrevConversation}
+          onNextConversation={handleNextConversation}
         />
       </div>
     );

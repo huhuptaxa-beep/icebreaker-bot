@@ -57,9 +57,9 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
   const normalizedInterest = Math.max(0, Math.min(100, Math.round(interest ?? 0)));
   const barGradient =
-    normalizedInterest >= 100
-      ? "linear-gradient(135deg, #F7C35F, #FFD977)"
-      : "linear-gradient(135deg, #FF2E4D, #FF5A5F)";
+    normalizedInterest > 80
+      ? "linear-gradient(135deg, #AD8B3A, #F9E076)"
+      : "linear-gradient(135deg, #7A7F87, #B8BCC4)";
 
   return (
     <header className="command-header">
