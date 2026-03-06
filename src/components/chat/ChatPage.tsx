@@ -11,7 +11,11 @@ import MessageBubble from "./MessageBubble";
 import SuggestionsPanel from "./SuggestionsPanel";
 import HeartAnalysis from "./HeartAnalysis";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
-import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
+import CommandHeader from "./command-center/CommandHeader";
+import MiniContext from "./command-center/MiniContext";
+import GirlReplyInput from "./command-center/GirlReplyInput";
+import WorkingZone from "./command-center/WorkingZone";
+import BottomNavigation from "./command-center/BottomNavigation";
 
 const HEART_MIN_DURATION = 1200;
 const HEART_ANIMATION_DURATION = 500;
@@ -30,6 +34,11 @@ interface ChatPageProps {
   conversationId: string;
   onBack: () => void;
   onSubscribe?: () => void;
+  onPrevConversation?: () => void;
+  onNextConversation?: () => void;
+  onOpenProfile?: () => void;
+  conversationIndex?: number;
+  conversationCount?: number;
 }
 
 type ProgressChipPhase = "initial" | "enter" | "fly";
@@ -698,308 +707,250 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const hasContactAction = availableActions.includes("contact");
   const secondaryActions = availableActions.filter((action) => action !== "contact");
 
+  const lastMessage = messages[messages.length - 1];
+  const formatRelativeTime = (timestamp?: string) => {
+    if (!timestamp) return "только что";
+    const parsed = new Date(timestamp);
+    if (Number.isNaN(parsed.getTime())) return "только что";
+    const diffMs = Date.now() - parsed.getTime();
+    const minutes = Math.max(0, Math.floor(diffMs / 60000));
+    if (minutes < 1) return "только что";
+    if (minutes < 60) return `${minutes} мин назад`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} ч назад`;
+    const days = Math.floor(hours / 24);
+    return `${days} дн назад`;
+  };
+
+  const workingState: "analysis" | "suggestions" | "idle" = analysisVisible
+    ? "analysis"
+    : suggestions.length > 0
+    ? "suggestions"
+    : "idle";
+
+  const headerCredits =
+    freeRemaining !== null ? freeRemaining + (paidRemaining || 0) : paidRemaining ?? null;
+
   return (
-    <div className="flex flex-col h-[100dvh]" style={{ background: "#050505" }}>
-      {/* ========== HEADER ========== */}
-      <div
-        className="sticky top-0 z-40"
-        style={{
-          background: "rgba(5, 5, 5, 0.9)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderBottom: "0.5px solid rgba(200, 200, 220, 0.06)",
-        }}
-      >
-        <div
-          className="flex items-center gap-3 px-5 py-3 w-full overflow-hidden"
-          style={{ paddingTop: "max(12px, env(safe-area-inset-top))" }}
-        >
-          <button
-            onClick={onBack}
-            className="text-sm flex-shrink-0 font-medium transition-colors"
-            style={{ color: "rgba(200, 200, 220, 0.4)" }}
-          >
-            ← Назад
-          </button>
-          <span
-            className="font-semibold flex-1 min-w-0 text-center truncate"
-            style={{
-              color: "rgba(255, 255, 255, 0.9)",
-              letterSpacing: "0.01em",
-            }}
-          >
-            {girlName}
-          </span>
+    <div
+      className="command-center-shell"
+      style={{ background: "radial-gradient(120% 80% at 50% 0%, #1A1A22 0%, #0E0E12 60%, #0A0A0D 100%)" }}
+    >
+      <CommandHeader
+        girlName={girlName}
+        interest={currentInterest}
+        onPrev={onPrevConversation}
+        onNext={onNextConversation}
+        conversationIndex={conversationIndex}
+        conversationCount={conversationCount}
+        lastSource={currentChannel === "telegram" ? "Telegram" : "Приложение"}
+        lastTimeAgo={formatRelativeTime(lastMessage?.created_at)}
+        momentumLabel={null}
+        credits={headerCredits}
+        balancePulse={balancePulse}
+        balanceDeltaLabel={balanceDeltaLabel}
+      />
 
-          <div className="flex items-center gap-2 flex-shrink-0" style={{ minHeight: 32 }}>
-            {freeRemaining !== null && (
-              <div className="relative flex-shrink-0">
-                <span
-                  className="text-[10px] font-bold px-2 py-1 rounded-lg inline-flex items-center gap-1"
-                  style={{
-                    background: balancePulse
-                      ? "linear-gradient(135deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.12))"
-                      : "rgba(212, 175, 55, 0.08)",
-                    border: balancePulse
-                      ? "0.5px solid rgba(212, 175, 55, 0.55)"
-                      : "0.5px solid rgba(212, 175, 55, 0.15)",
-                    color: "rgba(255, 255, 255, 0.85)",
-                    boxShadow: balancePulse ? "0 8px 24px rgba(212, 175, 55, 0.35)" : "none",
-                    transform: balancePulse ? "scale(1.08)" : "scale(1)",
-                    transition: prefersReducedMotion
-                      ? "none"
-                      : "transform 260ms ease, box-shadow 260ms ease, background 260ms ease",
-                  }}
-                >
-                  ★ {freeRemaining + (paidRemaining || 0)}
-                </span>
-                {balanceDeltaLabel && (
-                  <span
-                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                    style={{
-                      position: "absolute",
-                      right: -4,
-                      top: -12,
-                      background: "rgba(245, 208, 126, 0.95)",
-                      color: "#1A1305",
-                      boxShadow: "0 6px 18px rgba(0,0,0,0.35)",
-                    }}
-                  >
-                    {balanceDeltaLabel} баллов
-                  </span>
-                )}
-              </div>
-            )}
+      <div className="command-center-body" ref={scrollRef}>
+        <MiniContext messages={messages} onOpenHistory={() => {}} />
 
-            <div className="relative flex-shrink-0" style={{ maxWidth: 140 }}>
-              <PhaseProgressBar
-                interest={currentInterest}
-                size="large"
-                delta={interestDelta}
-                prefersReducedMotion={prefersReducedMotion}
-              />
-              {progressChip && (
-                <span
-                  className="text-[10px] font-bold px-2 py-1 rounded-full"
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: -4,
-                    background: "rgba(212, 175, 55, 0.95)",
-                    color: "#050505",
-                    letterSpacing: "0.05em",
-                    pointerEvents: "none",
-                    boxShadow: "0 8px 20px rgba(0,0,0,0.45)",
-                    ...getProgressChipStyle(progressChip.phase),
-                  }}
-                >
-                  +{progressChip.label ?? `${progressChip.value}%`}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========== CONTENT ========== */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-        {messages.map((msg, index) => (
-          <React.Fragment key={msg.id}>
-            {currentChannel === "telegram" && index === 0 && (
-              <div className="flex items-center gap-3 py-2">
-                <div
-                  className="flex-1 h-px"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)",
-                  }}
-                />
-                <span className="text-[11px] font-medium" style={{ color: "rgba(59,130,246,0.5)" }}>
-                  Telegram
-                </span>
-                <div
-                  className="flex-1 h-px"
-                  style={{
-                    background:
-                      "linear-gradient(90deg, transparent, rgba(59,130,246,0.2), transparent)",
-                  }}
-                />
-              </div>
-            )}
-            <MessageBubble
-              text={msg.text}
-              role={msg.role}
-              copiedRecently={!!copyFlashMap[msg.id]}
-              animateEntry={!!newMessageAnimationMap[msg.id]}
-              prefersReducedMotion={prefersReducedMotion}
-            />
-          </React.Fragment>
-        ))}
+        <GirlReplyInput
+          value={draftGirlReply}
+          onChange={setDraftGirlReply}
+          onPaste={handleTextareaPaste}
+          pasteLabel={pasteLabel}
+        />
 
         {isNewDialog && (
-          <>
-            <div className="flex flex-col items-center py-6 space-y-2">
-              <p className="text-white/90 font-semibold text-base">Начни переписку</p>
-              <p
-                className="text-xs text-center leading-relaxed px-4"
-                style={{ color: "rgba(200, 200, 220, 0.5)" }}
-              >
-                Опиши девушку и получи идеальное первое сообщение
-              </p>
-            </div>
-
-            <div className="flex">
-              <div className="max-w-[70%]">
-                <div className="relative z-10">
-                  <textarea
-                    value={draftGirlReply}
-                    onChange={(e) => setDraftGirlReply(e.target.value)}
-                    id="field-girl-message"
-                    placeholder="Вставь её сообщение, если написала первая"
-                    className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-[rgba(200,200,220,0.4)]"
-                    style={{
-                      background: "rgba(255, 255, 255, 0.04)",
-                      color: "#FFFFFF",
-                      border: "0.5px solid rgba(200, 200, 220, 0.08)",
-                      backdropFilter: "blur(10px)",
-                    }}
-                  />
-                </div>
-                <button
-                  onClick={handleTextareaPaste}
-                  className="relative z-0 text-xs rounded-bl-lg transition-colors font-semibold"
-                  style={{
-                    display: "block",
-                    width: "40%",
-                    height: 34,
-                    marginTop: -16,
-                    paddingTop: 18,
-                    paddingBottom: 4,
-                    background: "rgba(20, 20, 25, 0.8)",
-                    color: "rgba(212, 175, 55, 0.5)",
-                    textAlign: "left",
-                    paddingLeft: 10,
-                    clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
-                    border: "none",
-                    borderLeft: "0.5px solid rgba(212, 175, 55, 0.15)",
-                  }}
-                >
-                  {pasteLabel ?? "Вставить"}
-                </button>
-              </div>
-            </div>
-
-            <div className="w-full">
-              <textarea
-                value={openerFacts}
-                onChange={(e) => setOpenerFacts(e.target.value)}
-                id="field-facts"
-                placeholder="Напиши факты о девушке: хобби, интересы, детали фото..."
-                className="w-full min-h-[120px] px-6 py-5 rounded-3xl text-sm font-semibold leading-relaxed resize-none outline-none placeholder:text-[rgba(212,175,55,0.35)]"
-                style={{
-                  background: "rgba(212, 175, 55, 0.04)",
-                  color: "#FFFFFF",
-                  border: "0.5px solid rgba(212, 175, 55, 0.15)",
-                  backdropFilter: "blur(10px)",
-                }}
-              />
-            </div>
-          </>
+          <div className="command-opener-facts">
+            <label htmlFor="field-facts">Опиши девушку</label>
+            <textarea
+              id="field-facts"
+              value={openerFacts}
+              onChange={(e) => setOpenerFacts(e.target.value)}
+              placeholder="Хобби, интересы, детали фото..."
+            />
+          </div>
         )}
 
-        {!isNewDialog && !showTelegramStart && (
-          <div className="flex">
-            <div className="max-w-[70%]">
-              <div className="relative z-10">
-                <textarea
-                  value={draftGirlReply}
-                  onChange={(e) => setDraftGirlReply(e.target.value)}
-                  placeholder="Вставь её ответ..."
-                  className="w-full px-4 py-3 rounded-2xl text-sm resize-none outline-none placeholder:text-[rgba(200,200,220,0.4)]"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.04)",
-                    color: "#FFFFFF",
-                    border: "0.5px solid rgba(200, 200, 220, 0.08)",
-                    backdropFilter: "blur(10px)",
-                  }}
-                />
+        <div className="command-working" ref={suggestionsRef}>
+          <WorkingZone
+            state={workingState}
+            analysis={
+              <HeartAnalysis
+                percent={analysisFillPercent}
+                statusText={analysisStatusText}
+                diffLabel={analysisDiffLabel}
+                emitParticles={analysisEmitParticles}
+                prefersReducedMotion={prefersReducedMotion}
+              />
+            }
+            suggestions={
+              <SuggestionsPanel
+                suggestions={suggestions}
+                onSelect={handleSelectSuggestion}
+                loading={generating}
+                prefersReducedMotion={prefersReducedMotion}
+              />
+            }
+            idle={
+              <div className="working-zone-idle">
+                <p className="working-zone-idle-title">Готов к анализу</p>
+                <p className="working-zone-idle-text">
+                  Вставь её ответ и нажми «Сделать шаг», чтобы получить 3 варианта сообщений
+                </p>
               </div>
+            }
+          />
+        </div>
+
+        {hasContactAction && !generating && !pendingAction && (
+          <div className="command-card">
+            <p className="command-card-title">Момент для сближения</p>
+            <button onClick={() => handleGenerate("contact")} className="command-card-btn">
+              Взять Telegram
+            </button>
+          </div>
+        )}
+
+        {secondaryActions.length > 0 && !generating && !pendingAction && (
+          <div className="command-secondary-actions">
+            {secondaryActions.includes("date") && (
+              <button onClick={() => handleGenerate("date")}>
+                Позвать на свидание
+              </button>
+            )}
+            {secondaryActions.includes("reengage") && (
+              <button onClick={() => handleGenerate("reengage")}>
+                Написать ей
+              </button>
+            )}
+          </div>
+        )}
+
+        {confirmResult && (
+          <div className="command-confirm-result">
+            {confirmResult.type === "telegram_success" && <p>Telegram получен</p>}
+            {confirmResult.type === "telegram_fail" && <p>Контакт не получен</p>}
+            {confirmResult.type === "date_success" && <p>Свидание назначено</p>}
+            {confirmResult.type === "date_fail" && <p>Отказала</p>}
+          </div>
+        )}
+
+        {pendingAction === "contact" && !generating && !confirmResult && (
+          <div className="command-contact-selector" ref={contactSelectorRef}>
+            <p>Удалось взять Telegram?</p>
+            <div className="command-contact-buttons">
               <button
-                onClick={handleTextareaPaste}
-                className="relative z-0 text-xs rounded-bl-lg transition-colors font-semibold"
-                style={{
-                  display: "block",
-                  width: "40%",
-                  height: 34,
-                  marginTop: -16,
-                  paddingTop: 18,
-                  paddingBottom: 4,
-                  background: "rgba(20, 20, 25, 0.8)",
-                  color: "rgba(212, 175, 55, 0.5)",
-                  textAlign: "left",
-                  paddingLeft: 10,
-                  clipPath: "polygon(0% 0%, 100% 0%, 80% 100%, 0% 100%)",
-                  border: "none",
-                  borderLeft: "0.5px solid rgba(212, 175, 55, 0.15)",
+                onClick={async () => {
+                  haptic("heavy");
+                  try {
+                    await confirmAction(conversationId, "telegram_success");
+                    setSuggestions([]);
+                    setPendingAction(null);
+                    setCurrentPhase(3);
+                    triggerBalancePulse(5);
+                    setShowTelegramStart(true);
+                    setConfirmResult({ type: "telegram_success" });
+                    triggerContactToast();
+                    setTimeout(() => setConfirmResult(null), 3000);
+                  } catch (err) {
+                    console.error(err);
+                    showToast("Ошибка подтверждения", "error");
+                  }
                 }}
               >
-                {pasteLabel ?? "Вставить"}
+                Telegram получен
+              </button>
+              <button
+                onClick={async () => {
+                  haptic("light");
+                  try {
+                    await confirmAction(conversationId, "telegram_fail");
+                    setSuggestions([]);
+                    setPendingAction(null);
+                    setConfirmResult({ type: "telegram_fail" });
+                    setTimeout(() => setConfirmResult(null), 3000);
+                  } catch (err) {
+                    console.error(err);
+                    showToast("Ошибка подтверждения", "error");
+                  }
+                }}
+              >
+                Пока нет
               </button>
             </div>
           </div>
         )}
-      </div>
 
-      {hasContactAction && !generating && !pendingAction && (
-        <div className="px-5 pt-2 pb-4">
-          <div
-            className="rounded-2xl px-5 py-4 flex flex-col gap-3"
-            style={{
-              background: "rgba(18, 18, 24, 0.95)",
-              border: "0.5px solid rgba(212, 175, 55, 0.2)",
-              boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
-            }}
-          >
-            <p
-              className="text-base font-semibold text-center"
-              style={{ color: "rgba(255, 255, 255, 0.95)", letterSpacing: "0.02em" }}
-            >
-              Момент для сближения
-            </p>
+        {pendingAction === "date" && !generating && !confirmResult && (
+          <div className="command-date-selector">
             <button
-              onClick={() => handleGenerate("contact")}
-              className="w-full py-3.5 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-transform"
-              style={{
-                background: "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)",
-                color: "#050505",
-                border: "none",
-                boxShadow: "0 10px 28px rgba(212, 175, 55, 0.35)",
+              onClick={async () => {
+                haptic("heavy");
+                try {
+                  await confirmAction(conversationId, "date_success");
+                  setSuggestions([]);
+                  setPendingAction(null);
+                  setCurrentPhase(5);
+                  setConfirmResult({ type: "date_success" });
+                  setTimeout(() => setConfirmResult(null), 3000);
+                } catch (err) {
+                  console.error(err);
+                  showToast("Ошибка подтверждения", "error");
+                }
               }}
             >
-              Взять Telegram
+              Она согласилась
+            </button>
+            <button
+              onClick={async () => {
+                haptic("light");
+                try {
+                  await confirmAction(conversationId, "date_fail");
+                  setSuggestions([]);
+                  setPendingAction(null);
+                  setConfirmResult({ type: "date_fail" });
+                  setTimeout(() => setConfirmResult(null), 3000);
+                } catch (err) {
+                  console.error(err);
+                  showToast("Ошибка подтверждения", "error");
+                }
+              }}
+            >
+              Отказала
             </button>
           </div>
-        </div>
-      )}
+        )}
 
-      <div ref={suggestionsRef}>
-        {analysisVisible ? (
-          <HeartAnalysis
-            percent={analysisFillPercent}
-            statusText={analysisStatusText}
-            diffLabel={analysisDiffLabel}
-            emitParticles={analysisEmitParticles}
-            prefersReducedMotion={prefersReducedMotion}
-          />
-        ) : (
-          <SuggestionsPanel
-            suggestions={suggestions}
-            onSelect={handleSelectSuggestion}
-            loading={generating}
-            prefersReducedMotion={prefersReducedMotion}
-          />
+        {showTelegramStart && suggestions.length === 0 && !generating && (
+          <div className="command-telegram-card" ref={telegramCardRef}>
+            <p>Сгенерировать первое сообщение</p>
+            <button
+              onClick={() => {
+                handleGenerate("telegram_first");
+                setShowTelegramStart(false);
+              }}
+            >
+              Сгенерировать
+            </button>
+          </div>
+        )}
+
+        {showActionHint && (
+          <div className="command-action-hint">
+            <button onClick={handleActionHintClick}>⬇︎ К действиям</button>
+          </div>
         )}
       </div>
+
+      <BottomNavigation
+        onDialogs={onBack}
+        onAction={() => handleGenerate()}
+        onProfile={onOpenProfile}
+        actionDisabled={!canGenerate || generating}
+        actionLoading={generating}
+      />
 
       {copyToast && (
         <div
@@ -1067,352 +1018,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
-      {showActionHint && (
-        <div
-          className="fixed left-1/2 z-60"
-          style={{
-            bottom: "calc(env(safe-area-inset-bottom) + 96px)",
-            transform: "translateX(-50%)",
-          }}
-        >
-          <button
-            onClick={handleActionHintClick}
-            className="px-4 py-2 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition-transform"
-            style={{
-              background: "rgba(15, 15, 20, 0.92)",
-              border: "0.5px solid rgba(212, 175, 55, 0.35)",
-              color: "rgba(255, 255, 255, 0.9)",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-            }}
-          >
-            ⬇︎ К действиям
-          </button>
-        </div>
-      )}
-
-      {/* TELEGRAM START BUTTON */}
-      {showTelegramStart && suggestions.length === 0 && !generating && (
-        <div className="px-5 py-6" ref={telegramCardRef}>
-          <div
-            className="rounded-3xl px-5 py-5 flex flex-col gap-3"
-            style={{
-              background: "rgba(15, 15, 20, 0.92)",
-              border: "0.5px solid rgba(212, 175, 55, 0.15)",
-              boxShadow: "0 20px 50px rgba(0,0,0,0.45)",
-            }}
-          >
-            <span
-              className="text-[11px] font-semibold uppercase tracking-[0.2em]"
-              style={{ color: "rgba(212, 175, 55, 0.55)" }}
-            >
-              Следующий шаг
-            </span>
-            <div className="flex flex-col gap-1">
-              <p className="text-white font-semibold text-base">Сгенерировать первое сообщение</p>
-              <p className="text-sm" style={{ color: "rgba(200, 200, 220, 0.5)" }}>
-                AI подготовит вступление, чтобы плавно уйти в Telegram.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                handleGenerate("telegram_first");
-                setShowTelegramStart(false);
-              }}
-              className="w-full py-3 rounded-2xl font-semibold text-sm active:scale-[0.97] transition-transform"
-              style={{
-                background: "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)",
-                color: "#050505",
-                border: "none",
-                boxShadow: "0 0 18px rgba(212, 175, 55, 0.35)",
-              }}
-            >
-              Сгенерировать первое сообщение
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ACTION BUTTONS */}
-      {secondaryActions.length > 0 && !generating && !pendingAction && (
-        <div className="px-5 py-2 flex gap-2">
-          {secondaryActions.includes("date") && (
-            <div className="flex-1 flex flex-col gap-1.5">
-              <button
-                onClick={() => handleGenerate("date")}
-                className="w-full py-2.5 rounded-2xl text-sm font-medium"
-                style={{
-                  background: "rgba(34,197,94,0.06)",
-                  color: "#4ADE80",
-                  border: "0.5px solid rgba(34,197,94,0.2)",
-                }}
-              >
-                Позвать на свидание
-              </button>
-            </div>
-          )}
-          {secondaryActions.includes("reengage") && (
-            <div className="flex-1 flex flex-col gap-1.5">
-              <button
-                onClick={() => handleGenerate("reengage")}
-                className="w-full py-2.5 rounded-2xl text-sm font-medium"
-                style={{
-                  background: "rgba(212, 175, 55, 0.06)",
-                  color: "#D4AF37",
-                  border: "0.5px solid rgba(212, 175, 55, 0.2)",
-                }}
-              >
-                Написать ей
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* CONFIRMATION RESULT CARD */}
-      {confirmResult && (
-        <div className="px-5 py-3 animate-fadeIn">
-          {confirmResult.type === "telegram_success" && (
-            <div
-              className="px-4 py-3 rounded-2xl"
-              style={{
-                background: "rgba(212, 175, 55, 0.06)",
-                border: "0.5px solid rgba(212, 175, 55, 0.2)",
-              }}
-            >
-              <p className="text-sm font-semibold" style={{ color: "#D4AF37" }}>
-                Telegram получен
-              </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(212, 175, 55, 0.5)" }}>
-                AI рекомендует закрепить контакт
-              </p>
-            </div>
-          )}
-
-          {confirmResult.type === "telegram_fail" && (
-            <div
-              className="px-4 py-3 rounded-2xl"
-              style={{
-                background: "rgba(200, 200, 220, 0.04)",
-                border: "0.5px solid rgba(200, 200, 220, 0.15)",
-              }}
-            >
-              <p className="text-sm font-semibold" style={{ color: "rgba(200, 200, 220, 0.7)" }}>
-                Контакт не получен
-              </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
-                AI пересчитает стратегию
-              </p>
-            </div>
-          )}
-
-          {confirmResult.type === "date_success" && (
-            <div
-              className="px-4 py-3 rounded-2xl"
-              style={{
-                background: "rgba(212, 175, 55, 0.06)",
-                border: "0.5px solid rgba(212, 175, 55, 0.2)",
-              }}
-            >
-              <p className="text-sm font-semibold" style={{ color: "#D4AF37" }}>
-                Свидание назначено
-              </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(212, 175, 55, 0.5)" }}>
-                Удачи!
-              </p>
-            </div>
-          )}
-
-          {confirmResult.type === "date_fail" && (
-            <div
-              className="px-4 py-3 rounded-2xl"
-              style={{
-                background: "rgba(200, 200, 220, 0.04)",
-                border: "0.5px solid rgba(200, 200, 220, 0.15)",
-              }}
-            >
-              <p className="text-sm font-semibold" style={{ color: "rgba(200, 200, 220, 0.7)" }}>
-                Отказала
-              </p>
-              <p className="text-xs mt-1" style={{ color: "rgba(200, 200, 220, 0.4)" }}>
-                AI пересчитает стратегию
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* CONFIRMATION BUTTONS - TELEGRAM */}
-      {pendingAction === "contact" && !generating && !confirmResult && (
-        <div className="px-5 py-2 flex flex-col gap-3" ref={contactSelectorRef}>
-          <p
-            className="text-sm font-semibold text-center"
-            style={{ color: "rgba(255, 255, 255, 0.85)", letterSpacing: "0.015em" }}
-          >
-            Удалось взять Telegram?
-          </p>
-
-          <div
-            className="flex rounded-2xl overflow-hidden"
-            style={{
-              border: "0.5px solid rgba(245, 208, 126, 0.35)",
-              background: "linear-gradient(135deg, rgba(22, 22, 28, 0.95), rgba(32, 32, 40, 0.92))",
-              boxShadow: "0 12px 26px rgba(0,0,0,0.35)",
-            }}
-          >
-            <button
-              onClick={async () => {
-                haptic("heavy");
-                try {
-                  await confirmAction(conversationId, "telegram_success");
-                  setSuggestions([]);
-                  setPendingAction(null);
-                  setCurrentPhase(3);
-                  triggerBalancePulse(5);
-                  setShowTelegramStart(true);
-                  setConfirmResult({ type: "telegram_success" });
-                  triggerContactToast();
-                  setTimeout(() => setConfirmResult(null), 3000);
-                } catch (err) {
-                  console.error(err);
-                  showToast("Ошибка подтверждения", "error");
-                }
-              }}
-              className="flex-1 py-3 text-sm font-semibold transition-colors"
-              style={{
-                background: "linear-gradient(145deg, rgba(245, 208, 126, 0.5), rgba(212, 175, 55, 0.28))",
-                color: "#1A1305",
-                borderRight: "0.5px solid rgba(245, 208, 126, 0.4)",
-              }}
-            >
-              Telegram получен
-            </button>
-
-            <button
-              onClick={async () => {
-                haptic("light");
-                try {
-                  await confirmAction(conversationId, "telegram_fail");
-                  setSuggestions([]);
-                  setPendingAction(null);
-                  setConfirmResult({ type: "telegram_fail" });
-                  setTimeout(() => setConfirmResult(null), 3000);
-                } catch (err) {
-                  console.error(err);
-                  showToast("Ошибка подтверждения", "error");
-                }
-              }}
-              className="flex-1 py-3 text-sm font-semibold"
-              style={{
-                background: "linear-gradient(135deg, rgba(32, 32, 40, 0.85), rgba(18, 18, 24, 0.92))",
-                color: "rgba(220, 224, 236, 0.75)",
-                boxShadow: "inset -6px 0 14px rgba(255,255,255,0.04)",
-                borderLeft: "0.5px solid rgba(255, 255, 255, 0.08)",
-                backgroundImage:
-                  "linear-gradient(135deg, rgba(32,32,40,0.88), rgba(18,18,24,0.94)), linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.08))",
-                backgroundBlendMode: "normal, screen",
-              }}
-            >
-              Пока нет
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* CONFIRMATION BUTTONS - DATE */}
-      {pendingAction === "date" && !generating && !confirmResult && (
-        <div className="px-5 py-2 flex gap-2">
-          <button
-            onClick={async () => {
-              haptic("heavy");
-              try {
-                await confirmAction(conversationId, "date_success");
-                setSuggestions([]);
-                setPendingAction(null);
-                setCurrentPhase(5);
-                setConfirmResult({ type: "date_success" });
-                setTimeout(() => setConfirmResult(null), 3000);
-              } catch (err) {
-                console.error(err);
-                showToast("Ошибка подтверждения", "error");
-              }
-            }}
-            className="flex-1 py-2.5 text-sm font-semibold"
-            style={{
-              background: "rgba(34,197,94,0.1)",
-              color: "#4ADE80",
-              border: "0.5px solid rgba(34,197,94,0.25)",
-              borderRadius: 18,
-            }}
-          >
-            Она согласилась
-          </button>
-
-          <button
-            onClick={async () => {
-              haptic("light");
-              try {
-                await confirmAction(conversationId, "date_fail");
-                setSuggestions([]);
-                setPendingAction(null);
-                setConfirmResult({ type: "date_fail" });
-                setTimeout(() => setConfirmResult(null), 3000);
-              } catch (err) {
-                console.error(err);
-                showToast("Ошибка подтверждения", "error");
-              }
-            }}
-            className="flex-1 py-2.5 text-sm font-semibold"
-            style={{
-              background: "rgba(255, 255, 255, 0.03)",
-              color: "rgba(200, 200, 220, 0.4)",
-              border: "0.5px solid rgba(200, 200, 220, 0.08)",
-              borderRadius: 18,
-            }}
-          >
-            Отказала
-          </button>
-        </div>
-      )}
-
-      {/* ========== MAIN CTA — Premium Gold ========== */}
-      {!showTelegramStart && (
-        <div className="px-5 pb-5" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
-          <button
-            id="btn-generate"
-            onClick={() => handleGenerate()}
-            disabled={generating || !canGenerate}
-            className="w-full py-4 rounded-2xl font-bold text-base active:scale-[0.97] transition-all"
-            style={{
-              background: generating
-                ? "rgba(255, 255, 255, 0.04)"
-                : canGenerate
-                ? "linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076)"
-                : "rgba(255, 255, 255, 0.03)",
-              color: generating
-                ? "rgba(200, 200, 220, 0.3)"
-                : canGenerate
-                ? "#050505"
-                : "rgba(200, 200, 220, 0.2)",
-              boxShadow:
-                canGenerate && !generating
-                  ? "0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25)"
-                  : "none",
-              border: generating
-                ? "0.5px solid rgba(200, 200, 220, 0.06)"
-                : canGenerate
-                ? "none"
-                : "0.5px solid rgba(200, 200, 220, 0.06)",
-              letterSpacing: "0.02em",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {generating ? "Анализирую..." : canGenerate ? "Сделать шаг" : "Вставь её ответ"}
-          </button>
-        </div>
-      )}
-
       {showTutorial && isNewDialog && (
         <TutorialOverlay
           steps={CHAT_TUTORIAL_STEPS}
@@ -1422,6 +1027,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
       )}
     </div>
   );
+
 };
 
 export default ChatPage;
