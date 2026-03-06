@@ -246,6 +246,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   return (
     <div className="suggestions-wrap">
       <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
+      <div className="suggestions-background" aria-hidden="true" />
       <div className="suggestions-carousel" ref={scrollRef}>
         {suggestions.map((suggestion, i) => {
           const isSelected = selectedIndex === i;
