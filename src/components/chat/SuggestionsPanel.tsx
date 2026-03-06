@@ -183,19 +183,6 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                   : "0 10px 35px rgba(0,0,0,0.25)",
               }}
             >
-              <span
-                className="suggestion-badge"
-                style={{
-                  background: isSelected
-                    ? "linear-gradient(135deg, #AD8B3A, #F9E076)"
-                    : "rgba(212, 175, 55, 0.12)",
-                  color: isSelected ? "#050505" : "#D4AF37",
-                  border: isSelected ? "none" : "0.5px solid rgba(212, 175, 55, 0.2)",
-                  boxShadow: isSelected ? "0 0 12px rgba(212, 175, 55, 0.3)" : "none",
-                }}
-              >
-                {i + 1}
-              </span>
               <div className="suggestion-text">
                 {suggestion.map((part, partIndex) => (
                   <React.Fragment key={partIndex}>

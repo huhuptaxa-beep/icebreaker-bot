@@ -1,22 +1,11 @@
 import React from "react";
-import InterestMomentumLabel from "./InterestMomentumLabel";
-import GirlSwitchDots from "./GirlSwitchDots";
-import InterestGradientBar from "./InterestGradientBar";
-
 interface CommandHeaderProps {
   girlName: string;
   interest: number;
   onPrev?: () => void;
   onNext?: () => void;
-  conversationIndex?: number;
-  conversationCount?: number;
-  momentumLabel?: {
-    text: string;
-    tone: "positive" | "neutral" | "negative";
-  } | null;
-  credits?: number | null;
-  balancePulse?: boolean;
-  balanceDeltaLabel?: string | null;
+  onPrevConversation?: () => void;
+  onNextConversation?: () => void;
 }
 
 const CommandHeader: React.FC<CommandHeaderProps> = ({
@@ -24,18 +13,14 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
   interest,
   onPrev,
   onNext,
-  conversationIndex,
-  conversationCount,
-  momentumLabel,
-  credits,
-  balancePulse,
-  balanceDeltaLabel,
+  onPrevConversation,
+  onNextConversation,
 }) => {
   const handleSwipe = (direction: "left" | "right") => {
     if (direction === "left") {
-      onNext?.();
+      (onNextConversation ?? onNext)?.();
     } else {
-      onPrev?.();
+      (onPrevConversation ?? onPrev)?.();
     }
   };
 
@@ -70,52 +55,45 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
     );
   };
 
+  const normalizedInterest = Math.max(0, Math.min(100, Math.round(interest ?? 0)));
+  const barGradient =
+    normalizedInterest >= 100
+      ? "linear-gradient(135deg, #F7C35F, #FFD977)"
+      : "linear-gradient(135deg, #FF2E4D, #FF5A5F)";
+
   return (
     <header className="command-header">
       <div className="command-header-row">
         <button
-          onClick={onPrev}
+          onClick={onPrevConversation ?? onPrev}
           className="command-header-arrow"
-          disabled={!onPrev}
+          disabled={!(onPrevConversation ?? onPrev)}
+          aria-label="Предыдущий диалог"
         >
           ←
         </button>
         <div className="command-header-main">
-          <div className="command-header-name-row">
-            <div className="command-header-name">{girlName}</div>
-            {momentumLabel && (
-              <InterestMomentumLabel tone={momentumLabel.tone}>
-                {momentumLabel.text}
-              </InterestMomentumLabel>
-            )}
-          </div>
-          <div className="command-header-bar">
-            <InterestGradientBar value={interest} />
-            <span className="interest-value">{Math.round(interest)}%</span>
+          <div className="command-header-name">{girlName}</div>
+          <div className="command-header-progress">
+            <div className="command-header-progress-track">
+              <div
+                className="command-header-progress-fill"
+                style={{ width: `${normalizedInterest}%`, background: barGradient }}
+              />
+            </div>
+            <span className="command-header-progress-value">
+              {normalizedInterest}%
+            </span>
           </div>
         </div>
-        <div className="command-header-nav">
-          <GirlSwitchDots currentIndex={conversationIndex} total={conversationCount} />
-          <button
-            onClick={onNext}
-            className="command-header-arrow"
-            disabled={!onNext}
-          >
-            →
-          </button>
-        </div>
-        {typeof credits === "number" && (
-          <div
-            className={`command-header-credits ${balancePulse ? "pulse" : ""}`}
-          >
-            ★ {credits}
-            {balanceDeltaLabel && (
-              <span className="command-header-credits-delta">
-                {balanceDeltaLabel} баллов
-              </span>
-            )}
-          </div>
-        )}
+        <button
+          onClick={onNextConversation ?? onNext}
+          className="command-header-arrow"
+          disabled={!(onNextConversation ?? onNext)}
+          aria-label="Следующий диалог"
+        >
+          →
+        </button>
       </div>
       <div className="command-header-swipe-area" onTouchStart={handleTouchStart} />
     </header>
