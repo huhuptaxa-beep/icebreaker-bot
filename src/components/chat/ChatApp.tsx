@@ -53,6 +53,15 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     }
   }, [activeConversationId]);
 
+  const navActive: "dialogs" | "chat" | "profile" =
+    activeScreen === "profile"
+      ? "profile"
+      : activeScreen === "chat" || activeScreen === "history"
+      ? "chat"
+      : "dialogs";
+
+  const actionPulse = activeScreen === "chat" && actionState.canGenerate && !actionState.generating;
+
   const fetchConversations = useCallback(async () => {
     if (!telegramId) return;
     setLoading(true);
@@ -266,6 +275,8 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
         onProfile={handleProfileOpen}
         actionDisabled={actionDisabled}
         actionLoading={actionLoading}
+        activeTab={navActive}
+        actionPulse={actionPulse}
       />
 
       {/* Subscription overlay */}

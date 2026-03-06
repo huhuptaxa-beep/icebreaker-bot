@@ -739,6 +739,16 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     ? "opener"
     : "idle";
 
+  const shouldAnimateSuggestions = !prefersReducedMotion && suggestions.length > 0;
+
+  const handleHistoryOpen = useCallback(() => {
+    onOpenHistory({
+      conversationId,
+      girlName,
+      messages,
+    });
+  }, [conversationId, girlName, messages, onOpenHistory]);
+
   useImperativeHandle(ref, () => ({
     triggerGenerate: () => {
       handleGenerate();
@@ -760,17 +770,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
       <div className="command-center-body" ref={scrollRef}>
         <div className="mini-context-section">
-          <p className="mini-context-label">История переписки</p>
-          <MiniContext
-            messages={messages}
-            onOpenHistory={() =>
-              onOpenHistory({
-                conversationId,
-                girlName,
-                messages,
-              })
-            }
-          />
+          <button type="button" className="mini-context-label" onClick={handleHistoryOpen}>
+            История переписки →
+          </button>
+          <MiniContext messages={messages} onOpenHistory={handleHistoryOpen} />
         </div>
 
         {!isNewConversation && (
@@ -805,10 +808,8 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
             }
             idle={
               <div className="working-zone-idle">
-                <p className="working-zone-idle-title">Готов к анализу</p>
-                <p className="working-zone-idle-text">
-                  Вставь её ответ или опиши ситуацию, чтобы подобрать следующий шаг.
-                </p>
+                <p className="working-zone-idle-title">AI готов проанализировать ответ</p>
+                <p className="working-zone-idle-text">Вставь её сообщение и нажми ACTION</p>
               </div>
             }
             action={

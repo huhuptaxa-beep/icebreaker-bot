@@ -6,6 +6,8 @@ interface BottomNavigationProps {
   onProfile?: () => void;
   actionDisabled?: boolean;
   actionLoading?: boolean;
+  activeTab: "dialogs" | "chat" | "profile";
+  actionPulse?: boolean;
 }
 
 const ChatIcon = () => (
@@ -51,19 +53,21 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
   onProfile,
   actionDisabled,
   actionLoading,
+  activeTab,
+  actionPulse,
 }) => {
   return (
     <nav className="bottom-navigation">
-      <div className="bottom-nav-column">
+      <div className={`bottom-nav-column ${activeTab === "dialogs" ? "active" : ""}`}>
         <button onClick={onDialogs} className="bottom-nav-icon" aria-label="Диалоги">
           <ChatIcon />
         </button>
         <span className="bottom-nav-label">Chats</span>
       </div>
-      <div className="bottom-nav-column">
+      <div className={`bottom-nav-column ${activeTab === "chat" ? "active" : ""}`}>
         <button
           onClick={onAction}
-          className="bottom-nav-action"
+          className={`bottom-nav-action ${actionPulse ? "pulse" : ""}`}
           disabled={actionDisabled}
           aria-label="Главное действие"
         >
@@ -71,7 +75,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
         </button>
         <span className="bottom-nav-label">Action</span>
       </div>
-      <div className="bottom-nav-column">
+      <div className={`bottom-nav-column ${activeTab === "profile" ? "active" : ""}`}>
         <button onClick={onProfile} className="bottom-nav-icon" aria-label="Профиль">
           <ProfileIcon />
         </button>

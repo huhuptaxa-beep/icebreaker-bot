@@ -66,8 +66,11 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
   };
 
   const normalizedInterest = Math.max(0, Math.min(100, Math.round(interest ?? 0)));
-  const barGradient = "linear-gradient(90deg, #cfcfcf, #f2f2f2, #bdbdbd)";
   const progressWidth = Math.max(normalizedInterest, 2);
+  const progressGradient =
+    normalizedInterest > 70
+      ? "linear-gradient(90deg, #caa74b, #f6d778)"
+      : "linear-gradient(90deg, #8f8f8f, #d6d6d6)";
 
   return (
     <header className="command-header">
@@ -86,7 +89,11 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
             <div className="command-header-progress-track">
               <div
                 className="command-header-progress-fill"
-                style={{ width: `${progressWidth}%`, background: barGradient }}
+                style={{
+                  width: `${progressWidth}%`,
+                  background: progressGradient,
+                  color: "#0b0b0b",
+                }}
               >
                 <span className="command-header-progress-label">{normalizedInterest}%</span>
               </div>

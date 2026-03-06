@@ -243,6 +243,8 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     startAnimatedSelection(suggestion, index);
   };
 
+  const showEntranceAnimation = !prefersReducedMotion && suggestions.length > 0 && !loading;
+
   return (
     <div className="suggestions-wrap">
       <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
@@ -267,35 +269,42 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
             : "transform 160ms cubic-bezier(0.33, 1, 0.68, 1), box-shadow 0.3s ease";
 
           return (
-            <button
+            <div
               key={i}
-              onClick={(event) => handleCardClick(event, suggestion, i)}
-              onPointerDown={(event) => handlePointerDown(i, event)}
-              onPointerMove={(event) => handlePointerMove(event, i, suggestion)}
-              onPointerUp={() => handlePointerEnd(i)}
-              onPointerLeave={() => handlePointerEnd(i)}
-              onPointerCancel={() => handlePointerEnd(i)}
-              className="suggestion-card"
+              className={`suggestion-card-wrapper ${showEntranceAnimation ? "animate" : ""}`}
               style={{
-                background: highlightBackground,
-                border: highlightBorder,
-                transform,
-                opacity,
-                transition,
-                boxShadow: isSelected
-                  ? "0 0 24px rgba(212, 175, 55, 0.25)"
-                  : "0 10px 35px rgba(0,0,0,0.25)",
+                animationDelay: showEntranceAnimation ? `${i * 40}ms` : undefined,
               }}
             >
-              <div className="suggestion-text">
-                {suggestion.map((part, partIndex) => (
-                  <React.Fragment key={partIndex}>
-                    {partIndex > 0 && <div className="suggestion-divider" />}
-                    <div className="suggestion-line">{part}</div>
-                  </React.Fragment>
-                ))}
-              </div>
-            </button>
+              <button
+                onClick={(event) => handleCardClick(event, suggestion, i)}
+                onPointerDown={(event) => handlePointerDown(i, event)}
+                onPointerMove={(event) => handlePointerMove(event, i, suggestion)}
+                onPointerUp={() => handlePointerEnd(i)}
+                onPointerLeave={() => handlePointerEnd(i)}
+                onPointerCancel={() => handlePointerEnd(i)}
+                className="suggestion-card"
+                style={{
+                  background: highlightBackground,
+                  border: highlightBorder,
+                  transform,
+                  opacity,
+                  transition,
+                  boxShadow: isSelected
+                    ? "0 0 24px rgba(212, 175, 55, 0.25)"
+                    : "0 10px 35px rgba(0,0,0,0.25)",
+                }}
+              >
+                <div className="suggestion-text">
+                  {suggestion.map((part, partIndex) => (
+                    <React.Fragment key={partIndex}>
+                      {partIndex > 0 && <div className="suggestion-divider" />}
+                      <div className="suggestion-line">{part}</div>
+                    </React.Fragment>
+                  ))}
+                </div>
+              </button>
+            </div>
           );
         })}
       </div>
