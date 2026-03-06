@@ -805,15 +805,16 @@
 
   .history-link {
     display: block;
-    margin: 8px auto 6px;
+    margin: 20px auto 10px;
     text-align: center;
-    font-size: 12px;
-    letter-spacing: 0.12em;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.75);
     cursor: pointer;
     transition: opacity 200ms ease;
-    opacity: 0.65;
+    opacity: 0.85;
   }
 
   .history-link:hover,
