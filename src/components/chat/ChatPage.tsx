@@ -720,8 +720,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return `${days} дн назад`;
   };
 
-  const workingState: "analysis" | "suggestions" | "idle" = analysisVisible
+  const workingState: "analysis" | "suggestions" | "idle" | "action" = analysisVisible
     ? "analysis"
+    : pendingAction
+    ? "action"
     : suggestions.length > 0
     ? "suggestions"
     : "idle";
@@ -784,6 +786,91 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   Вставь её ответ или опиши ситуацию, чтобы подобрать следующий шаг.
                 </p>
               </div>
+            }
+            action={
+              pendingAction === "contact" ? (
+                <div className="command-contact-selector" ref={contactSelectorRef}>
+                  <p>Удалось взять Telegram?</p>
+                  <div className="command-contact-buttons">
+                    <button
+                      onClick={async () => {
+                        haptic("heavy");
+                        try {
+                          await confirmAction(conversationId, "telegram_success");
+                          setSuggestions([]);
+                          setPendingAction(null);
+                          setCurrentPhase(3);
+                          triggerBalancePulse(5);
+                          setShowTelegramStart(true);
+                          setConfirmResult({ type: "telegram_success" });
+                          triggerContactToast();
+                          setTimeout(() => setConfirmResult(null), 3000);
+                        } catch (err) {
+                          console.error(err);
+                          showToast("Ошибка подтверждения", "error");
+                        }
+                      }}
+                    >
+                      Telegram получен
+                    </button>
+                    <button
+                      onClick={async () => {
+                        haptic("light");
+                        try {
+                          await confirmAction(conversationId, "telegram_fail");
+                          setSuggestions([]);
+                          setPendingAction(null);
+                          setConfirmResult({ type: "telegram_fail" });
+                          setTimeout(() => setConfirmResult(null), 3000);
+                        } catch (err) {
+                          console.error(err);
+                          showToast("Ошибка подтверждения", "error");
+                        }
+                      }}
+                    >
+                      Пока нет
+                    </button>
+                  </div>
+                </div>
+              ) : pendingAction === "date" ? (
+                <div className="command-date-selector">
+                  <button
+                    onClick={async () => {
+                      haptic("heavy");
+                      try {
+                        await confirmAction(conversationId, "date_success");
+                        setSuggestions([]);
+                        setPendingAction(null);
+                        setCurrentPhase(5);
+                        setConfirmResult({ type: "date_success" });
+                        setTimeout(() => setConfirmResult(null), 3000);
+                      } catch (err) {
+                        console.error(err);
+                        showToast("Ошибка подтверждения", "error");
+                      }
+                    }}
+                  >
+                    Она согласилась
+                  </button>
+                  <button
+                    onClick={async () => {
+                      haptic("light");
+                      try {
+                        await confirmAction(conversationId, "date_fail");
+                        setSuggestions([]);
+                        setPendingAction(null);
+                        setConfirmResult({ type: "date_fail" });
+                        setTimeout(() => setConfirmResult(null), 3000);
+                      } catch (err) {
+                        console.error(err);
+                        showToast("Ошибка подтверждения", "error");
+                      }
+                    }}
+                  >
+                    Отказала
+                  </button>
+                </div>
+              ) : null
             }
           />
         </div>
