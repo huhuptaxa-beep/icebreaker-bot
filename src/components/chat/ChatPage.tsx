@@ -13,7 +13,6 @@ import HeartAnalysis from "./HeartAnalysis";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
 import PhaseProgressBar from "@/components/ui/PhaseProgressBar";
 
-const PASTE_PROGRESS_GAIN = 2;
 const HEART_MIN_DURATION = 1200;
 const HEART_ANIMATION_DURATION = 500;
 const HEART_HOLD_DURATION = 300;
@@ -89,9 +88,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const progressChipTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const interestTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const pendingPasteRewardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const [goldToastMessage, setGoldToastMessage] = useState<string | null>(null);
   const goldToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -264,34 +260,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const triggerPasteReward = () => {
     triggerGoldToast("Ответ учтён");
     triggerBalancePulse(1);
-
-    if (pendingPasteRewardRef.current) {
-      clearTimeout(pendingPasteRewardRef.current);
-      pendingPasteRewardRef.current = null;
-    }
-
-    const timer = window.setTimeout(() => {
-      setCurrentInterest((prev) => {
-        const target = Math.min(prev + PASTE_PROGRESS_GAIN, 100);
-        const appliedDiff = target - prev;
-        if (appliedDiff > 0) {
-          setInterestDelta(appliedDiff);
-          const clearDelta = window.setTimeout(
-            () => setInterestDelta(null),
-            prefersReducedMotion ? 0 : 1500
-          );
-          interestTimers.current.push(clearDelta);
-          triggerProgressChip(appliedDiff);
-        } else {
-          triggerProgressChip(0, "%");
-        }
-        return target;
-      });
-      pendingPasteRewardRef.current = null;
-    }, prefersReducedMotion ? 0 : 120);
-
-    pendingPasteRewardRef.current = timer;
-    interestTimers.current.push(timer);
   };
 
   const resetAnalysisOverlay = useCallback(() => {
@@ -424,7 +392,9 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setShowTelegramStart(true);
       }
     }
-    setCurrentInterest(data.effective_interest || 5);
+    if (data.effective_interest !== undefined && !analysisActiveRef.current) {
+      setCurrentInterest(data.effective_interest);
+    }
   };
 
   useEffect(() => {
@@ -450,7 +420,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
       copyFlashTimeouts.current.forEach(clearTimeout);
       newMessageTimeouts.current.forEach(clearTimeout);
       progressChipTimers.current.forEach(clearTimeout);
-      interestTimers.current.forEach(clearTimeout);
       clearCopyToastTimers();
       if (contactToastTimer.current) {
         clearTimeout(contactToastTimer.current);
@@ -463,10 +432,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
       if (goldToastTimer.current) {
         clearTimeout(goldToastTimer.current);
         goldToastTimer.current = null;
-      }
-      if (pendingPasteRewardRef.current) {
-        clearTimeout(pendingPasteRewardRef.current);
-        pendingPasteRewardRef.current = null;
       }
       clearAnalysisTimers();
       resetAnalysisOverlay();
@@ -629,11 +594,11 @@ const ChatPage: React.FC<ChatPageProps> = ({
         if (res.interest !== undefined) {
           const oldInterest = currentInterest;
           const newInterest = res.interest;
-          const diff = Math.round(newInterest - oldInterest);
           setCurrentInterest(newInterest);
+          const diff = newInterest - oldInterest;
+          setInterestDelta(diff);
           if (diff !== 0) {
-            setInterestDelta(diff);
-            setTimeout(() => setInterestDelta(null), 1600);
+            triggerProgressChip(diff);
           }
           if (shouldShowAnalysis) {
             triggerAnalysisResult(oldInterest, newInterest);
@@ -1303,33 +1268,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
                   setSuggestions([]);
                   setPendingAction(null);
                   setCurrentPhase(3);
-
-                  const nextInterest = Math.max(currentInterest, 40);
-                  const diff = Math.round(nextInterest - currentInterest);
-                  const gain = diff > 0 ? diff : 5;
-
-                  if (diff !== 0) triggerProgressChip(diff);
-                  triggerBalancePulse(gain);
-
-                  const barDelay = prefersReducedMotion ? 0 : 120;
-                  const interestTimer = window.setTimeout(() => {
-                    setCurrentInterest((prev) => {
-                      const target = Math.max(prev, 40);
-                      const appliedDiff = Math.round(target - prev);
-                      if (appliedDiff !== 0) {
-                        setInterestDelta(appliedDiff);
-                        const clearDelta = window.setTimeout(
-                          () => setInterestDelta(null),
-                          prefersReducedMotion ? 0 : 1500
-                        );
-                        interestTimers.current.push(clearDelta);
-                      }
-                      return target;
-                    });
-                  }, barDelay);
-
-                  interestTimers.current.push(interestTimer);
-
+                  triggerBalancePulse(5);
                   setShowTelegramStart(true);
                   setConfirmResult({ type: "telegram_success" });
                   triggerContactToast();
@@ -1391,7 +1330,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 setSuggestions([]);
                 setPendingAction(null);
                 setCurrentPhase(5);
-                setCurrentInterest(100);
                 setConfirmResult({ type: "date_success" });
                 setTimeout(() => setConfirmResult(null), 3000);
               } catch (err) {
