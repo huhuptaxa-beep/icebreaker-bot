@@ -809,7 +809,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
             idle={
               <div className="working-zone-idle">
                 <p className="working-zone-idle-title">AI готов проанализировать ответ</p>
-                <p className="working-zone-idle-text">Вставь её сообщение и нажми ACTION</p>
+                <p className="working-zone-idle-text">Вставь её сообщение и нажми ⚡</p>
               </div>
             }
             action={
