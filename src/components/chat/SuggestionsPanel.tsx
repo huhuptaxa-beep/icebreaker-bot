@@ -16,8 +16,21 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [pressedIndex, setPressedIndex] = useState<number | null>(null);
+  const [flyingIndex, setFlyingIndex] = useState<number | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectionAnimationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const swipeTrackerRef = useRef<
+    Record<
+      number,
+      {
+        startX: number;
+        startY: number;
+        swiped: boolean;
+      }
+    >
+  >({});
+  const swipeSelectionRef = useRef<Record<number, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,6 +43,10 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
         clearTimeout(pressTimerRef.current);
         pressTimerRef.current = null;
       }
+      selectionAnimationTimersRef.current.forEach(clearTimeout);
+      selectionAnimationTimersRef.current.length = 0;
+      swipeTrackerRef.current = {};
+      swipeSelectionRef.current = {};
     };
   }, []);
 
@@ -108,9 +125,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     };
   }, [suggestions.length]);
 
-  const handleSelect = (suggestion: string[], index: number) => {
-    setSelectedIndex(index);
-    setPressedIndex(null);
+  const completeSelection = (suggestion: string[], index: number) => {
     onSelect(suggestion);
 
     if (highlightTimerRef.current) {
@@ -129,8 +144,13 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     }, 150);
   };
 
-  const handlePointerDown = (index: number) => {
+  const handlePointerDown = (index: number, event: React.PointerEvent<HTMLButtonElement>) => {
     setPressedIndex(index);
+    swipeTrackerRef.current[index] = {
+      startX: event.clientX,
+      startY: event.clientY,
+      swiped: false,
+    };
     if (prefersReducedMotion) return;
     if (pressTimerRef.current) {
       clearTimeout(pressTimerRef.current);
@@ -150,6 +170,79 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     setPressedIndex(null);
   };
 
+  const cleanupSwipeTracking = (index: number) => {
+    delete swipeTrackerRef.current[index];
+  };
+
+  const startAnimatedSelection = (
+    suggestion: string[],
+    index: number,
+    afterComplete?: () => void
+  ) => {
+    releasePress();
+    setSelectedIndex(index);
+    setFlyingIndex(index);
+
+    const finish = () => {
+      setFlyingIndex((prev) => (prev === index ? null : prev));
+      completeSelection(suggestion, index);
+      afterComplete?.();
+    };
+
+    if (prefersReducedMotion) {
+      finish();
+      return;
+    }
+
+    const timer = window.setTimeout(finish, 320);
+    selectionAnimationTimersRef.current.push(timer);
+  };
+
+  const triggerSwipeSelection = (index: number, suggestion: string[]) => {
+    swipeSelectionRef.current[index] = true;
+    startAnimatedSelection(suggestion, index, () => {
+      delete swipeSelectionRef.current[index];
+    });
+  };
+
+  const handlePointerMove = (
+    event: React.PointerEvent<HTMLButtonElement>,
+    index: number,
+    suggestion: string[]
+  ) => {
+    const tracker = swipeTrackerRef.current[index];
+    if (!tracker || tracker.swiped) return;
+
+    const deltaX = event.clientX - tracker.startX;
+    const deltaY = event.clientY - tracker.startY;
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      return;
+    }
+    if (tracker.startY - event.clientY > 60) {
+      tracker.swiped = true;
+      event.preventDefault();
+      cleanupSwipeTracking(index);
+      triggerSwipeSelection(index, suggestion);
+    }
+  };
+
+  const handlePointerEnd = (index: number) => {
+    cleanupSwipeTracking(index);
+    releasePress();
+  };
+
+  const handleCardClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    suggestion: string[],
+    index: number
+  ) => {
+    if (swipeSelectionRef.current[index]) {
+      event.preventDefault();
+      return;
+    }
+    startAnimatedSelection(suggestion, index);
+  };
+
   return (
     <div className="suggestions-wrap">
       <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
@@ -164,20 +257,30 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
           const highlightBorder = isSelected
             ? "1px solid rgba(212, 175, 55, 0.35)"
             : "1px solid rgba(255, 255, 255, 0.08)";
+          const isFlying = flyingIndex === i && !prefersReducedMotion;
+          const baseTransform = `scale(${scale})`;
+          const transform = isFlying ? "translateY(-260px) scale(0.92)" : baseTransform;
+          const opacity = isFlying ? 0 : 1;
+          const transition = isFlying
+            ? "transform 320ms ease-out, opacity 320ms ease-out, box-shadow 0.3s ease"
+            : "transform 160ms cubic-bezier(0.33, 1, 0.68, 1), box-shadow 0.3s ease";
 
           return (
             <button
               key={i}
-              onClick={() => handleSelect(suggestion, i)}
-              onPointerDown={() => handlePointerDown(i)}
-              onPointerUp={releasePress}
-              onPointerLeave={releasePress}
-              onPointerCancel={releasePress}
+              onClick={(event) => handleCardClick(event, suggestion, i)}
+              onPointerDown={(event) => handlePointerDown(i, event)}
+              onPointerMove={(event) => handlePointerMove(event, i, suggestion)}
+              onPointerUp={() => handlePointerEnd(i)}
+              onPointerLeave={() => handlePointerEnd(i)}
+              onPointerCancel={() => handlePointerEnd(i)}
               className="suggestion-card"
               style={{
                 background: highlightBackground,
                 border: highlightBorder,
-                transform: `scale(${scale})`,
+                transform,
+                opacity,
+                transition,
                 boxShadow: isSelected
                   ? "0 0 24px rgba(212, 175, 55, 0.25)"
                   : "0 10px 35px rgba(0,0,0,0.25)",
