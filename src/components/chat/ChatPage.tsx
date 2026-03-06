@@ -131,6 +131,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     null
   );
   const balancePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const conversationIdRef = useRef(conversationId);
 
   // ✅ single declarations (duplicates removed)
   const [contactToastVisible, setContactToastVisible] = useState(false);
@@ -460,6 +461,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   }, [conversationId]);
 
   useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     const handleChange = () => setPrefersReducedMotion(media.matches);
@@ -638,10 +643,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       let res: any;
 
       if (facts && !actionOverride) {
-        res = await chatGenerate(conversationId, null, "opener", facts);
+        res = await chatGenerate(conversationIdRef.current, null, "opener", facts);
       } else {
         const action = actionOverride ?? "normal";
-        res = await chatGenerate(conversationId, girlText || null, action, undefined);
+        res = await chatGenerate(conversationIdRef.current, girlText || null, action, undefined);
         if (!actionOverride) setDraftGirlReply("");
       }
 
@@ -825,6 +830,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       style={{ background: "radial-gradient(120% 80% at 50% 0%, #1A1A22 0%, #0E0E12 60%, #0A0A0D 100%)" }}
     >
       <CommandHeader
+        disabled={generating}
         girlName={girlName}
         interest={currentInterest}
         onPrev={onBack}

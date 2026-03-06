@@ -702,6 +702,11 @@
     padding: 10px 18px;
   }
 
+  .header-disabled {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
   .command-header-row {
     display: grid;
     grid-template-columns: 58px 1fr 58px;
