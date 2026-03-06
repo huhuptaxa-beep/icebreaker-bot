@@ -392,7 +392,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         setShowTelegramStart(true);
       }
     }
-    if (data.effective_interest !== undefined && !analysisActiveRef.current) {
+    if (data.effective_interest !== undefined) {
       setCurrentInterest(data.effective_interest);
     }
   };
