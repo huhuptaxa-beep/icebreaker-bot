@@ -58,8 +58,8 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
   const normalizedInterest = Math.max(0, Math.min(100, Math.round(interest ?? 0)));
   const barGradient =
     normalizedInterest > 80
-      ? "linear-gradient(135deg, #AD8B3A, #F9E076)"
-      : "linear-gradient(135deg, #7A7F87, #B8BCC4)";
+      ? "linear-gradient(90deg, #AD8B3A, #F9E076)"
+      : "linear-gradient(90deg, #7A7F87, #B8BCC4)";
 
   return (
     <header className="command-header">
@@ -74,17 +74,6 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
         </button>
         <div className="command-header-main">
           <div className="command-header-name">{girlName}</div>
-          <div className="command-header-progress">
-            <div className="command-header-progress-track">
-              <div
-                className="command-header-progress-fill"
-                style={{ width: `${normalizedInterest}%`, background: barGradient }}
-              />
-            </div>
-            <span className="command-header-progress-value">
-              {normalizedInterest}%
-            </span>
-          </div>
         </div>
         <button
           onClick={onNextConversation ?? onNext}
@@ -94,6 +83,15 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
         >
           →
         </button>
+      </div>
+      <div className="command-header-progress">
+        <div className="command-header-progress-track">
+          <div
+            className="command-header-progress-fill"
+            style={{ width: `${normalizedInterest}%`, background: barGradient }}
+          />
+        </div>
+        <span className="command-header-progress-value">{normalizedInterest}%</span>
       </div>
       <div className="command-header-swipe-area" onTouchStart={handleTouchStart} />
     </header>
