@@ -92,11 +92,9 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
                 style={{
                   width: `${progressWidth}%`,
                   background: progressGradient,
-                  color: "#0b0b0b",
                 }}
-              >
-                <span className="command-header-progress-label">{normalizedInterest}%</span>
-              </div>
+              />
+              <span className="command-header-progress-label">{normalizedInterest}%</span>
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({ value, onChange, onPast
         disabled={disabled}
       />
       <button type="button" onClick={onPaste} disabled={disabled}>
-        {pasteLabel ?? "📋 Вставить из чата"}
+        {pasteLabel ?? "Вставить из чата"}
       </button>
     </div>
   );
