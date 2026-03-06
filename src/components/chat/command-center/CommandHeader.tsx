@@ -10,8 +10,6 @@ interface CommandHeaderProps {
   onNext?: () => void;
   conversationIndex?: number;
   conversationCount?: number;
-  lastSource?: string;
-  lastTimeAgo?: string;
   momentumLabel?: {
     text: string;
     tone: "positive" | "neutral" | "negative";
@@ -28,8 +26,6 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
   onNext,
   conversationIndex,
   conversationCount,
-  lastSource,
-  lastTimeAgo,
   momentumLabel,
   credits,
   balancePulse,
@@ -86,16 +82,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
         </button>
         <div className="command-header-main">
           <div className="command-header-name-row">
-            <div>
-              <div className="command-header-name">{girlName}</div>
-              {(lastSource || lastTimeAgo) && (
-                <div className="command-header-meta">
-                  {lastSource}
-                  {lastSource && lastTimeAgo ? " • " : ""}
-                  {lastTimeAgo}
-                </div>
-              )}
-            </div>
+            <div className="command-header-name">{girlName}</div>
             {momentumLabel && (
               <InterestMomentumLabel tone={momentumLabel.tone}>
                 {momentumLabel.text}

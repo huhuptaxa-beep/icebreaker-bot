@@ -705,21 +705,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
     return !!(draftGirlReply.trim() || hasUnansweredGirl);
   })();
 
-  const lastMessage = messages[messages.length - 1];
-  const formatRelativeTime = (timestamp?: string) => {
-    if (!timestamp) return "только что";
-    const parsed = new Date(timestamp);
-    if (Number.isNaN(parsed.getTime())) return "только что";
-    const diffMs = Date.now() - parsed.getTime();
-    const minutes = Math.max(0, Math.floor(diffMs / 60000));
-    if (minutes < 1) return "только что";
-    if (minutes < 60) return `${minutes} мин назад`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} ч назад`;
-    const days = Math.floor(hours / 24);
-    return `${days} дн назад`;
-  };
-
   const workingState: "analysis" | "suggestions" | "idle" | "action" = analysisVisible
     ? "analysis"
     : pendingAction
@@ -740,8 +725,6 @@ const ChatPage: React.FC<ChatPageProps> = ({
         girlName={girlName}
         interest={currentInterest}
         onPrev={onBack}
-        lastSource={currentChannel === "telegram" ? "Telegram" : "Приложение"}
-        lastTimeAgo={formatRelativeTime(lastMessage?.created_at)}
         momentumLabel={null}
         credits={headerCredits}
         balancePulse={balancePulse}
@@ -749,7 +732,10 @@ const ChatPage: React.FC<ChatPageProps> = ({
       />
 
       <div className="command-center-body" ref={scrollRef}>
-        <MiniContext messages={messages} onOpenHistory={() => {}} />
+        <div className="mini-context-section">
+          <p className="mini-context-label">История переписки</p>
+          <MiniContext messages={messages} onOpenHistory={() => {}} />
+        </div>
 
         <GirlReplyInput
           value={draftGirlReply}
