@@ -132,7 +132,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
   const analysisTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const analysisActiveRef = useRef(false);
 
-  const isNewDialog = messages.length === 0;
+  const isNewConversation = messages.length === 0;
 
   const [showTutorial, setShowTutorial] = useState(() => {
     return localStorage.getItem("tutorial_chat_done") !== "true";
@@ -698,19 +698,21 @@ const ChatPage: React.FC<ChatPageProps> = ({
 
   const canGenerate = (() => {
     if (generating) return false;
-    if (isNewDialog) return !!(openerFacts.trim() || draftGirlReply.trim());
+    if (isNewConversation) return !!openerFacts.trim();
     if (showTelegramStart) return false;
     const lastMsg = messages[messages.length - 1];
     const hasUnansweredGirl = lastMsg?.role === "girl";
     return !!(draftGirlReply.trim() || hasUnansweredGirl);
   })();
 
-  const workingState: "analysis" | "suggestions" | "idle" | "action" = analysisVisible
+  const workingState: "analysis" | "suggestions" | "idle" | "action" | "opener" = analysisVisible
     ? "analysis"
     : pendingAction
     ? "action"
     : suggestions.length > 0
     ? "suggestions"
+    : isNewConversation
+    ? "opener"
     : "idle";
 
   const headerCredits =
@@ -737,13 +739,15 @@ const ChatPage: React.FC<ChatPageProps> = ({
           <MiniContext messages={messages} onOpenHistory={() => {}} />
         </div>
 
-        <GirlReplyInput
-          value={draftGirlReply}
-          onChange={setDraftGirlReply}
-          onPaste={handleTextareaPaste}
-          pasteLabel={pasteLabel}
-          disabled={generating}
-        />
+        {!isNewConversation && (
+          <GirlReplyInput
+            value={draftGirlReply}
+            onChange={setDraftGirlReply}
+            onPaste={handleTextareaPaste}
+            pasteLabel={pasteLabel}
+            disabled={generating}
+          />
+        )}
 
         <div className="command-working" ref={suggestionsRef}>
           <WorkingZone
@@ -858,6 +862,24 @@ const ChatPage: React.FC<ChatPageProps> = ({
                 </div>
               ) : null
             }
+            opener={
+              <div className="opener-card">
+                <textarea
+                  className="opener-textarea"
+                  placeholder="Опиши девушку или ситуацию"
+                  value={openerFacts}
+                  onChange={(e) => setOpenerFacts(e.target.value)}
+                  disabled={generating}
+                />
+                <button
+                  className="opener-button"
+                  onClick={() => handleGenerate()}
+                  disabled={generating || !openerFacts.trim()}
+                >
+                  {generating ? "..." : "Сгенерировать первое сообщение"}
+                </button>
+              </div>
+            }
           />
         </div>
       </div>
@@ -936,7 +958,7 @@ const ChatPage: React.FC<ChatPageProps> = ({
         </div>
       )}
 
-      {showTutorial && isNewDialog && (
+      {showTutorial && isNewConversation && (
         <TutorialOverlay
           steps={CHAT_TUTORIAL_STEPS}
           storageKey="tutorial_chat_done"
