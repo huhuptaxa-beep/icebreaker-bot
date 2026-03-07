@@ -708,18 +708,22 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
       if (res.limit_reached) {
         setSuggestions([]);
+        setGenerating(false);
         showToast("Генерации закончились. Купи пакет!", "error");
         onSubscribe?.();
         resetGenerationFlow();
       } else if (res.error) {
         setSuggestions([]);
+        setGenerating(false);
         showToast("Не удалось сгенерировать ответ", "error");
         resetGenerationFlow();
       } else {
-        setSuggestions(res.suggestions || []);
-        if (shouldRunPhases) {
-          setGenerationPhase("suggestions");
-        }
+        const nextSuggestions = res.suggestions || [];
+
+        setTimeout(() => {
+          setSuggestions(nextSuggestions);
+          setGenerating(false);
+        }, 200);
         setAvailableActions(res.available_actions || []);
         if (res.phase) setCurrentPhase(res.phase);
 
@@ -742,10 +746,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     } catch (err) {
       console.error(err);
       setSuggestions([]);
+      setGenerating(false);
       showToast("Не удалось сгенерировать ответ", "error");
       resetGenerationFlow();
     } finally {
-      setGenerating(false);
       isGeneratingRef.current = false;
     }
   };
@@ -817,13 +821,11 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     onActionStateChange?.({ generating, canGenerate });
   }, [generating, canGenerate, onActionStateChange]);
 
-  const isAnalysisPhase = generationPhase === "thinking" || generationPhase === "scoring";
-
   const workingState: "analysis" | "suggestions" | "idle" | "action" = pendingAction
     ? "action"
-    : isAnalysisPhase
+    : generating
     ? "analysis"
-    : generationPhase === "suggestions" || suggestions.length > 0
+    : suggestions.length > 0
     ? "suggestions"
     : "idle";
 
