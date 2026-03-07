@@ -69,10 +69,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
   const normalizedInterest = Math.max(0, Math.min(100, Math.round(interest ?? 0)));
   const progressWidth = Math.max(normalizedInterest, 2);
-  const progressGradient =
-    normalizedInterest > 70
-      ? "linear-gradient(90deg, #caa74b, #f6d778)"
-      : "linear-gradient(90deg, #8f8f8f, #d6d6d6)";
+  const progressGradient = "linear-gradient(90deg, #C6A84A, #F4D97A)";
 
   return (
     <header className={`command-header${disabled ? " header-disabled" : ""}`}>

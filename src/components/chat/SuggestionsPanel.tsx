@@ -272,10 +272,10 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
           const scale = baseScale * hoverBoost;
           const highlightBackground = isSelected
             ? "linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.08))"
-            : "rgba(255, 255, 255, 0.04)";
+            : "rgba(255, 255, 255, 0.08)";
           const highlightBorder = isSelected
             ? "1px solid rgba(212, 175, 55, 0.35)"
-            : "1px solid rgba(255, 255, 255, 0.08)";
+            : "1px solid rgba(255, 255, 255, 0.12)";
           const isFlying = flyingIndex === i && !prefersReducedMotion;
           const baseTransform = `scale(${scale})`;
           const transform = isFlying ? "translateY(-260px) scale(0.92)" : baseTransform;
@@ -284,10 +284,10 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
             ? "transform 320ms ease-out, opacity 320ms ease-out, box-shadow 0.3s ease"
             : "transform 180ms ease, box-shadow 180ms ease";
           const boxShadow = isSelected
-            ? "0 0 24px rgba(212, 175, 55, 0.25)"
+            ? "0 0 24px rgba(212, 175, 55, 0.25), 0 10px 30px rgba(0,0,0,0.35)"
             : isHovered
-            ? "0 10px 25px rgba(0,0,0,0.35)"
-            : "0 10px 25px rgba(0,0,0,0.25)";
+            ? "0 10px 30px rgba(0,0,0,0.35)"
+            : "0 10px 30px rgba(0,0,0,0.35)";
 
           return (
             <div

@@ -62,9 +62,9 @@ const MiniContext: React.FC<MiniContextProps> = ({ messages }) => {
       {displayMessages.map((msg) => (
         <div
           key={msg.id}
-          className={`mini-msg ${msg.role === "girl" ? "girl" : "user"}${animatedId === msg.id ? " msg-enter" : ""}`}
+          className={`mini-msg-row ${msg.role === "girl" ? "girl" : "user"}${animatedId === msg.id ? " msg-enter" : ""}`}
         >
-          {msg.text}
+          <div className={`mini-msg chat-bubble ${msg.role === "girl" ? "girl" : "user"}`}>{msg.text}</div>
         </div>
       ))}
     </div>

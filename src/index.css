@@ -792,19 +792,19 @@
 
   .command-header-progress-track {
     width: 100%;
-    height: 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.1);
+    height: 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.15);
     overflow: hidden;
     position: relative;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 1px;
+    padding: 0;
   }
 
   .command-header-progress-fill {
     height: 100%;
     min-width: 34px;
-    border-radius: 999px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -826,8 +826,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px;
-    min-height: 90px;
+    padding: 14px 16px;
+    min-height: 72px;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -861,13 +861,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-  }
-
-  .chat-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
 
   .mini-context-empty {
@@ -875,26 +869,42 @@
     font-size: 13px;
   }
 
+  .mini-msg-row {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .mini-msg-row.girl {
+    justify-content: flex-start;
+  }
+
+  .mini-msg-row.user {
+    justify-content: flex-end;
+  }
+
   .mini-msg {
     max-width: 75%;
-    padding: 8px 12px;
+    padding: 10px 14px;
     font-size: 13px;
-    line-height: 1.35;
+    line-height: 1.4;
     border-radius: 14px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: block;
+    overflow: visible;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
   .mini-msg.girl {
-    align-self: flex-start;
     background: rgba(255, 255, 255, 0.06);
   }
 
   .mini-msg.user {
-    align-self: flex-end;
     background: rgba(255, 255, 255, 0.12);
+  }
+
+  .chat-bubble {
+    padding: 10px 14px;
+    line-height: 1.4;
   }
 
   .msg-enter {
@@ -951,26 +961,34 @@
   .paste-button {
     font-size: 10px;
     padding: 3px 6px;
-    border-radius: 6px;
+    border-radius: 10px;
     opacity: 0.75;
     align-self: flex-end;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     color: rgba(255, 255, 255, 0.92);
     font-weight: 600;
-    transition: background 200ms ease, border-color 200ms ease, opacity 200ms ease;
+    transition: background 200ms ease, border-color 200ms ease, opacity 200ms ease, box-shadow 200ms ease;
   }
 
   .paste-button:hover {
     opacity: 1;
     background: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.35);
+  }
+
+  .paste-button:active {
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.35);
   }
 
   .paste-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     background: rgba(255, 255, 255, 0.04);
+    box-shadow: none;
   }
 
   .command-working {
@@ -1041,7 +1059,9 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 4px 4px 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px 16px 0;
     position: relative;
     z-index: 1;
     overflow: visible;
@@ -1061,6 +1081,7 @@
   }
 
   .suggestions-label {
+    display: block;
     font-size: 12px;
     font-weight: 500;
     letter-spacing: 0.05em;
@@ -1107,11 +1128,12 @@
     justify-content: center;
     gap: 8px;
     text-align: center;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    color: rgba(255, 255, 255, 0.92);
     transform: scale(1);
     transition: transform 180ms ease, box-shadow 180ms ease, opacity 0.3s ease;
   }
@@ -1133,7 +1155,7 @@
   }
 
   .suggestion-line {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.92);
     font-size: 13px;
     line-height: 1.35;
     letter-spacing: 0.01em;

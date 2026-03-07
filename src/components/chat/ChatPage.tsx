@@ -885,8 +885,8 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const idleSubtitle = isNewConversation
     ? "Нажми ⚡ чтобы получить первое сообщение"
     : showActionNudge
-    ? "Нажми ⚡ чтобы получить варианты"
-    : "и нажми ⚡";
+    ? "AI готов подобрать ответ ⚡"
+    : "AI готов подобрать ответ ⚡";
 
   const inputLabel = isNewConversation ? "Описание девушки" : "Ответ девушки";
   const inputPlaceholder = isNewConversation ? "Опиши девушку или ситуацию" : "Вставь сообщение девушки";
