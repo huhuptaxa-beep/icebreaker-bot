@@ -894,9 +894,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
             <span>А</span>
             <span>Т</span>
           </div>
-          <div className="chat-content">
-            <MiniContext messages={messages} />
-          </div>
+          <MiniContext messages={messages} />
         </div>
 
         <div className={`command-working${isAiScanActive ? " ai-scan" : ""}`} ref={suggestionsRef}>

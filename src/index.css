@@ -794,7 +794,7 @@
     align-items: center;
     gap: 12px;
     padding: 16px;
-    min-height: 80px;
+    min-height: 90px;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -810,14 +810,18 @@
   }
   
   .chat-label {
+    width: 28px;
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
     gap: 2px;
     font-size: 11px;
     opacity: 0.35;
     letter-spacing: 0.2em;
-    margin-right: 8px;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding-right: 8px;
+    margin-right: 12px;
   }
 
   .chat-content {
@@ -826,12 +830,11 @@
     flex-direction: column;
   }
 
-  .mini-context {
+  .chat-content {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.85);
   }
 
   .mini-context-empty {
@@ -851,20 +854,29 @@
     overflow: hidden;
   }
 
-  .mini-msg.latest {
-    max-width: 100%;
-    align-self: stretch;
-    background: rgba(255, 255, 255, 0.06);
-  }
-
   .mini-msg.girl {
     align-self: flex-start;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .mini-msg.user {
     align-self: flex-end;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .msg-enter {
+    animation: msgEnter 0.26s ease;
+  }
+
+  @keyframes msgEnter {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   .girl-reply-input {
