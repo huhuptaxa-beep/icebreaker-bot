@@ -919,6 +919,11 @@
     padding: 12px;
   }
 
+  .girl-reply-input.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
   .girl-reply-label {
     font-size: 13px;
     letter-spacing: 0.04em;
@@ -1030,45 +1035,6 @@
     font-size: 14px;
     opacity: 0.7;
     line-height: 1.4;
-  }
-
-  .opener-card {
-    width: 100%;
-    max-width: 340px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    text-align: left;
-  }
-
-  .opener-textarea {
-    width: 100%;
-    min-height: 120px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.03);
-    color: rgba(255, 255, 255, 0.92);
-    padding: 14px;
-    font-size: 15px;
-    resize: none;
-    outline: none;
-  }
-
-  .opener-button {
-    width: 100%;
-    padding: 14px;
-    border-radius: 16px;
-    border: none;
-    font-weight: 600;
-    font-size: 15px;
-    background: linear-gradient(135deg, #AD8B3A, #D4AF37, #F9E076);
-    color: #050505;
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25);
-  }
-
-  .opener-button:disabled {
-    opacity: 0.6;
-    box-shadow: none;
   }
 
   .suggestions-wrap {

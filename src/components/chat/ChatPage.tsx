@@ -70,7 +70,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const [girlName, setGirlName] = useState<string>("Чат");
 
   const [draftGirlReply, setDraftGirlReply] = useState("");
-  const [openerFacts, setOpenerFacts] = useState("");
 
   const [availableActions, setAvailableActions] = useState<string[]>([]);
   const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(
@@ -669,13 +668,13 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
     haptic("medium");
 
-    const facts = openerFacts.trim();
     const girlText = draftGirlReply.trim();
 
     const lastMsg = messages[messages.length - 1];
     const hasUnansweredGirl = lastMsg?.role === "girl";
+    const requiresInput = isNewConversation ? girlText.length > 0 : girlText.length > 0 || hasUnansweredGirl;
 
-    if (!facts && !girlText && !hasUnansweredGirl && !actionOverride) {
+    if (!requiresInput && !actionOverride) {
       isGeneratingRef.current = false;
       return;
     }
@@ -695,8 +694,9 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     try {
       let res: any;
 
-      if (facts && !actionOverride) {
-        res = await chatGenerate(conversationIdRef.current, null, "opener", facts);
+      if (isNewConversation && !actionOverride) {
+        res = await chatGenerate(conversationIdRef.current, null, "opener", girlText);
+        setDraftGirlReply("");
       } else {
         const action = actionOverride ?? "normal";
         res = await chatGenerate(conversationIdRef.current, girlText || null, action, undefined);
@@ -732,7 +732,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         if (actionOverride === "date") setPendingAction("date");
       }
 
-      setOpenerFacts("");
       await refreshConversation();
     } catch (err) {
       console.error(err);
@@ -800,11 +799,12 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
   const canGenerate = (() => {
     if (generating) return false;
-    if (isNewConversation) return !!openerFacts.trim();
     if (showTelegramStart) return false;
+    const trimmedText = draftGirlReply.trim();
+    if (isNewConversation) return trimmedText.length > 0;
     const lastMsg = messages[messages.length - 1];
     const hasUnansweredGirl = lastMsg?.role === "girl";
-    return !!(draftGirlReply.trim() || hasUnansweredGirl);
+    return !!(trimmedText || hasUnansweredGirl);
   })();
 
   useEffect(() => {
@@ -813,14 +813,12 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
   const isAnalysisPhase = generationPhase === "thinking" || generationPhase === "scoring";
 
-  const workingState: "analysis" | "suggestions" | "idle" | "action" | "opener" = pendingAction
+  const workingState: "analysis" | "suggestions" | "idle" | "action" = pendingAction
     ? "action"
     : isAnalysisPhase
     ? "analysis"
     : generationPhase === "suggestions" || suggestions.length > 0
     ? "suggestions"
-    : isNewConversation
-    ? "opener"
     : "idle";
 
   const handleHistoryOpen = useCallback(() => {
@@ -870,9 +868,21 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     },
   }));
 
-  const idleTitle = showActionNudge ? "Готов подобрать ответ" : "Вставь сообщение девушки";
+  const idleTitle = isNewConversation
+    ? "Опиши девушку или ситуацию"
+    : showActionNudge
+    ? "Готов подобрать ответ"
+    : "Вставь сообщение девушки";
 
-  const idleSubtitle = showActionNudge ? "Нажми ⚡ чтобы получить варианты" : "и нажми ⚡";
+  const idleSubtitle = isNewConversation
+    ? "Нажми ⚡ чтобы получить первое сообщение"
+    : showActionNudge
+    ? "Нажми ⚡ чтобы получить варианты"
+    : "и нажми ⚡";
+
+  const inputLabel = isNewConversation ? "Описание девушки" : "Ответ девушки";
+  const inputPlaceholder = isNewConversation ? "Опиши девушку или ситуацию" : "Вставь сообщение девушки";
+  const showPasteButton = !isNewConversation;
 
   const isIdleState = workingState === "idle";
   const isAiScanActive = generating && isIdleState;
@@ -895,9 +905,12 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         <GirlReplyInput
           value={draftGirlReply}
           onChange={setDraftGirlReply}
-          onPaste={handleTextareaPaste}
+          onPaste={showPasteButton ? handleTextareaPaste : undefined}
           pasteLabel={pasteLabel}
           disabled={generating}
+          label={inputLabel}
+          placeholder={inputPlaceholder}
+          showPasteButton={showPasteButton}
         />
 
         <div
@@ -1017,24 +1030,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                   </button>
                 </div>
               ) : null
-            }
-            opener={
-              <div className="opener-card">
-                <textarea
-                  className="opener-textarea"
-                  placeholder="Опиши девушку или ситуацию"
-                  value={openerFacts}
-                  onChange={(e) => setOpenerFacts(e.target.value)}
-                  disabled={generating}
-                />
-                <button
-                  className="opener-button"
-                  onClick={() => handleGenerate()}
-                  disabled={generating || !openerFacts.trim()}
-                >
-                  {generating ? "..." : "Сгенерировать первое сообщение"}
-                </button>
-              </div>
             }
           />
         </div>
