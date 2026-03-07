@@ -829,20 +829,32 @@
     font-size: 13px;
   }
 
-  .mini-context-row {
+  .mini-chat {
     display: flex;
+    flex-direction: column;
     gap: 8px;
   }
 
-  .mini-context-author {
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.65);
+  .mini-msg {
+    max-width: 75%;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.35;
+    border-radius: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
-  .mini-context-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  .mini-msg.girl {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .mini-msg.user {
+    align-self: flex-end;
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .girl-reply-input {

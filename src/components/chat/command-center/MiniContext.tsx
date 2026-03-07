@@ -15,14 +15,13 @@ const MiniContext: React.FC<MiniContextProps> = ({ messages }) => {
     );
   }
 
+  const girlMessage = [...lastTwo].reverse().find((msg) => msg.role === "girl");
+  const userMessage = [...lastTwo].reverse().find((msg) => msg.role !== "girl");
+
   return (
-    <div className="mini-context">
-      {lastTwo.map((msg) => (
-        <div key={msg.id} className="mini-context-row">
-          <span className="mini-context-author">{msg.role === "girl" ? "Она" : "Ты"}</span>
-          <span className="mini-context-text">{msg.text}</span>
-        </div>
-      ))}
+    <div className="mini-chat">
+      {girlMessage && <div className="mini-msg girl">{girlMessage.text}</div>}
+      {userMessage && <div className="mini-msg user">{userMessage.text}</div>}
     </div>
   );
 };
