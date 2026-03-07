@@ -13,6 +13,7 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({
   onChange,
   onPaste,
   pasteLabel,
+  disabled,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -20,6 +21,7 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({
     <div
       className="girl-reply-input"
       onClick={(event) => {
+        if (disabled) return;
         if ((event.target as HTMLElement)?.closest("button")) return;
         textareaRef.current?.focus();
       }}
@@ -32,8 +34,9 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Вставь сообщение из чата"
         aria-label="Ответ девушки"
+        disabled={disabled}
       />
-      <button type="button" className="paste-button" onClick={onPaste}>
+      <button type="button" className="paste-button" onClick={onPaste} disabled={disabled}>
         {pasteLabel ?? "Вставить из чата"}
       </button>
     </div>

@@ -31,9 +31,8 @@ const MiniContext: React.FC<MiniContextProps> = ({ messages }) => {
     };
   }, [messages]);
 
-  const recentMessages = messages.slice(-2);
-
-  if (!recentMessages.length) {
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage) {
     return (
       <div className="chat-content">
         <div className="mini-context-empty">Диалог только начинается</div>
@@ -41,9 +40,26 @@ const MiniContext: React.FC<MiniContextProps> = ({ messages }) => {
     );
   }
 
+  const displayMessages: Message[] = [];
+  if (lastMessage.role === "girl") {
+    displayMessages.push(lastMessage);
+  } else {
+    let lastGirl: Message | null = null;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "girl") {
+        lastGirl = messages[i];
+        break;
+      }
+    }
+    if (lastGirl) {
+      displayMessages.push(lastGirl);
+    }
+    displayMessages.push(lastMessage);
+  }
+
   return (
     <div className="chat-content">
-      {recentMessages.map((msg) => (
+      {displayMessages.map((msg) => (
         <div
           key={msg.id}
           className={`mini-msg ${msg.role === "girl" ? "girl" : "user"}${animatedId === msg.id ? " msg-enter" : ""}`}

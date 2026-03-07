@@ -14,17 +14,12 @@ import {
   confirmAction,
 } from "@/api/chatApi";
 import { useAppToast } from "@/components/ui/AppToast";
-import MessageBubble from "./MessageBubble";
 import SuggestionsPanel from "./SuggestionsPanel";
-import HeartAnalysis from "./HeartAnalysis";
 import TutorialOverlay, { TutorialStep } from "@/components/ui/TutorialOverlay";
 import CommandHeader from "./command-center/CommandHeader";
 import MiniContext from "./command-center/MiniContext";
 import GirlReplyInput from "./command-center/GirlReplyInput";
 import WorkingZone from "./command-center/WorkingZone";
-const HEART_MIN_DURATION = 1200;
-const HEART_ANIMATION_DURATION = 500;
-const HEART_HOLD_DURATION = 300;
 
 const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
   try {
@@ -88,7 +83,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const [confirmResult, setConfirmResult] = useState<{
     type: "telegram_success" | "telegram_fail" | "date_success" | "date_fail";
   } | null>(null);
-  const [interestDelta, setInterestDelta] = useState<number | null>(null);
   const [freeRemaining, setFreeRemaining] = useState<number | null>(null);
   const [paidRemaining, setPaidRemaining] = useState<number | null>(null);
 
@@ -113,7 +107,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const copyFlashTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const newMessageTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const progressChipTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const interestTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const pendingPasteRewardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [goldToastMessage, setGoldToastMessage] = useState<string | null>(null);
@@ -132,6 +125,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   );
   const balancePulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationIdRef = useRef(conversationId);
+  const currentInterestRef = useRef(currentInterest);
 
   // ✅ single declarations (duplicates removed)
   const [contactToastVisible, setContactToastVisible] = useState(false);
@@ -147,14 +141,15 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     telegramCard: false,
     contactSelector: false,
   });
-  const [analysisVisible, setAnalysisVisible] = useState(false);
-  const [analysisStatusText, setAnalysisStatusText] = useState("Анализирую её ответ");
-  const [analysisDiffLabel, setAnalysisDiffLabel] = useState<string | null>(null);
-  const [analysisFillPercent, setAnalysisFillPercent] = useState(0);
-  const [analysisEmitParticles, setAnalysisEmitParticles] = useState(false);
-  const analysisStartTimeRef = useRef(0);
-  const analysisTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const analysisActiveRef = useRef(false);
+  const [generationPhase, setGenerationPhase] = useState<"idle" | "thinking" | "scoring" | "suggestions">("idle");
+  const [scoringInfo, setScoringInfo] = useState<{ start: number; end: number; diff: number }>({
+    start: 0,
+    end: 0,
+    diff: 0,
+  });
+  const [scoringProgress, setScoringProgress] = useState(0);
+  const generationTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const scoringAnimationRef = useRef<number | null>(null);
 
   const isNewConversation = messages.length === 0;
 
@@ -165,11 +160,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const clearCopyToastTimers = () => {
     copyToastTimers.current.forEach(clearTimeout);
     copyToastTimers.current = [];
-  };
-
-  const clearAnalysisTimers = () => {
-    analysisTimers.current.forEach(clearTimeout);
-    analysisTimers.current = [];
   };
 
   const TOAST_TRANSITION_IN = 200;
@@ -315,74 +305,79 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     onActionNudgeChange?.(showActionNudge);
   }, [showActionNudge, onActionNudgeChange]);
 
-  const resetAnalysisOverlay = useCallback(() => {
-    analysisActiveRef.current = false;
-    setAnalysisVisible(false);
-    setAnalysisDiffLabel(null);
-    setAnalysisEmitParticles(false);
-    setAnalysisStatusText("Анализирую её ответ");
+  const clearGenerationTimeline = useCallback(() => {
+    generationTimers.current.forEach(clearTimeout);
+    generationTimers.current = [];
   }, []);
 
-  const scheduleAnalysisFinish = useCallback(() => {
-    const elapsed = Date.now() - analysisStartTimeRef.current;
-    const wait = Math.max(0, HEART_MIN_DURATION - elapsed);
-    const timer = window.setTimeout(() => {
-      resetAnalysisOverlay();
-    }, wait);
-    analysisTimers.current.push(timer);
-  }, [resetAnalysisOverlay]);
+  const stopScoringAnimation = useCallback(() => {
+    if (scoringAnimationRef.current) {
+      cancelAnimationFrame(scoringAnimationRef.current);
+      scoringAnimationRef.current = null;
+    }
+  }, []);
 
-  const startAnalysisOverlay = useCallback(
-    (startValue: number) => {
-      clearAnalysisTimers();
-      analysisStartTimeRef.current = Date.now();
-      analysisActiveRef.current = true;
-      setAnalysisVisible(true);
-      setAnalysisStatusText("Анализирую её ответ");
-      setAnalysisDiffLabel(null);
-      setAnalysisEmitParticles(false);
-      setAnalysisFillPercent(startValue);
+  const resetGenerationFlow = useCallback(() => {
+    clearGenerationTimeline();
+    stopScoringAnimation();
+    setGenerationPhase("idle");
+    setScoringProgress(0);
+    setScoringInfo({
+      start: currentInterestRef.current,
+      end: currentInterestRef.current,
+      diff: 0,
+    });
+  }, [clearGenerationTimeline, stopScoringAnimation]);
+
+  const animateInterestIncrease = useCallback(
+    (startValue: number, endValue: number, duration = 2000) => {
+      stopScoringAnimation();
+      const startTime = performance.now();
+      const step = (now: number) => {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const currentValue = startValue + (endValue - startValue) * progress;
+        setCurrentInterest(Math.round(currentValue));
+        setScoringProgress(progress * 100);
+        if (progress < 1) {
+          scoringAnimationRef.current = requestAnimationFrame(step);
+        } else {
+          scoringAnimationRef.current = null;
+          currentInterestRef.current = Math.round(endValue);
+        }
+      };
+      scoringAnimationRef.current = requestAnimationFrame(step);
     },
-    [clearAnalysisTimers]
+    [stopScoringAnimation]
   );
 
-  const triggerAnalysisResult = useCallback(
-    (startValue: number, endValue: number) => {
-      if (!analysisActiveRef.current) return;
-      const diff = Math.round(endValue - startValue);
-      setAnalysisDiffLabel(
-        diff === 0 ? null : `${diff > 0 ? "+" : ""}${diff} интерес`
-      );
-      setAnalysisEmitParticles(!prefersReducedMotion && diff > 0);
-      const duration = prefersReducedMotion ? 0 : HEART_ANIMATION_DURATION;
-      setAnalysisFillPercent(endValue);
-      const statusTimer = window.setTimeout(() => {
-        setAnalysisStatusText("Подбираю лучший ответ");
-        setAnalysisDiffLabel(null);
-        setAnalysisEmitParticles(false);
-        const holdTimer = window.setTimeout(() => {
-          scheduleAnalysisFinish();
-        }, prefersReducedMotion ? 0 : HEART_HOLD_DURATION);
-        analysisTimers.current.push(holdTimer);
-      }, duration);
-      analysisTimers.current.push(statusTimer);
-    },
-    [prefersReducedMotion, scheduleAnalysisFinish]
-  );
+  const beginScoringPhase = useCallback(() => {
+    const startValue = currentInterestRef.current;
+    const increase = Math.floor(Math.random() * 4) + 3;
+    const endValue = Math.min(100, startValue + increase);
+    setScoringInfo({ start: startValue, end: endValue, diff: endValue - startValue });
+    setGenerationPhase("scoring");
+    setScoringProgress(0);
+    animateInterestIncrease(startValue, endValue);
+    const scoringTimer = window.setTimeout(() => {
+      setGenerationPhase("suggestions");
+    }, 2000);
+    generationTimers.current.push(scoringTimer);
+  }, [animateInterestIncrease]);
 
-  const abortAnalysisOverlay = useCallback(
-    (message?: string) => {
-      if (!analysisActiveRef.current) return;
-      if (message) {
-        setAnalysisStatusText(message);
-      }
-      const holdTimer = window.setTimeout(() => {
-        scheduleAnalysisFinish();
-      }, prefersReducedMotion ? 0 : 200);
-      analysisTimers.current.push(holdTimer);
-    },
-    [prefersReducedMotion, scheduleAnalysisFinish]
-  );
+  const triggerGenerationTimeline = useCallback(() => {
+    clearGenerationTimeline();
+    setScoringInfo({
+      start: currentInterestRef.current,
+      end: currentInterestRef.current,
+      diff: 0,
+    });
+    setScoringProgress(0);
+    setGenerationPhase("thinking");
+    const thinkingTimer = window.setTimeout(() => {
+      beginScoringPhase();
+    }, 1000);
+    generationTimers.current.push(thinkingTimer);
+  }, [beginScoringPhase, clearGenerationTimeline]);
 
   const getProgressChipStyle = (phase: ProgressChipPhase) => {
     if (prefersReducedMotion) {
@@ -496,8 +491,30 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   }, [conversationId]);
 
   useEffect(() => {
+    resetGenerationFlow();
+  }, [conversationId, resetGenerationFlow]);
+
+  useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
+
+  useEffect(() => {
+    currentInterestRef.current = currentInterest;
+  }, [currentInterest]);
+
+  useEffect(() => {
+    return () => {
+      clearGenerationTimeline();
+      stopScoringAnimation();
+    };
+  }, [clearGenerationTimeline, stopScoringAnimation]);
+
+  useEffect(() => {
+    if (generationPhase === "idle") {
+      stopScoringAnimation();
+      setScoringProgress(0);
+    }
+  }, [generationPhase, stopScoringAnimation]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -517,7 +534,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       copyFlashTimeouts.current.forEach(clearTimeout);
       newMessageTimeouts.current.forEach(clearTimeout);
       progressChipTimers.current.forEach(clearTimeout);
-      interestTimers.current.forEach(clearTimeout);
       clearCopyToastTimers();
       if (actionNudgeTimer.current) {
         clearTimeout(actionNudgeTimer.current);
@@ -539,10 +555,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         clearTimeout(pendingPasteRewardRef.current);
         pendingPasteRewardRef.current = null;
       }
-      clearAnalysisTimers();
-      resetAnalysisOverlay();
+      clearGenerationTimeline();
+      stopScoringAnimation();
     };
-  }, [resetAnalysisOverlay]);
+  }, [clearGenerationTimeline, stopScoringAnimation]);
 
   const updateNearBottom = useCallback(() => {
     if (!scrollRef.current) return;
@@ -664,15 +680,17 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       return;
     }
 
-    const shouldShowAnalysis = !actionOverride;
-    const startingInterest = currentInterest;
-    if (shouldShowAnalysis) {
-      startAnalysisOverlay(startingInterest);
+    const shouldRunPhases = !actionOverride;
+    if (shouldRunPhases) {
+      triggerGenerationTimeline();
+    } else {
+      resetGenerationFlow();
     }
 
     setGenerating(true);
     setSuggestions([]);
     setAvailableActions([]);
+    setGenerationPhase("idle");
 
     try {
       let res: any;
@@ -689,34 +707,18 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         setSuggestions([]);
         showToast("Генерации закончились. Купи пакет!", "error");
         onSubscribe?.();
-        if (shouldShowAnalysis) {
-          abortAnalysisOverlay("Недостаточно данных");
-        }
+        resetGenerationFlow();
       } else if (res.error) {
         setSuggestions([]);
         showToast("Не удалось сгенерировать ответ", "error");
-        if (shouldShowAnalysis) {
-          abortAnalysisOverlay("Не удалось проанализировать");
-        }
+        resetGenerationFlow();
       } else {
         setSuggestions(res.suggestions || []);
         setAvailableActions(res.available_actions || []);
         if (res.phase) setCurrentPhase(res.phase);
 
         if (res.interest !== undefined) {
-          const oldInterest = currentInterest;
-          const newInterest = res.interest;
-          const diff = Math.round(newInterest - oldInterest);
-          setCurrentInterest(newInterest);
-          if (diff !== 0) {
-            setInterestDelta(diff);
-            setTimeout(() => setInterestDelta(null), 1600);
-          }
-          if (shouldShowAnalysis) {
-            triggerAnalysisResult(oldInterest, newInterest);
-          }
-        } else if (shouldShowAnalysis) {
-          triggerAnalysisResult(startingInterest, startingInterest);
+          setCurrentInterest(res.interest);
         }
 
         if (res.free_remaining !== undefined) setFreeRemaining(res.free_remaining);
@@ -736,9 +738,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       console.error(err);
       setSuggestions([]);
       showToast("Не удалось сгенерировать ответ", "error");
-      if (shouldShowAnalysis) {
-        abortAnalysisOverlay("Не удалось проанализировать");
-      }
+      resetGenerationFlow();
     } finally {
       setGenerating(false);
       isGeneratingRef.current = false;
@@ -811,17 +811,17 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     onActionStateChange?.({ generating, canGenerate });
   }, [generating, canGenerate, onActionStateChange]);
 
-  const workingState: "analysis" | "suggestions" | "idle" | "action" | "opener" = analysisVisible
-    ? "analysis"
-    : pendingAction
+  const isAnalysisPhase = generationPhase === "thinking" || generationPhase === "scoring";
+
+  const workingState: "analysis" | "suggestions" | "idle" | "action" | "opener" = pendingAction
     ? "action"
-    : suggestions.length > 0
+    : isAnalysisPhase
+    ? "analysis"
+    : generationPhase === "suggestions" || suggestions.length > 0
     ? "suggestions"
     : isNewConversation
     ? "opener"
     : "idle";
-
-  const shouldAnimateSuggestions = !prefersReducedMotion && suggestions.length > 0;
 
   const handleHistoryOpen = useCallback(() => {
     onOpenHistory({
@@ -838,23 +838,41 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     }
   };
 
+  const renderAnalysisContent = () => {
+    if (generationPhase === "thinking") {
+      return (
+        <div className="ai-analysis-card">
+          <p className="ai-thinking-text">AI анализирует сообщение</p>
+          <div className="ai-thinking-shimmer" />
+        </div>
+      );
+    }
+    if (generationPhase === "scoring") {
+      const progressWidth = Math.min(100, Math.max(12, scoringProgress));
+      const diffLabel =
+        scoringInfo.diff > 0 ? `+${scoringInfo.diff}% интерес` : "Интерес на пике";
+      return (
+        <div className="ai-progress-wrapper">
+          <p className="ai-progress-title">AI оценивает интерес девушки</p>
+          <div className="ai-progress">
+            <div className="ai-progress-fill" style={{ width: `${progressWidth}%` }} />
+          </div>
+          <p className="ai-progress-diff">{diffLabel}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   useImperativeHandle(ref, () => ({
     triggerGenerate: () => {
       handleGenerate();
     },
   }));
 
-  const idleTitle = generating
-    ? "AI анализирует сообщение"
-    : showActionNudge
-    ? "Готов подобрать ответ"
-    : "Вставь сообщение девушки";
+  const idleTitle = showActionNudge ? "Готов подобрать ответ" : "Вставь сообщение девушки";
 
-  const idleSubtitle = generating
-    ? null
-    : showActionNudge
-    ? "Нажми ⚡ чтобы получить варианты"
-    : "и нажми ⚡";
+  const idleSubtitle = showActionNudge ? "Нажми ⚡ чтобы получить варианты" : "и нажми ⚡";
 
   const isIdleState = workingState === "idle";
   const isAiScanActive = generating && isIdleState;
@@ -900,15 +918,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         <div className={`command-working${isAiScanActive ? " ai-scan" : ""}`} ref={suggestionsRef}>
           <WorkingZone
             state={workingState}
-            analysis={
-              <HeartAnalysis
-                percent={analysisFillPercent}
-                statusText={analysisStatusText}
-                diffLabel={analysisDiffLabel}
-                emitParticles={analysisEmitParticles}
-                prefersReducedMotion={prefersReducedMotion}
-              />
-            }
+            analysis={renderAnalysisContent()}
             suggestions={
               <SuggestionsPanel
                 suggestions={suggestions}

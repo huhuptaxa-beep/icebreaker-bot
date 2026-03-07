@@ -585,82 +585,115 @@
 }
 
 @layer components {
-  .heart-analysis {
-    @apply flex flex-col items-center justify-center text-center gap-4 py-6 px-4;
-    min-height: 280px;
-    opacity: 0;
-    animation: heartOverlayFade 200ms ease forwards;
-  }
-
-  .heart-stage {
-    position: relative;
-    width: 220px;
-    height: 200px;
+  .ai-analysis-card {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 12px;
+    padding: 28px 16px;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(25, 25, 33, 0.85);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.45);
+    min-width: 260px;
+    animation: fadeUp 260ms ease;
   }
 
-  .heart-svg {
-    filter: drop-shadow(0 18px 45px rgba(0, 0, 0, 0.45));
-  }
-
-  .heart-diff-label {
-    font-size: 0.85rem;
-    font-weight: 600;
+  .ai-thinking-text {
+    font-size: 15px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #F9E076;
+    color: rgba(255, 255, 255, 0.72);
   }
 
-  .heart-status-text {
-    font-size: 0.95rem;
-    letter-spacing: 0.02em;
-    color: rgba(255, 255, 255, 0.8);
-  }
-
-  .heart-particles {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .heart-particle {
-    position: absolute;
-    width: 6px;
+  .ai-thinking-shimmer {
+    width: 140px;
     height: 6px;
     border-radius: 999px;
-    background: linear-gradient(135deg, #AD8B3A, #F9E076);
-    opacity: 0;
-    animation: heartParticleFly 900ms ease-out infinite;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+    animation: aiPulse 1.2s infinite;
   }
 
-  .heart-particle-1 { top: 20%; left: 10%; animation-delay: 0ms; }
-  .heart-particle-2 { top: 10%; left: 70%; animation-delay: 120ms; }
-  .heart-particle-3 { top: 50%; left: 5%; animation-delay: 240ms; }
-  .heart-particle-4 { top: 65%; left: 85%; animation-delay: 360ms; }
-  .heart-particle-5 { top: 30%; left: 90%; animation-delay: 480ms; }
-  .heart-particle-6 { top: 75%; left: 20%; animation-delay: 600ms; }
-  .heart-particle-7 { top: 40%; left: 80%; animation-delay: 720ms; }
-  .heart-particle-8 { top: 15%; left: 35%; animation-delay: 840ms; }
-}
-
-@keyframes heartOverlayFade {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes heartParticleFly {
-  0% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.4);
+  .ai-progress-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 28px 22px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: radial-gradient(circle at top, rgba(255, 215, 106, 0.25), rgba(16, 16, 18, 0.9));
+    box-shadow: 0 30px 55px rgba(0, 0, 0, 0.55);
+    min-width: 280px;
+    animation: fadeUp 260ms ease;
   }
-  10% {
+
+  .ai-progress-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+  }
+
+  .ai-progress {
+    width: 100%;
+    height: 18px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .ai-progress-fill {
+    position: relative;
+    height: 100%;
+    border-radius: 18px;
+    background: linear-gradient(90deg, #ffd76a, #ffc83a, #ffe9a6);
+    box-shadow: 0 0 12px rgba(255, 200, 70, 0.5), 0 0 30px rgba(255, 200, 70, 0.3);
+    transition: width 350ms ease;
+  }
+
+  .ai-progress-fill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    animation: goldSweep 2s infinite;
+  }
+
+  .ai-progress-diff {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-align: center;
+    color: rgba(255, 236, 200, 0.95);
+  }
+}
+
+@keyframes aiPulse {
+  0% { opacity: 0.35; transform: scaleX(0.9); }
+  50% { opacity: 0.85; transform: scaleX(1.05); }
+  100% { opacity: 0.35; transform: scaleX(0.9); }
+}
+
+@keyframes goldSweep {
+  0% { left: -40%; }
+  100% { left: 120%; }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
     opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate3d(-15px, 30px, 0) scale(0.9);
+    transform: translateY(0);
   }
 }
 @layer components {
@@ -906,6 +939,10 @@
     font-family: inherit;
   }
 
+  .girl-reply-textarea:disabled {
+    opacity: 0.45;
+  }
+
   .paste-button {
     font-size: 10px;
     padding: 3px 6px;
@@ -923,6 +960,12 @@
     opacity: 1;
     background: rgba(255, 255, 255, 0.16);
     border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .paste-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .command-working {
