@@ -261,90 +261,90 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   return (
     <div className="suggestions-wrap">
       <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
-      <div className="suggestions-background" aria-hidden="true" />
-      <div className="suggestions-carousel" ref={scrollRef}>
-        {suggestions.map((suggestion, i) => {
-          const isSelected = selectedIndex === i;
-          const isPressed = pressedIndex === i && selectedIndex !== i;
-          const isHovered = hoveredIndex === i && !prefersReducedMotion;
-          const baseScale = prefersReducedMotion ? 1 : isSelected ? 0.97 : isPressed ? 0.99 : 1;
-          const hoverBoost = isHovered && !isSelected && !isPressed ? 1.03 : 1;
-          const scale = baseScale * hoverBoost;
-          const highlightBackground = isSelected
-            ? "linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.08))"
-            : "rgba(255, 255, 255, 0.08)";
-          const highlightBorder = isSelected
-            ? "1px solid rgba(212, 175, 55, 0.35)"
-            : "1px solid rgba(255, 255, 255, 0.12)";
-          const isFlying = flyingIndex === i && !prefersReducedMotion;
-          const baseTransform = `scale(${scale})`;
-          const transform = isFlying ? "translateY(-260px) scale(0.92)" : baseTransform;
-          const opacity = isFlying ? 0 : 1;
-          const transition = isFlying
-            ? "transform 320ms ease-out, opacity 320ms ease-out, box-shadow 0.3s ease"
-            : "transform 180ms ease, box-shadow 180ms ease";
-          const boxShadow = isSelected
-            ? "0 0 24px rgba(212, 175, 55, 0.25), 0 10px 30px rgba(0,0,0,0.35)"
-            : isHovered
-            ? "0 10px 30px rgba(0,0,0,0.35)"
-            : "0 10px 30px rgba(0,0,0,0.35)";
+      <div className="suggestions-carousel-wrap">
+        <div className="suggestions-carousel" ref={scrollRef}>
+          {suggestions.map((suggestion, i) => {
+            const isSelected = selectedIndex === i;
+            const isPressed = pressedIndex === i && selectedIndex !== i;
+            const isHovered = hoveredIndex === i && !prefersReducedMotion;
+            const baseScale = prefersReducedMotion ? 1 : isSelected ? 0.97 : isPressed ? 0.99 : 1;
+            const hoverBoost = isHovered && !isSelected && !isPressed ? 1.03 : 1;
+            const scale = baseScale * hoverBoost;
+            const highlightBackground = isSelected
+              ? "linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.08))"
+              : "rgba(255, 255, 255, 0.08)";
+            const highlightBorder = isSelected
+              ? "1px solid rgba(212, 175, 55, 0.35)"
+              : "1px solid rgba(255, 255, 255, 0.12)";
+            const isFlying = flyingIndex === i && !prefersReducedMotion;
+            const baseTransform = `scale(${scale})`;
+            const transform = isFlying ? "translateY(-260px) scale(0.92)" : baseTransform;
+            const opacity = isFlying ? 0 : 1;
+            const transition = isFlying
+              ? "transform 320ms ease-out, opacity 320ms ease-out, box-shadow 0.3s ease"
+              : "transform 180ms ease, box-shadow 180ms ease";
+            const boxShadow = isSelected
+              ? "0 0 24px rgba(212, 175, 55, 0.25), 0 10px 30px rgba(0,0,0,0.35)"
+              : isHovered
+              ? "0 10px 30px rgba(0,0,0,0.35)"
+              : "0 10px 30px rgba(0,0,0,0.35)";
 
-          return (
-            <div
-              key={i}
-              className={`suggestion-card-wrapper ${entranceActive ? "animate" : ""}`}
-              style={{
-                animationDelay: entranceActive ? `${i * 40}ms` : undefined,
-              }}
-            >
-              <button
-                onClick={(event) => handleCardClick(event, suggestion, i)}
-                onPointerDown={(event) => handlePointerDown(i, event)}
-                onPointerMove={(event) => handlePointerMove(event, i, suggestion)}
-                onPointerUp={() => handlePointerEnd(i)}
-                onPointerLeave={() => handlePointerEnd(i)}
-                onPointerCancel={() => handlePointerEnd(i)}
-                onPointerEnter={(event) => {
-                  if (event.pointerType === "mouse") {
-                    setHoveredIndex(i);
-                  }
-                }}
-                onPointerOut={(event) => {
-                  if (event.pointerType === "mouse") {
-                    setHoveredIndex((prev) => (prev === i ? null : prev));
-                  }
-                }}
-                className="suggestion-card"
+            return (
+              <div
+                key={i}
+                className={`suggestion-card-wrapper ${entranceActive ? "animate" : ""}`}
                 style={{
-                  background: highlightBackground,
-                  border: highlightBorder,
-                  transform,
-                  opacity,
-                  transition,
-                  boxShadow,
+                  animationDelay: entranceActive ? `${i * 40}ms` : undefined,
                 }}
               >
-                <div className="suggestion-text">
-                  {suggestion.map((part, partIndex) => (
-                    <React.Fragment key={partIndex}>
-                      {partIndex > 0 && <div className="suggestion-divider" />}
-                      <div className="suggestion-line">{part}</div>
-                    </React.Fragment>
-                  ))}
-                </div>
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="suggestions-dots">
-        {suggestions.map((_, idx) => (
-          <span
-            key={idx}
-            className={`suggestion-dot ${activeIndex === idx ? "active" : ""}`}
-          />
-        ))}
+                <button
+                  onClick={(event) => handleCardClick(event, suggestion, i)}
+                  onPointerDown={(event) => handlePointerDown(i, event)}
+                  onPointerMove={(event) => handlePointerMove(event, i, suggestion)}
+                  onPointerUp={() => handlePointerEnd(i)}
+                  onPointerLeave={() => handlePointerEnd(i)}
+                  onPointerCancel={() => handlePointerEnd(i)}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType === "mouse") {
+                      setHoveredIndex(i);
+                    }
+                  }}
+                  onPointerOut={(event) => {
+                    if (event.pointerType === "mouse") {
+                      setHoveredIndex((prev) => (prev === i ? null : prev));
+                    }
+                  }}
+                  className="suggestion-card"
+                  style={{
+                    background: highlightBackground,
+                    border: highlightBorder,
+                    transform,
+                    opacity,
+                    transition,
+                    boxShadow,
+                  }}
+                >
+                  <div className="suggestion-text">
+                    {suggestion.map((part, partIndex) => (
+                      <React.Fragment key={partIndex}>
+                        {partIndex > 0 && <div className="suggestion-divider" />}
+                        <div className="suggestion-line">{part}</div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="suggestions-dots">
+          {suggestions.map((_, idx) => (
+            <span
+              key={idx}
+              className={`suggestion-dot ${activeIndex === idx ? "active" : ""}`}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
