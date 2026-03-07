@@ -834,6 +834,7 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     cursor: pointer;
     transition: opacity 200ms ease, transform 200ms ease;
+    overflow: hidden;
   }
 
   .chat-preview:hover,
@@ -998,7 +999,8 @@
     flex-direction: column;
     gap: 8px;
     min-height: 220px;
-    overflow: visible;
+    overflow-x: visible;
+    overflow-y: visible;
   }
 
   .command-working.ai-scan {
@@ -1065,7 +1067,8 @@
     padding: 0;
     position: relative;
     z-index: 1;
-    overflow: visible;
+    overflow-x: visible;
+    overflow-y: visible;
   }
 
   .suggestions-label {
@@ -1082,7 +1085,8 @@
 
   .suggestions-carousel-wrap {
     width: 100%;
-    overflow: visible;
+    overflow-x: visible;
+    overflow-y: visible;
   }
 
   .suggestions-carousel {
@@ -1108,8 +1112,8 @@
   }
 
   .suggestion-card-wrapper {
-    flex: 0 0 78vw;
-    max-width: 420px;
+    flex: 0 0 48vw;
+    max-width: 260px;
     scroll-snap-align: start;
     display: flex;
   }
@@ -1122,6 +1126,8 @@
     width: 100%;
     aspect-ratio: 1 / 1;
     scroll-snap-align: start;
+    line-height: 1.45;
+    word-break: break-word;
     border-radius: 16px;
     padding: 14px;
     display: flex;
