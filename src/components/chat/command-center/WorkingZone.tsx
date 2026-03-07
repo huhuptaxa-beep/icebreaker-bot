@@ -15,14 +15,16 @@ const WorkingZone: React.FC<WorkingZoneProps> = ({
   idle,
   action,
 }) => {
-  return (
-    <section className="working-zone">
-      {state === "analysis" && analysis}
-      {state === "suggestions" && suggestions}
-      {state === "idle" && idle}
-      {state === "action" && action}
-    </section>
-  );
+  switch (state) {
+    case "analysis":
+      return <section className="working-zone">{analysis}</section>;
+    case "suggestions":
+      return <section className="working-zone">{suggestions}</section>;
+    case "action":
+      return <section className="working-zone">{action}</section>;
+    default:
+      return <section className="working-zone">{idle}</section>;
+  }
 };
 
 export default WorkingZone;

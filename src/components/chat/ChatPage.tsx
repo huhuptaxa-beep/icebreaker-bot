@@ -363,7 +363,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     generationTimers.current.push(scoringTimer);
   }, [animateInterestIncrease]);
 
-  const triggerGenerationTimeline = useCallback(() => {
+  const triggerGenerationTimeline = useCallback((isNewConversation: boolean) => {
     clearGenerationTimeline();
     setScoringInfo({
       start: currentInterestRef.current,
@@ -373,7 +373,11 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     setScoringProgress(0);
     setGenerationPhase("thinking");
     const thinkingTimer = window.setTimeout(() => {
-      beginScoringPhase();
+      if (isNewConversation) {
+        setGenerationPhase("suggestions");
+      } else {
+        beginScoringPhase();
+      }
     }, 1000);
     generationTimers.current.push(thinkingTimer);
   }, [beginScoringPhase, clearGenerationTimeline]);
@@ -681,7 +685,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
     const shouldRunPhases = !actionOverride;
     if (shouldRunPhases) {
-      triggerGenerationTimeline();
+      triggerGenerationTimeline(isNewConversation);
     } else {
       resetGenerationFlow();
     }
@@ -689,7 +693,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     setGenerating(true);
     setSuggestions([]);
     setAvailableActions([]);
-    setGenerationPhase("idle");
 
     try {
       let res: any;
@@ -714,6 +717,9 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         resetGenerationFlow();
       } else {
         setSuggestions(res.suggestions || []);
+        if (shouldRunPhases) {
+          setGenerationPhase("suggestions");
+        }
         setAvailableActions(res.available_actions || []);
         if (res.phase) setCurrentPhase(res.phase);
 
