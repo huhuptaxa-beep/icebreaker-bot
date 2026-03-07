@@ -24,12 +24,8 @@ const corsHeaders = {
 const FREE_WEEKLY_LIMIT = 7
 
 type JudgeScoreRow = {
-  raw_line: string
   position: number | null
   score: number | null
-  fact_used: string | null
-  mechanic: string | null
-  has_hook: boolean | null
 }
 
 function normalizeText(text: string): string {
@@ -53,52 +49,43 @@ function parseJudgeResponse(raw: string): {
   scores: JudgeScoreRow[]
   finalists: string[]
 } {
-  const regex = /^\[(\d+)\]\s*\|\s*балл:\s*(-?\d+)\s*\|\s*факт:\s*(.+?)\s*\|\s*механика:\s*(.+?)\s*\|\s*крючок:\s*(да|нет)\s*$/i
-  const isLowQuality = /§LOW_QUALITY§/i.test(raw || "")
-  const withoutMarker = (raw || "").replace(/§LOW_QUALITY§/gi, "").trim()
+  const isLowQuality = (raw || "").includes("§LOW_QUALITY§")
+  const cleaned = (raw || "").replace(/§LOW_QUALITY§/g, "").trim()
 
-  const scores: JudgeScoreRow[] = []
-  const nonDebugLines: string[] = []
+  const parts = cleaned.split(/\n\s*\n/)
+  const debugPart = parts[0] || ""
+  const finalistsPart = parts.slice(1).join("\n\n").trim()
 
-  for (const sourceLine of withoutMarker.split(/\r?\n/)) {
-    const line = sourceLine.trim()
-    if (!line) continue
+  const debugLines = debugPart
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
 
-    const match = line.match(regex)
-    if (match) {
-      scores.push({
-        raw_line: line,
-        position: Number.isFinite(Number(match[1])) ? Number(match[1]) : null,
-        score: Number.isFinite(Number(match[2])) ? Number(match[2]) : null,
-        fact_used: match[3]?.trim() || null,
-        mechanic: match[4]?.trim() || null,
-        has_hook: match[5] ? match[5].toLowerCase() === "да" : null,
-      })
-      continue
-    }
+  const scoreRegex = /^\[(\d+)\]\s*\|\s*балл:\s*(-?\d+)\s*$/i
 
-    const debugLineMatch = line.match(/^\[(\d+)\]/)
-    if (debugLineMatch) {
-      scores.push({
-        raw_line: line,
-        position: Number.isFinite(Number(debugLineMatch[1])) ? Number(debugLineMatch[1]) : null,
+  const scores: JudgeScoreRow[] = debugLines.map((line) => {
+    const match = line.match(scoreRegex)
+
+    if (!match) {
+      return {
+        position: null,
         score: null,
-        fact_used: null,
-        mechanic: null,
-        has_hook: null,
-      })
-      continue
+      }
     }
 
-    nonDebugLines.push(line)
-  }
+    return {
+      position: Number(match[1]),
+      score: Number(match[2]),
+    }
+  })
 
-  let finalists = splitVariants(nonDebugLines.join("\n"))
-  if (finalists.length === 0) {
-    finalists = splitVariants(withoutMarker)
-  }
+  const finalists = splitVariants(finalistsPart).slice(0, 3)
 
-  return { isLowQuality, scores, finalists }
+  return {
+    isLowQuality,
+    scores,
+    finalists,
+  }
 }
 
 function matchFinalistToVariant(finalist: string, originals: string[]): number {
@@ -346,30 +333,24 @@ serve(async (req) => {
         const generationId = generationRow?.id ?? null
 
         if (generationId) {
-          const scoresByPosition = new Map<number, JudgeScoreRow>()
-          for (const row of parsedJudge.scores) {
-            if (row.position !== null && !scoresByPosition.has(row.position)) {
-              scoresByPosition.set(row.position, row)
-            }
-          }
-
           const variantRows = tenVariants.map((variantText: string, index: number) => {
             const position = index + 1
-            const scoreRow = scoresByPosition.get(position)
+            const parsedScore = parsedJudge.scores.find((s) => s.position === position)
             return {
               generation_id: generationId,
               position,
               text_original: variantText,
               text_final: null,
-              score: scoreRow?.score ?? null,
-              fact_used: scoreRow?.fact_used ?? null,
-              mechanic: scoreRow?.mechanic ?? null,
-              has_hook: scoreRow?.has_hook ?? null,
+              score: parsedScore?.score ?? null,
+              fact_used: null,
+              mechanic: null,
+              has_hook: null,
               is_finalist: false,
               finalist_position: null,
               was_shown: false,
               was_sent: false,
               got_reply: null,
+              created_at: now.toISOString(),
             }
           })
 
