@@ -109,7 +109,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 800,
-          temperature: 0.85,
+          temperature: 0.9,
           system: [{ type: "text", text: OPENER_GENERATOR_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: generatorUserPrompt }]
         })
@@ -150,7 +150,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 450,
-          temperature: 0.45,
+          temperature: 0.4,
           system: [{ type: "text", text: OPENER_JUDGE_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: judgeUserPrompt }]
         })
