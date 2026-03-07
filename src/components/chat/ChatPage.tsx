@@ -882,15 +882,17 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           disabled={generating}
         />
 
-        <div className="history-title">История переписки</div>
         <div
-          className="history-card"
+          className="chat-preview"
           role="button"
           tabIndex={0}
           onClick={handleHistoryOpen}
           onKeyDown={handleHistoryCardKeyDown}
         >
-          <MiniContext messages={messages} />
+          <div className="chat-label">ЧАТ</div>
+          <div className="chat-content">
+            <MiniContext messages={messages} />
+          </div>
         </div>
 
         <div className={`command-working${isAiScanActive ? " ai-scan" : ""}`} ref={suggestionsRef}>

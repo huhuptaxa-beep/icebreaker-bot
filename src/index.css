@@ -667,12 +667,12 @@
   .command-center-shell {
     width: 100%;
     max-width: 100%;
-    min-height: 100dvh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     padding: max(8px, env(safe-area-inset-top)) 18px calc(130px + env(safe-area-inset-bottom)) 18px;
     background: radial-gradient(120% 80% at 50% 0%, #1A1A22 0%, #0E0E12 60%, #0A0A0D 100%);
-    overflow: visible;
+    overflow: hidden;
   }
 
   .command-center-body {
@@ -681,6 +681,7 @@
     flex-direction: column;
     gap: 16px;
     margin-top: 8px;
+    overflow: hidden;
   }
 
   .command-header,
@@ -788,20 +789,11 @@
     pointer-events: none;
   }
 
-  .history-title {
-    text-align: center;
-    font-size: 12px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.5);
-    margin: 0 0 8px 0;
-  }
-
-  .history-card {
+  .chat-preview {
     display: flex;
-    flex-direction: column;
+    align-items: stretch;
     gap: 12px;
-    padding: 18px;
+    padding: 16px;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -809,11 +801,26 @@
     transition: opacity 200ms ease, transform 200ms ease;
   }
 
-  .history-card:hover,
-  .history-card:focus-visible {
+  .chat-preview:hover,
+  .chat-preview:focus-visible {
     opacity: 0.9;
     transform: translateY(-1px);
     outline: none;
+  }
+  
+  .chat-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 10px;
+    opacity: 0.4;
+    letter-spacing: 0.15em;
+    margin-right: 8px;
+  }
+
+  .chat-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .mini-context {
@@ -905,8 +912,9 @@
   .command-working {
     flex: 1;
     display: flex;
+    flex-direction: column;
+    gap: 10px;
     min-height: 220px;
-    overflow: visible;
   }
 
   .command-working.ai-scan {
