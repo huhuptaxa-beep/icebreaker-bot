@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 interface SuggestionsPanelProps {
   suggestions: string[][];
-  onSelect: (suggestion: string[]) => void;
+  onSelect: (suggestion: string[], index: number) => void;
   loading?: boolean;
   prefersReducedMotion?: boolean;
 }
@@ -140,7 +140,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   }, [suggestions.length]);
 
   const completeSelection = (suggestion: string[], index: number) => {
-    onSelect(suggestion);
+    onSelect(suggestion, index);
 
     if (highlightTimerRef.current) {
       clearTimeout(highlightTimerRef.current);

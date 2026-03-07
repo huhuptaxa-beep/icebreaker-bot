@@ -23,6 +23,125 @@ const corsHeaders = {
 
 const FREE_WEEKLY_LIMIT = 7
 
+type JudgeScoreRow = {
+  raw_line: string
+  position: number | null
+  score: number | null
+  fact_used: string | null
+  mechanic: string | null
+  has_hook: boolean | null
+}
+
+function normalizeText(text: string): string {
+  return (text || "")
+    .toLowerCase()
+    .replace(/ё/g, "е")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function splitVariants(raw: string): string[] {
+  return (raw || "")
+    .split("§")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+}
+
+function parseJudgeResponse(raw: string): {
+  isLowQuality: boolean
+  scores: JudgeScoreRow[]
+  finalists: string[]
+} {
+  const regex = /^\[(\d+)\]\s*\|\s*балл:\s*(-?\d+)\s*\|\s*факт:\s*(.+?)\s*\|\s*механика:\s*(.+?)\s*\|\s*крючок:\s*(да|нет)\s*$/i
+  const isLowQuality = /§LOW_QUALITY§/i.test(raw || "")
+  const withoutMarker = (raw || "").replace(/§LOW_QUALITY§/gi, "").trim()
+
+  const scores: JudgeScoreRow[] = []
+  const nonDebugLines: string[] = []
+
+  for (const sourceLine of withoutMarker.split(/\r?\n/)) {
+    const line = sourceLine.trim()
+    if (!line) continue
+
+    const match = line.match(regex)
+    if (match) {
+      scores.push({
+        raw_line: line,
+        position: Number.isFinite(Number(match[1])) ? Number(match[1]) : null,
+        score: Number.isFinite(Number(match[2])) ? Number(match[2]) : null,
+        fact_used: match[3]?.trim() || null,
+        mechanic: match[4]?.trim() || null,
+        has_hook: match[5] ? match[5].toLowerCase() === "да" : null,
+      })
+      continue
+    }
+
+    const debugLineMatch = line.match(/^\[(\d+)\]/)
+    if (debugLineMatch) {
+      scores.push({
+        raw_line: line,
+        position: Number.isFinite(Number(debugLineMatch[1])) ? Number(debugLineMatch[1]) : null,
+        score: null,
+        fact_used: null,
+        mechanic: null,
+        has_hook: null,
+      })
+      continue
+    }
+
+    nonDebugLines.push(line)
+  }
+
+  let finalists = splitVariants(nonDebugLines.join("\n"))
+  if (finalists.length === 0) {
+    finalists = splitVariants(withoutMarker)
+  }
+
+  return { isLowQuality, scores, finalists }
+}
+
+function matchFinalistToVariant(finalist: string, originals: string[]): number {
+  const finalistNorm = normalizeText(finalist)
+  if (!finalistNorm) return -1
+
+  const normalizedOriginals = originals.map((text) => normalizeText(text))
+
+  for (let i = 0; i < normalizedOriginals.length; i++) {
+    if (normalizedOriginals[i] === finalistNorm) return i
+  }
+
+  const finalistWords = new Set(finalistNorm.split(" ").filter((w) => w.length > 2))
+  if (finalistWords.size === 0) return -1
+
+  let bestIndex = -1
+  let bestScore = 0
+  let bestCommon = 0
+
+  for (let i = 0; i < normalizedOriginals.length; i++) {
+    const originalWords = new Set(normalizedOriginals[i].split(" ").filter((w) => w.length > 2))
+    if (originalWords.size === 0) continue
+
+    let common = 0
+    finalistWords.forEach((word) => {
+      if (originalWords.has(word)) common += 1
+    })
+
+    const overlap = common / Math.max(finalistWords.size, originalWords.size)
+    if (overlap > bestScore || (overlap === bestScore && common > bestCommon)) {
+      bestScore = overlap
+      bestCommon = common
+      bestIndex = i
+    }
+  }
+
+  if (bestIndex !== -1 && (bestCommon >= 2 || bestScore >= 0.75)) {
+    return bestIndex
+  }
+
+  return -1
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders })
@@ -84,6 +203,7 @@ serve(async (req) => {
     const messageType = action_type === "opener" ? "first_message" : "reply"
 
     let suggestions: string[][] = []
+    let openerVariantIds: Array<string | null> | undefined = undefined
     let available_actions: string[] = []
     let strategyResult: any = null
     let totalUsage = { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
@@ -96,6 +216,8 @@ serve(async (req) => {
 
       const profileInfo = facts || ""
       const girlMessage = incoming_message || ""
+      const generatorModel = "claude-sonnet-4-6"
+      const judgeModel = "claude-sonnet-4-6"
 
       /* ----- ЭТАП 1: Генератор (10 вариантов) ----- */
 
@@ -107,7 +229,7 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: generatorModel,
           max_tokens: 800,
           temperature: 0.9,
           system: [{ type: "text", text: OPENER_GENERATOR_PROMPT, cache_control: { type: "ephemeral" } }],
@@ -130,7 +252,7 @@ serve(async (req) => {
 
       const generatorRawText = generatorData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
 
-      const tenVariants = generatorRawText.split("§").map((s: string) => s.trim()).filter((s: string) => s.length > 0).slice(0, 10)
+      const tenVariants = splitVariants(generatorRawText).slice(0, 10)
 
       if (tenVariants.length === 0) {
         return new Response(JSON.stringify({ error: "Generator produced no variants" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 })
@@ -148,7 +270,7 @@ serve(async (req) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-6",
+          model: judgeModel,
           max_tokens: 450,
           temperature: 0.4,
           system: [{ type: "text", text: OPENER_JUDGE_PROMPT, cache_control: { type: "ephemeral" } }],
@@ -170,12 +292,166 @@ serve(async (req) => {
       totalUsage.cache_read_input_tokens += judgeUsage.cache_read_input_tokens || 0
 
       const judgeRawText = judgeData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
+      const parsedJudge = parseJudgeResponse(judgeRawText)
 
-      suggestions = judgeRawText
-        .split("§")
-        .map((s: string) => s.trim().split("|").map((p: string) => p.trim()).filter((p: string) => p.length > 0))
-        .filter((parts: string[]) => parts.length > 0)
+      let finalistTexts = parsedJudge.finalists.slice(0, 3)
+      if (finalistTexts.length === 0) {
+        finalistTexts = splitVariants(judgeRawText.replace(/§LOW_QUALITY§/gi, "")).slice(0, 3)
+      }
+      if (finalistTexts.length === 0) {
+        finalistTexts = tenVariants.slice(0, 3)
+      }
+
+      const finalSuggestionEntries = finalistTexts
+        .map((text: string, finalistIndex: number) => ({
+          text,
+          finalistPosition: finalistIndex + 1,
+          parts: text
+            .trim()
+            .split("|")
+            .map((p: string) => p.trim())
+            .filter((p: string) => p.length > 0),
+        }))
+        .filter((entry) => entry.parts.length > 0)
         .slice(0, 3)
+        .map((entry, suggestionIndex) => ({ ...entry, suggestionIndex }))
+
+      suggestions = finalSuggestionEntries.map((entry) => entry.parts)
+      openerVariantIds = finalSuggestionEntries.map(() => null)
+
+      try {
+        const { data: generationRow, error: generationError } = await supabase
+          .from("opener_generations")
+          .insert({
+            user_id: telegram_id,
+            conversation_id: conversation_id || null,
+            profile_info: profileInfo,
+            first_girl_message: girlMessage || null,
+            generator_model: generatorModel,
+            judge_model: judgeModel,
+            generator_raw: generatorRawText,
+            judge_raw: judgeRawText,
+            is_low_quality: parsedJudge.isLowQuality,
+            was_regenerated: false,
+            generation_attempt: 1,
+            created_at: now.toISOString(),
+          })
+          .select("id")
+          .maybeSingle()
+
+        if (generationError) {
+          console.error("opener_generations insert error:", generationError)
+        }
+
+        const generationId = generationRow?.id ?? null
+
+        if (generationId) {
+          const scoresByPosition = new Map<number, JudgeScoreRow>()
+          for (const row of parsedJudge.scores) {
+            if (row.position !== null && !scoresByPosition.has(row.position)) {
+              scoresByPosition.set(row.position, row)
+            }
+          }
+
+          const variantRows = tenVariants.map((variantText: string, index: number) => {
+            const position = index + 1
+            const scoreRow = scoresByPosition.get(position)
+            return {
+              generation_id: generationId,
+              position,
+              text_original: variantText,
+              text_final: null,
+              score: scoreRow?.score ?? null,
+              fact_used: scoreRow?.fact_used ?? null,
+              mechanic: scoreRow?.mechanic ?? null,
+              has_hook: scoreRow?.has_hook ?? null,
+              is_finalist: false,
+              finalist_position: null,
+              was_shown: false,
+              was_sent: false,
+              got_reply: null,
+            }
+          })
+
+          const { data: insertedVariants, error: variantsInsertError } = await supabase
+            .from("opener_variants")
+            .insert(variantRows)
+            .select("id, position")
+
+          if (variantsInsertError) {
+            console.error("opener_variants insert error:", variantsInsertError)
+          }
+
+          const variantIdByPosition = new Map<number, string>()
+          for (const row of insertedVariants || []) {
+            if (typeof row?.position === "number" && row?.id) {
+              variantIdByPosition.set(row.position, row.id)
+            }
+          }
+
+          for (const entry of finalSuggestionEntries) {
+            const finalistText = entry.text
+            const finalistPosition = entry.finalistPosition
+            const matchedIndex = matchFinalistToVariant(finalistText, tenVariants)
+
+            if (matchedIndex >= 0) {
+              const originalText = tenVariants[matchedIndex]
+              const normalizedFinalist = normalizeText(finalistText)
+              const normalizedOriginal = normalizeText(originalText)
+              const textFinal = normalizedFinalist !== normalizedOriginal ? finalistText : null
+
+              const { error: updateError } = await supabase
+                .from("opener_variants")
+                .update({
+                  is_finalist: true,
+                  finalist_position: finalistPosition,
+                  was_shown: true,
+                  text_final: textFinal,
+                })
+                .eq("generation_id", generationId)
+                .eq("position", matchedIndex + 1)
+
+              if (updateError) {
+                console.error("opener_variants finalist update error:", updateError)
+              }
+
+              if (openerVariantIds) {
+                openerVariantIds[entry.suggestionIndex] = variantIdByPosition.get(matchedIndex + 1) || null
+              }
+            } else {
+              const { data: orphanFinalistRow, error: orphanFinalistInsertError } = await supabase
+                .from("opener_variants")
+                .insert({
+                  generation_id: generationId,
+                  position: null,
+                  text_original: finalistText,
+                  text_final: finalistText,
+                  score: null,
+                  fact_used: null,
+                  mechanic: null,
+                  has_hook: null,
+                  is_finalist: true,
+                  finalist_position: finalistPosition,
+                  was_shown: true,
+                  was_sent: false,
+                  got_reply: null,
+                })
+                .select("id")
+                .maybeSingle()
+
+              if (orphanFinalistInsertError) {
+                console.error("opener_variants unmatched finalist insert error:", orphanFinalistInsertError)
+              }
+
+              if (openerVariantIds) {
+                openerVariantIds[entry.suggestionIndex] = orphanFinalistRow?.id || null
+              }
+            }
+          }
+        }
+      } catch (logError) {
+        console.error("opener logging pipeline error:", logError)
+      }
     }
 
     /* ==========================================================
@@ -358,6 +634,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         suggestions,
+        opener_variant_ids: messageType === "first_message" ? (openerVariantIds ?? suggestions.map(() => null)) : undefined,
         available_actions,
         phase: messageType === "reply" && strategyResult ? strategyResult.phase : undefined,
         interest: strategyResult ? strategyResult.effectiveInterest : undefined,

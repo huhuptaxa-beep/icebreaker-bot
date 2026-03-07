@@ -27,6 +27,7 @@ export interface Message {
 
 export interface GenerateResponse {
   suggestions: string[][];
+  opener_variant_ids?: Array<string | null>;
   available_actions?: string[];
   phase?: number;
   interest?: number;
@@ -247,7 +248,8 @@ export const getSubscription = async (): Promise<SubscriptionInfo> => {
 export const chatSave = async (
   conversation_id: string,
   selected_text: string,
-  role: "user" | "girl"
+  role: "user" | "girl",
+  opener_variant_id?: string | null
 ): Promise<Message> => {
   const res = await fetch(`${BASE_URL}/functions/v1/chat-save`, {
     method: "POST",
@@ -256,6 +258,7 @@ export const chatSave = async (
       conversation_id,
       selected_text,
       role,
+      opener_variant_id: opener_variant_id ?? null,
       init_data: getInitData(),
     }),
   });

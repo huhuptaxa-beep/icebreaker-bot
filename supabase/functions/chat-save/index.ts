@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { conversation_id, selected_text, role, init_data } = await req.json()
+    const { conversation_id, selected_text, role, init_data, opener_variant_id } = await req.json()
 
     if (!conversation_id || !selected_text) {
       return new Response(
@@ -67,6 +67,68 @@ serve(async (req) => {
       .single()
 
     if (error) throw error
+
+    if (opener_variant_id) {
+      const { error: openerVariantUpdateError } = await supabase
+        .from("opener_variants")
+        .update({ was_sent: true })
+        .eq("id", opener_variant_id)
+
+      if (openerVariantUpdateError) {
+        console.error("chat-save opener_variants update error:", openerVariantUpdateError)
+      }
+    }
+
+    if (safeRole === "girl" && conversation_id) {
+      try {
+        const { data: generationRows, error: generationsError } = await supabase
+          .from("opener_generations")
+          .select("id")
+          .eq("conversation_id", conversation_id)
+          .order("created_at", { ascending: false })
+
+        if (generationsError) {
+          console.error("chat-save opener_generations lookup error:", generationsError)
+        } else if (generationRows?.length) {
+          const orderedGenerationIds = generationRows
+            .map((row) => row?.id)
+            .filter((id: string | null | undefined): id is string => Boolean(id))
+
+          for (const generationId of orderedGenerationIds) {
+            const { data: candidateVariants, error: candidateError } = await supabase
+              .from("opener_variants")
+              .select("id")
+              .eq("generation_id", generationId)
+              .eq("was_sent", true)
+              .is("got_reply", null)
+              .limit(1)
+
+            if (candidateError) {
+              console.error("chat-save opener_variants candidate lookup error:", candidateError)
+              continue
+            }
+
+            const targetVariantId = candidateVariants?.[0]?.id
+            if (!targetVariantId) {
+              continue
+            }
+
+            const { error: replyFlagError } = await supabase
+              .from("opener_variants")
+              .update({ got_reply: true })
+              .eq("id", targetVariantId)
+
+            if (replyFlagError) {
+              console.error("chat-save opener_variants got_reply update error:", replyFlagError)
+            }
+
+            break
+          }
+        }
+      } catch (openerReplyError) {
+        console.error("chat-save opener got_reply pipeline error:", openerReplyError)
+      }
+    }
 
     // Если сохраняем сообщение пользователя — запускаем strategy engine для user-специфичных полей
     if (safeRole === "user" && conv) {

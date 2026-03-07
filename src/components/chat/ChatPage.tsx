@@ -66,6 +66,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [suggestions, setSuggestions] = useState<string[][]>([]);
+  const [openerVariantIds, setOpenerVariantIds] = useState<Array<string | null>>([]);
   const [generating, setGenerating] = useState(false);
   const [girlName, setGirlName] = useState<string>("Чат");
 
@@ -692,6 +693,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
     setGenerating(true);
     setSuggestions([]);
+    setOpenerVariantIds([]);
     setAvailableActions([]);
 
     try {
@@ -708,20 +710,27 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
       if (res.limit_reached) {
         setSuggestions([]);
+        setOpenerVariantIds([]);
         setGenerating(false);
         showToast("Генерации закончились. Купи пакет!", "error");
         onSubscribe?.();
         resetGenerationFlow();
       } else if (res.error) {
         setSuggestions([]);
+        setOpenerVariantIds([]);
         setGenerating(false);
         showToast("Не удалось сгенерировать ответ", "error");
         resetGenerationFlow();
       } else {
         const nextSuggestions = res.suggestions || [];
+        const nextOpenerVariantIds = nextSuggestions.map((_: string[], idx: number) => {
+          const rawId = res.opener_variant_ids?.[idx];
+          return typeof rawId === "string" ? rawId : null;
+        });
 
         setTimeout(() => {
           setSuggestions(nextSuggestions);
+          setOpenerVariantIds(nextOpenerVariantIds);
           setGenerating(false);
         }, 200);
         setAvailableActions(res.available_actions || []);
@@ -746,6 +755,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     } catch (err) {
       console.error(err);
       setSuggestions([]);
+      setOpenerVariantIds([]);
       setGenerating(false);
       showToast("Не удалось сгенерировать ответ", "error");
       resetGenerationFlow();
@@ -756,7 +766,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
   /* ================= SELECT SUGGESTION ================= */
 
-  const handleSelectSuggestion = async (suggestion: string[]) => {
+  const handleSelectSuggestion = async (suggestion: string[], suggestionIndex: number) => {
     if (isSavingRef.current) return;
     isSavingRef.current = true;
 
@@ -780,6 +790,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     }
 
     setSuggestions([]);
+    setOpenerVariantIds([]);
     setAvailableActions([]);
 
     const combined = suggestion.join("\n\n").trim();
@@ -795,8 +806,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     }
 
     try {
-      for (const text of suggestion) {
-        await chatSave(conversationId, text, "user");
+      const openerVariantId = openerVariantIds[suggestionIndex] ?? null;
+      for (let i = 0; i < suggestion.length; i++) {
+        const text = suggestion[i];
+        await chatSave(conversationId, text, "user", i === 0 ? openerVariantId : null);
       }
       await refreshConversation();
     } catch (err) {
@@ -965,6 +978,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                         try {
                           await confirmAction(conversationId, "telegram_success");
                           setSuggestions([]);
+                          setOpenerVariantIds([]);
                           setPendingAction(null);
                           setCurrentPhase(3);
                           triggerBalancePulse(5);
@@ -986,6 +1000,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                         try {
                           await confirmAction(conversationId, "telegram_fail");
                           setSuggestions([]);
+                          setOpenerVariantIds([]);
                           setPendingAction(null);
                           setConfirmResult({ type: "telegram_fail" });
                           setTimeout(() => setConfirmResult(null), 3000);
@@ -1007,6 +1022,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                       try {
                         await confirmAction(conversationId, "date_success");
                         setSuggestions([]);
+                        setOpenerVariantIds([]);
                         setPendingAction(null);
                         setCurrentPhase(5);
                         setConfirmResult({ type: "date_success" });
@@ -1025,6 +1041,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                       try {
                         await confirmAction(conversationId, "date_fail");
                         setSuggestions([]);
+                        setOpenerVariantIds([]);
                         setPendingAction(null);
                         setConfirmResult({ type: "date_fail" });
                         setTimeout(() => setConfirmResult(null), 3000);
