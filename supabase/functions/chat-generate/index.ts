@@ -150,7 +150,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "claude-sonnet-4-6",
           max_tokens: 450,
-          temperature: 0.3,
+          temperature: 0.5,
           system: [{ type: "text", text: OPENER_JUDGE_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: judgeUserPrompt }]
         })
