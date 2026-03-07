@@ -714,7 +714,8 @@
     flex-direction: column;
     gap: 16px;
     margin-top: 8px;
-    overflow: hidden;
+    overflow-x: visible;
+    overflow-y: auto;
   }
 
   .command-header,
@@ -1002,7 +1003,7 @@
 
   .command-working.ai-scan {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .command-working.ai-scan::after {
@@ -1085,24 +1086,30 @@
   }
 
   .suggestions-carousel {
-    width: 100%;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
     display: flex;
     gap: 12px;
     overflow-x: auto;
     overflow-y: visible;
     scroll-snap-type: x mandatory;
-    scroll-padding-left: 16px;
-    scroll-padding-right: 16px;
-    padding: 0 16px 16px;
+    scroll-padding-left: 20px;
+    scroll-padding-right: 20px;
+    padding: 0 20px 20px 20px;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
     position: relative;
     z-index: 5;
   }
 
+  .suggestions-carousel::-webkit-scrollbar {
+    display: none;
+  }
+
   .suggestion-card-wrapper {
-    flex: 0 0 82%;
-    max-width: 340px;
+    flex: 0 0 78vw;
+    max-width: 420px;
     scroll-snap-align: start;
     display: flex;
   }
@@ -1114,6 +1121,7 @@
   .suggestion-card {
     width: 100%;
     aspect-ratio: 1 / 1;
+    scroll-snap-align: start;
     border-radius: 16px;
     padding: 14px;
     display: flex;
