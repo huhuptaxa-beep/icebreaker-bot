@@ -19,6 +19,7 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({
 
   return (
     <div
+      id="field-girl-message"
       className="girl-reply-input"
       onClick={(event) => {
         if (disabled) return;
@@ -32,7 +33,7 @@ const GirlReplyInput: React.FC<GirlReplyInputProps> = ({
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Вставь сообщение из чата"
+        placeholder="Вставь сообщение девушки или опиши её"
         aria-label="Ответ девушки"
         disabled={disabled}
       />
