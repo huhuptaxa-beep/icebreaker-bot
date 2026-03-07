@@ -889,7 +889,11 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           onClick={handleHistoryOpen}
           onKeyDown={handleHistoryCardKeyDown}
         >
-          <div className="chat-label">ЧАТ</div>
+          <div className="chat-label">
+            <span>Ч</span>
+            <span>А</span>
+            <span>Т</span>
+          </div>
           <div className="chat-content">
             <MiniContext messages={messages} />
           </div>

@@ -6,8 +6,7 @@ interface MiniContextProps {
 }
 
 const MiniContext: React.FC<MiniContextProps> = ({ messages }) => {
-  const lastTwo = messages.slice(-2);
-  if (!lastTwo.length) {
+  if (!messages.length) {
     return (
       <div className="mini-context">
         <div className="mini-context-empty">Диалог только начинается</div>
@@ -15,13 +14,13 @@ const MiniContext: React.FC<MiniContextProps> = ({ messages }) => {
     );
   }
 
-  const girlMessage = [...lastTwo].reverse().find((msg) => msg.role === "girl");
-  const userMessage = [...lastTwo].reverse().find((msg) => msg.role !== "girl");
+  const latest = messages[messages.length - 1];
+  const prefix = latest.role === "girl" ? "Она" : "Ты";
+  const text = `${prefix}: ${latest.text ?? ""}`;
 
   return (
-    <div className="mini-chat">
-      {girlMessage && <div className="mini-msg girl">{girlMessage.text}</div>}
-      {userMessage && <div className="mini-msg user">{userMessage.text}</div>}
+    <div className="mini-context">
+      <div className="mini-msg latest">{text}</div>
     </div>
   );
 };

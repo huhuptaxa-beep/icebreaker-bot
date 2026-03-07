@@ -791,9 +791,10 @@
 
   .chat-preview {
     display: flex;
-    align-items: stretch;
+    align-items: center;
     gap: 12px;
     padding: 16px;
+    min-height: 80px;
     border-radius: 18px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -809,11 +810,13 @@
   }
   
   .chat-label {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    font-size: 10px;
-    opacity: 0.4;
-    letter-spacing: 0.15em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    font-size: 11px;
+    opacity: 0.35;
+    letter-spacing: 0.2em;
     margin-right: 8px;
   }
 
@@ -836,12 +839,6 @@
     font-size: 13px;
   }
 
-  .mini-chat {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
   .mini-msg {
     max-width: 75%;
     padding: 8px 12px;
@@ -852,6 +849,12 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .mini-msg.latest {
+    max-width: 100%;
+    align-self: stretch;
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .mini-msg.girl {
@@ -868,6 +871,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    padding: 12px;
   }
 
   .girl-reply-label {
@@ -879,7 +883,7 @@
 
   .girl-reply-textarea {
     width: 100%;
-    min-height: 80px;
+    min-height: 60px;
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.9);
@@ -913,7 +917,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     min-height: 220px;
   }
 
