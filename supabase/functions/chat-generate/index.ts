@@ -49,26 +49,53 @@ function parseJudgeResponse(raw: string): {
   scores: JudgeScoreRow[]
   finalists: string[]
 } {
-  const isLowQuality = (raw || "").includes("§LOW_QUALITY§")
-  const cleaned = (raw || "").replace(/§LOW_QUALITY§/g, "").trim()
-  const parts = cleaned.split("§")
-  const debugPart = parts[0] || ""
-  const finalists = parts
-    .slice(1)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-    .slice(0, 3)
-
+  const safeRaw = raw || ""
+  const isLowQuality = safeRaw.includes("§LOW_QUALITY§")
+  const cleanedRaw = safeRaw.replace(/§LOW_QUALITY§/g, "").trim()
   const scoreRegex = /\[(\d+)\]\s*\|\s*балл:\s*([+-]?\d+)/gi
-  const scores: JudgeScoreRow[] = Array.from(debugPart.matchAll(scoreRegex)).map((match) => ({
+  const scoreMatches = Array.from(cleanedRaw.matchAll(scoreRegex))
+  const scores: JudgeScoreRow[] = scoreMatches.map((match) => ({
     position: Number(match[1]),
     score: Number(match[2]),
   }))
 
+  let finalistsRaw = ""
+  if (scoreMatches.length > 0) {
+    const lastMatch = scoreMatches[scoreMatches.length - 1]
+    const matchText = lastMatch[0]
+    const matchIndex = lastMatch.index ?? -1
+    const matchEnd = matchIndex >= 0 ? matchIndex + matchText.length : 0
+    finalistsRaw = cleanedRaw.slice(matchEnd).trim()
+  }
+
+  const finalists = finalistsRaw
+    .split("§")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+
+  const cleanedFinalists = finalists
+    .filter((s) => {
+      if (!s || s.trim().length === 0) return false
+      if (/\[\d+\]/.test(s)) return false
+      if (/балл\s*:/.test(s)) return false
+      if (/^\d+$/.test(s.trim())) return false
+      return true
+    })
+    .slice(0, 3)
+
+  if (scoreMatches.length === 0 || cleanedFinalists.length === 0) {
+    console.error("Judge finalists parse failed", {
+      judgeRawText: safeRaw,
+      finalistsRaw,
+      parsedFinalists: finalists,
+      cleanedFinalists,
+    })
+  }
+
   return {
     isLowQuality,
     scores,
-    finalists,
+    finalists: cleanedFinalists,
   }
 }
 
@@ -269,13 +296,7 @@ serve(async (req) => {
         finalists: parsedJudge.finalists,
       })
 
-      let finalistTexts = parsedJudge.finalists.slice(0, 3)
-      if (finalistTexts.length === 0) {
-        finalistTexts = splitVariants(judgeRawText.replace(/§LOW_QUALITY§/gi, "")).slice(0, 3)
-      }
-      if (finalistTexts.length === 0) {
-        finalistTexts = tenVariants.slice(0, 3)
-      }
+      const finalistTexts = parsedJudge.finalists.slice(0, 3)
 
       const finalSuggestionEntries = finalistTexts
         .map((text: string, finalistIndex: number) => ({
