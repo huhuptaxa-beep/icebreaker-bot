@@ -51,35 +51,19 @@ function parseJudgeResponse(raw: string): {
 } {
   const isLowQuality = (raw || "").includes("§LOW_QUALITY§")
   const cleaned = (raw || "").replace(/§LOW_QUALITY§/g, "").trim()
-
-  const parts = cleaned.split(/\n\s*\n/)
+  const parts = cleaned.split("§")
   const debugPart = parts[0] || ""
-  const finalistsPart = parts.slice(1).join("\n\n").trim()
+  const finalists = parts
+    .slice(1)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .slice(0, 3)
 
-  const debugLines = debugPart
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-
-  const scoreRegex = /^\[(\d+)\]\s*\|\s*балл:\s*(-?\d+)\s*$/i
-
-  const scores: JudgeScoreRow[] = debugLines.map((line) => {
-    const match = line.match(scoreRegex)
-
-    if (!match) {
-      return {
-        position: null,
-        score: null,
-      }
-    }
-
-    return {
-      position: Number(match[1]),
-      score: Number(match[2]),
-    }
-  })
-
-  const finalists = splitVariants(finalistsPart).slice(0, 3)
+  const scoreRegex = /\[(\d+)\]\s*\|\s*балл:\s*([+-]?\d+)/gi
+  const scores: JudgeScoreRow[] = Array.from(debugPart.matchAll(scoreRegex)).map((match) => ({
+    position: Number(match[1]),
+    score: Number(match[2]),
+  }))
 
   return {
     isLowQuality,
