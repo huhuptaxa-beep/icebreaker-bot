@@ -28,7 +28,7 @@ const Index: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen px-4 pb-8 safe-area-inset">
+    <div className="min-h-screen pb-8 safe-area-inset">
       <ChatApp
         telegramId={userId}
         onHapticFeedback={hapticFeedback}

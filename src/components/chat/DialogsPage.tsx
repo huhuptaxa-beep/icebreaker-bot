@@ -510,7 +510,7 @@ const DialogsPage: React.FC<DialogsPageProps> = ({
         )}
 
         {!loading && safeConvs.length > 0 && (
-          <div className="px-4 pt-4 pb-4 space-y-5">
+          <div className="pt-4 pb-4 space-y-5">
             {groupedSections.map((section) => {
               if (!section.convs.length) return null;
               return (

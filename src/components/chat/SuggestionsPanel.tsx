@@ -316,16 +316,12 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                   }}
                   className="suggestion-card"
                   style={{
-                    background: highlightBackground,
-                    border: highlightBorder,
                     transform,
                     opacity,
                     transition,
-                    boxShadow,
                   }}
                 >
                   <div className="suggestion-text">
-                    <div className="strategy-badge">{i + 1}</div>
                     {suggestion.map((part, partIndex) => (
                       <React.Fragment key={partIndex}>
                         {partIndex > 0 && <div className="suggestion-divider" />}
@@ -347,7 +343,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
           ))}
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 
