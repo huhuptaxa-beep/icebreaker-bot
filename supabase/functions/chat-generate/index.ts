@@ -264,6 +264,10 @@ serve(async (req) => {
 
       const judgeRawText = judgeData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
       const parsedJudge = parseJudgeResponse(judgeRawText)
+      console.log("PARSED JUDGE FINALISTS", {
+        generationId: null,
+        finalists: parsedJudge.finalists,
+      })
 
       let finalistTexts = parsedJudge.finalists.slice(0, 3)
       if (finalistTexts.length === 0) {
@@ -317,6 +321,11 @@ serve(async (req) => {
         const generationId = generationRow?.id ?? null
 
         if (generationId) {
+          console.log("PARSED JUDGE FINALISTS", {
+            generationId,
+            finalists: parsedJudge.finalists,
+          })
+
           const variantRows = tenVariants.map((variantText: string, index: number) => {
             const position = index + 1
             const parsedScore = parsedJudge.scores.find((s) => s.position === position)
@@ -358,6 +367,13 @@ serve(async (req) => {
             const finalistText = entry.text
             const finalistPosition = entry.finalistPosition
             const matchedIndex = matchFinalistToVariant(finalistText, tenVariants)
+            console.log("FINALIST DEBUG", {
+              generationId,
+              finalistPosition,
+              finalistText,
+              matchedIndex,
+              matchedOriginal: matchedIndex !== -1 ? tenVariants[matchedIndex] : null,
+            })
 
             if (matchedIndex >= 0) {
               const originalText = tenVariants[matchedIndex]
@@ -365,7 +381,7 @@ serve(async (req) => {
               const normalizedOriginal = normalizeText(originalText)
               const textFinal = normalizedFinalist !== normalizedOriginal ? finalistText : null
 
-              const { error: updateError } = await supabase
+              const { error: finalistUpdateError } = await supabase
                 .from("opener_variants")
                 .update({
                   is_finalist: true,
@@ -375,16 +391,22 @@ serve(async (req) => {
                 })
                 .eq("generation_id", generationId)
                 .eq("position", matchedIndex + 1)
+              console.log("FINALIST UPDATE RESULT", {
+                generationId,
+                finalistPosition,
+                matchedIndex,
+                error: finalistUpdateError ?? null,
+              })
 
-              if (updateError) {
-                console.error("opener_variants finalist update error:", updateError)
+              if (finalistUpdateError) {
+                console.error("opener_variants finalist update error:", finalistUpdateError)
               }
 
               if (openerVariantIds) {
                 openerVariantIds[entry.suggestionIndex] = variantIdByPosition.get(matchedIndex + 1) || null
               }
             } else {
-              const { data: orphanFinalistRow, error: orphanFinalistInsertError } = await supabase
+              const { data: orphanFinalistRow, error: unmatchedInsertError } = await supabase
                 .from("opener_variants")
                 .insert({
                   generation_id: generationId,
@@ -403,9 +425,14 @@ serve(async (req) => {
                 })
                 .select("id")
                 .maybeSingle()
+              console.log("FINALIST FALLBACK INSERT RESULT", {
+                generationId,
+                finalistPosition,
+                error: unmatchedInsertError ?? null,
+              })
 
-              if (orphanFinalistInsertError) {
-                console.error("opener_variants unmatched finalist insert error:", orphanFinalistInsertError)
+              if (unmatchedInsertError) {
+                console.error("opener_variants unmatched finalist insert error:", unmatchedInsertError)
               }
 
               if (openerVariantIds) {
