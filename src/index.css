@@ -731,7 +731,7 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 28px;
     margin-top: 4px;
     padding: 0 44px;
     overflow-x: hidden;
@@ -756,7 +756,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 6px 12px;
+    padding: 6px 44px;
     flex-shrink: 0;
     border: none;
     background: transparent;
@@ -827,7 +827,7 @@
   }
 
   .command-header-progress-wrap {
-    width: 60px;
+    width: 100px;
     margin-top: -2px;
   }
 
@@ -906,8 +906,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px;
-    min-height: 110px;
+    padding: 18px;
+    min-height: 125px;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.03);
     border: 0.5px solid rgba(255, 255, 255, 0.08);
@@ -1013,8 +1013,8 @@
   .girl-reply-input {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
+    gap: 10px;
+    padding: 16px;
   }
 
   .girl-reply-input.disabled {
@@ -1089,7 +1089,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    min-height: 60px;
+    min-height: 40px;
     overflow-x: visible;
     overflow-y: visible;
   }
