@@ -270,7 +270,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   }
 
   return (
-    <div className="h-[100dvh] overflow-hidden relative w-full flex flex-col">
+    <div className="fixed inset-0 h-[100dvh] overflow-hidden w-full flex flex-col">
       <div className="flex-1 relative overflow-hidden">
         {screenContent}
       </div>

@@ -10,11 +10,11 @@ interface CommandHeaderProps {
 }
 
 const ArrowIcon: React.FC<{ direction: "left" | "right" }> = ({ direction }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
     {direction === "left" ? (
-      <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 18L9 12L15 6" stroke="rgba(200,200,220,0.5)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
     ) : (
-      <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 18L15 12L9 6" stroke="rgba(200,200,220,0.5)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
     )}
   </svg>
 );
@@ -69,7 +69,6 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
   const normalizedInterest = Math.max(0, Math.min(100, Math.round(interest ?? 0)));
   const progressWidth = Math.max(normalizedInterest, 2);
-  const progressGradient = "linear-gradient(90deg, #C6A84A, #F4D97A)";
 
   return (
     <header className={`command-header${disabled ? " header-disabled" : ""}`}>
@@ -82,20 +81,17 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
         >
           <ArrowIcon direction="left" />
         </button>
-        <div className="command-header-main">
-          <div className="command-header-name">{girlName}</div>
-          <div className="command-header-progress">
-            <div className="command-header-progress-track">
-              <div
-                className="command-header-progress-fill"
-                style={{
-                  width: `${progressWidth}%`,
-                }}
-              />
-              <span className="command-header-progress-label">{normalizedInterest}%</span>
-            </div>
+
+        <div className="command-header-center">
+          <span className="command-header-name">{girlName}</span>
+          <div className="command-header-progress-mini">
+            <div
+              className="command-header-progress-mini-fill"
+              style={{ width: `${progressWidth}%` }}
+            />
           </div>
         </div>
+
         <button
           onClick={onNextConversation ?? onNext}
           className="command-header-arrow"

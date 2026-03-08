@@ -37,7 +37,7 @@ const ProfileIcon = () => (
 );
 
 const ActionIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
     <path
       d="M13 2L3 14H12L12 22L22 10H13L13 2Z"
       stroke="currentColor"

@@ -937,7 +937,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         onNextConversation={onNextConversation}
       />
 
-      <div className="command-center-body pb-[80px]" ref={scrollRef}>
+      <div className="command-center-body" ref={scrollRef}>
         <GirlReplyInput
           value={draftGirlReply}
           onChange={setDraftGirlReply}
