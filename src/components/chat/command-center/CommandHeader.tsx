@@ -72,10 +72,10 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
   return (
     <header className={`command-header${disabled ? " header-disabled" : ""}`}>
-      <div className="command-header-row">
+      <div className="command-header-row relative">
         <button
           onClick={onPrevConversation ?? onPrev}
-          className="command-header-arrow"
+          className="command-header-arrow absolute left-0 z-10"
           disabled={!(onPrevConversation ?? onPrev)}
           aria-label="Предыдущий диалог"
         >
@@ -84,7 +84,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
         <div className="command-header-center">
           <div className="command-header-name">{girlName}</div>
-          <div className="command-header-progress-wrap w-1/2 mx-auto">
+          <div className="command-header-progress-wrap">
             <div className="command-header-progress-track">
               <div
                 className="command-header-progress-fill"
@@ -97,7 +97,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
         <button
           onClick={onNextConversation ?? onNext}
-          className="command-header-arrow"
+          className="command-header-arrow absolute right-0 z-10"
           disabled={!(onNextConversation ?? onNext)}
           aria-label="Следующий диалог"
         >
