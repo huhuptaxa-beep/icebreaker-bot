@@ -52,14 +52,17 @@ function parseJudgeResponse(raw: string): {
   const safeRaw = raw || ""
   const isLowQuality = safeRaw.includes("§LOW_QUALITY§")
   const cleanedRaw = safeRaw.replace(/§LOW_QUALITY§/g, "").trim()
+
   const scoreRegex = /\[(\d+)\]\s*\|\s*балл:\s*([+-]?\d+)/gi
   const scoreMatches = Array.from(cleanedRaw.matchAll(scoreRegex))
+
   const scores: JudgeScoreRow[] = scoreMatches.map((match) => ({
     position: Number(match[1]),
     score: Number(match[2]),
   }))
 
   let finalistsRaw = ""
+
   if (scoreMatches.length > 0) {
     const lastMatch = scoreMatches[scoreMatches.length - 1]
     const matchText = lastMatch[0]
@@ -626,7 +629,7 @@ serve(async (req) => {
       cache_read_input_tokens: totalUsage.cache_read_input_tokens,
       action_type: action_type || "normal",
       created_at: now.toISOString()
-    }).then(() => {}).catch((err: any) => console.error("usage log error:", err))
+    }).then(() => { }).catch((err: any) => console.error("usage log error:", err))
 
     /* =====================
        LIMIT DEDUCTION
