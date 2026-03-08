@@ -786,6 +786,13 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     isSavingRef.current = true;
 
     haptic("light");
+    const selectedOpenerVariantId = openerVariantIds[suggestionIndex] ?? null;
+    console.log("OPENER SELECT DEBUG", {
+      selectedIndex: suggestionIndex,
+      selectedSuggestion: suggestion,
+      selectedOpenerVariantId,
+      openerVariantIds,
+    });
 
     const createdAt = new Date().toISOString();
     const localBatch = suggestion.map((text, index) => ({
@@ -821,10 +828,9 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     }
 
     try {
-      const openerVariantId = openerVariantIds[suggestionIndex] ?? null;
       for (let i = 0; i < suggestion.length; i++) {
         const text = suggestion[i];
-        await chatSave(conversationId, text, "user", i === 0 ? openerVariantId : null);
+        await chatSave(conversationId, text, "user", i === 0 ? selectedOpenerVariantId : null);
       }
       await refreshConversation();
     } catch (err) {

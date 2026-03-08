@@ -251,6 +251,13 @@ export const chatSave = async (
   role: "user" | "girl",
   opener_variant_id?: string | null
 ): Promise<Message> => {
+  console.log("CHAT SAVE API DEBUG", {
+    conversation_id,
+    role,
+    text: selected_text,
+    opener_variant_id: opener_variant_id ?? null,
+  });
+
   const res = await fetch(`${BASE_URL}/functions/v1/chat-save`, {
     method: "POST",
     headers,
