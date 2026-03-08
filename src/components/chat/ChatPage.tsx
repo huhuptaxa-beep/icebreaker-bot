@@ -27,7 +27,7 @@ const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
     if (tg?.impactOccurred) {
       tg.impactOccurred(type);
     }
-  } catch {}
+  } catch { }
 };
 
 interface ChatPageProps {
@@ -490,7 +490,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   };
 
   useEffect(() => {
-    refreshConversation().catch(() => {});
+    refreshConversation().catch(() => { });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
@@ -837,10 +837,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const workingState: "analysis" | "suggestions" | "idle" | "action" = pendingAction
     ? "action"
     : generating
-    ? "analysis"
-    : suggestions.length > 0
-    ? "suggestions"
-    : "idle";
+      ? "analysis"
+      : suggestions.length > 0
+        ? "suggestions"
+        : "idle";
 
   const handleHistoryOpen = useCallback(() => {
     onOpenHistory({
@@ -892,14 +892,14 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const idleTitle = isNewConversation
     ? "Опиши девушку или ситуацию"
     : showActionNudge
-    ? "Готов подобрать ответ"
-    : "Вставь сообщение девушки";
+      ? "Готов подобрать ответ"
+      : "Вставь сообщение девушки";
 
   const idleSubtitle = isNewConversation
     ? "Нажми ⚡ чтобы получить первое сообщение"
     : showActionNudge
-    ? "AI готов подобрать ответ ⚡"
-    : "AI готов подобрать ответ ⚡";
+      ? "AI готов подобрать ответ ⚡"
+      : "AI готов подобрать ответ ⚡";
 
   const inputLabel = isNewConversation ? "Описание девушки" : "Ответ девушки";
   const inputPlaceholder = isNewConversation ? "Опиши девушку или ситуацию" : "Вставь сообщение девушки";
@@ -922,7 +922,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         onNextConversation={onNextConversation}
       />
 
-      <div className="command-center-body" ref={scrollRef}>
+      <div className="command-center-body pb-[80px]" ref={scrollRef}>
         <GirlReplyInput
           value={draftGirlReply}
           onChange={setDraftGirlReply}

@@ -286,8 +286,8 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
             const boxShadow = isSelected
               ? "0 0 24px rgba(212, 175, 55, 0.25), 0 10px 30px rgba(0,0,0,0.35)"
               : isHovered
-              ? "0 10px 30px rgba(0,0,0,0.35)"
-              : "0 10px 30px rgba(0,0,0,0.35)";
+                ? "0 10px 30px rgba(0,0,0,0.35)"
+                : "0 10px 30px rgba(0,0,0,0.35)";
 
             return (
               <div
@@ -325,6 +325,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                   }}
                 >
                   <div className="suggestion-text">
+                    <div className="strategy-badge">{i + 1}</div>
                     {suggestion.map((part, partIndex) => (
                       <React.Fragment key={partIndex}>
                         {partIndex > 0 && <div className="suggestion-divider" />}

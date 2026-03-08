@@ -10,11 +10,11 @@ interface CommandHeaderProps {
 }
 
 const ArrowIcon: React.FC<{ direction: "left" | "right" }> = ({ direction }) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
     {direction === "left" ? (
-      <path d="M14.5 5L7.5 12L14.5 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     ) : (
-      <path d="M9.5 5L16.5 12L9.5 19" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     )}
   </svg>
 );
@@ -90,7 +90,6 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
                 className="command-header-progress-fill"
                 style={{
                   width: `${progressWidth}%`,
-                  background: progressGradient,
                 }}
               />
               <span className="command-header-progress-label">{normalizedInterest}%</span>

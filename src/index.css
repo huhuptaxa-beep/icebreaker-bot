@@ -676,14 +676,30 @@
 }
 
 @keyframes aiPulse {
-  0% { opacity: 0.35; transform: scaleX(0.9); }
-  50% { opacity: 0.85; transform: scaleX(1.05); }
-  100% { opacity: 0.35; transform: scaleX(0.9); }
+  0% {
+    opacity: 0.35;
+    transform: scaleX(0.9);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scaleX(1.05);
+  }
+
+  100% {
+    opacity: 0.35;
+    transform: scaleX(0.9);
+  }
 }
 
 @keyframes goldSweep {
-  0% { left: -40%; }
-  100% { left: 120%; }
+  0% {
+    left: -40%;
+  }
+
+  100% {
+    left: 120%;
+  }
 }
 
 @keyframes fadeUp {
@@ -691,11 +707,13 @@
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 @layer components {
   .command-center-shell {
     width: 100%;
@@ -722,12 +740,12 @@
   .mini-context,
   .girl-reply-input,
   .command-working {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
     padding: 16px;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
   }
 
   .command-header {
@@ -793,19 +811,18 @@
 
   .command-header-progress-track {
     width: 100%;
-    height: 8px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.15);
+    height: 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
     overflow: hidden;
     position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
     padding: 0;
   }
 
   .command-header-progress-fill {
     height: 100%;
-    min-width: 34px;
-    border-radius: 6px;
+    background: linear-gradient(90deg, #AD8B3A, #F9E076);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -813,14 +830,15 @@
   }
 
   .command-header-progress-label {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 9px;
+    font-weight: 800;
     color: #ffffff;
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
 
   .chat-preview {
@@ -829,9 +847,11 @@
     gap: 12px;
     padding: 14px 16px;
     min-height: 72px;
-    border-radius: 18px;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     cursor: pointer;
     transition: opacity 200ms ease, transform 200ms ease;
     overflow: hidden;
@@ -843,7 +863,7 @@
     transform: translateY(-1px);
     outline: none;
   }
-  
+
   .chat-label {
     width: 28px;
     display: flex;
@@ -898,15 +918,19 @@
 
   .mini-msg.girl {
     background: rgba(255, 255, 255, 0.06);
+    border: 0.5px solid rgba(168, 168, 176, 0.2);
   }
 
   .mini-msg.user {
     background: rgba(255, 255, 255, 0.12);
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
   }
 
   .chat-bubble {
     padding: 10px 14px;
     line-height: 1.4;
+    border: 0.5px solid rgba(168, 168, 176, 0.2);
+    background: #050505;
   }
 
   .msg-enter {
@@ -918,6 +942,7 @@
       transform: translateY(20px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -938,9 +963,10 @@
 
   .girl-reply-label {
     font-size: 13px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.65);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: none;
+    color: rgba(168, 168, 176, 0.8);
   }
 
   .girl-reply-textarea {
@@ -954,6 +980,10 @@
     line-height: 1.5;
     outline: none;
     font-family: inherit;
+  }
+
+  .girl-reply-textarea::placeholder {
+    color: rgba(168, 168, 176, 0.4);
   }
 
   .girl-reply-textarea:disabled {
@@ -1021,6 +1051,7 @@
     from {
       transform: translateX(-100%);
     }
+
     to {
       transform: translateX(100%);
     }
@@ -1136,14 +1167,29 @@
     justify-content: center;
     gap: 8px;
     text-align: center;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.03);
+    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
     color: rgba(255, 255, 255, 0.92);
     transform: scale(1);
     transition: transform 180ms ease, box-shadow 180ms ease, opacity 0.3s ease;
+  }
+
+  .strategy-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #AD8B3A, #F9E076);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #050505;
+    margin-bottom: 4px;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
   }
 
   .suggestion-text {
@@ -1247,8 +1293,19 @@
     align-items: center;
     justify-content: center;
     color: #050505;
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.4), 0 8px 30px rgba(212, 175, 55, 0.25);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
     transform: translateY(-6px);
+    position: relative;
+  }
+
+  .bottom-nav-action::after {
+    content: '';
+    position: absolute;
+    inset: -15px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.4) 0%, transparent 70%);
+    filter: blur(20px);
+    z-index: -1;
+    opacity: 0.3;
   }
 
   .bottom-nav-action.pulse {
@@ -1287,10 +1344,12 @@
       transform: translateY(-6px) scale(1);
       box-shadow: 0 0 0 0 rgba(255, 215, 120, 0.5);
     }
+
     70% {
       transform: translateY(-6px) scale(1.04);
       box-shadow: 0 0 0 14px rgba(255, 215, 120, 0);
     }
+
     100% {
       transform: translateY(-6px) scale(1);
       box-shadow: 0 0 0 0 rgba(255, 215, 120, 0);
@@ -1302,10 +1361,12 @@
       transform: translateY(-6px) scale(1);
       box-shadow: 0 0 0 0 rgba(255, 215, 120, 0.5);
     }
+
     70% {
       transform: translateY(-6px) scale(1.04);
       box-shadow: 0 0 0 12px rgba(255, 215, 120, 0);
     }
+
     100% {
       transform: translateY(-6px) scale(1);
       box-shadow: 0 0 0 0 rgba(255, 215, 120, 0);
@@ -1317,6 +1378,7 @@
       opacity: 0;
       transform: translateY(20px);
     }
+
     100% {
       opacity: 1;
       transform: translateY(0);
