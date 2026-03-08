@@ -731,9 +731,9 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
     margin-top: 2px;
-    padding: 0 14px;
+    padding: 0 20px;
     overflow-x: hidden;
     overflow-y: auto;
     padding-bottom: 90px;
@@ -749,14 +749,14 @@
     -webkit-backdrop-filter: blur(25px);
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 8px 10px;
+    padding: 8px 12px;
   }
 
   .command-header {
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 6px 10px;
+    padding: 6px 16px;
     flex-shrink: 0;
     border: none;
     background: transparent;
@@ -1091,7 +1091,7 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    min-height: 120px;
+    min-height: 80px;
     overflow-x: visible;
     overflow-y: visible;
   }
@@ -1193,8 +1193,8 @@
     overflow-x: auto;
     overflow-y: visible;
     scroll-snap-type: x mandatory;
-    scroll-padding: 0 26dvw;
-    padding: 0 26dvw 16px 26dvw;
+    scroll-padding: 0 16dvw;
+    padding: 0 16dvw 12px 16dvw;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
     position: relative;
@@ -1206,7 +1206,7 @@
   }
 
   .suggestion-card-wrapper {
-    flex: 0 0 48dvw;
+    flex: 0 0 68dvw;
     scroll-snap-align: center;
     display: flex;
   }
@@ -1217,27 +1217,27 @@
 
   .suggestion-card {
     width: 100%;
-    aspect-ratio: 0.72 / 1;
+    aspect-ratio: 1.45 / 1;
     scroll-snap-align: center;
     line-height: 1.35;
     word-break: break-word;
     border-radius: 14px;
-    padding: 12px 14px;
+    padding: 10px 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 4px;
     text-align: center;
     background: rgba(255, 255, 255, 0.04);
     border: 0.5px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(35px);
     -webkit-backdrop-filter: blur(35px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
     color: rgba(255, 255, 255, 0.95);
     transform: scale(1);
     transition: transform 180ms ease, box-shadow 180ms ease, opacity 0.3s ease;
-    font-size: 14px;
+    font-size: 13.5px;
   }
 
   .strategy-badge {

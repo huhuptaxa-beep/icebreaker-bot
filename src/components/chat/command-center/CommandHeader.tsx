@@ -84,7 +84,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
         <div className="command-header-center">
           <div className="command-header-name">{girlName}</div>
-          <div className="command-header-progress-wrap">
+          <div className="command-header-progress-wrap w-1/2 mx-auto">
             <div className="command-header-progress-track">
               <div
                 className="command-header-progress-fill"
