@@ -722,7 +722,7 @@
     display: flex;
     flex-direction: column;
     padding: max(4px, env(safe-area-inset-top)) 0 0 0;
-    background: radial-gradient(120% 80% at 50% 0%, #1A1A22 0%, #0E0E12 60%, #0A0A0D 100%);
+    background: radial-gradient(circle at center, #1A1A1A 0%, #000000 100%);
     overflow: hidden;
     position: relative;
   }
@@ -744,12 +744,16 @@
   .mini-context,
   .girl-reply-input,
   .command-working {
-    background: rgba(255, 255, 255, 0.03);
+    background-image: linear-gradient(rgba(15, 15, 15, 0.85), rgba(15, 15, 15, 0.85)),
+      linear-gradient(135deg, rgba(224, 224, 230, 0.45) 0%, rgba(100, 100, 110, 0.25) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    border: 0.5px solid transparent;
     border-radius: 12px;
     padding: 8px 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.05);
   }
 
   .command-header {
@@ -796,6 +800,7 @@
     top: 50%;
     transform: translateY(-50%);
     z-index: 10;
+    filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
   }
 
   .command-header-arrow-outside:disabled {
@@ -816,23 +821,38 @@
     gap: 6px;
     width: calc(100% - 88px);
     margin: 0 auto;
-    background: rgba(255, 255, 255, 0.04);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background-image: linear-gradient(rgba(15, 15, 15, 0.85), rgba(15, 15, 15, 0.85)),
+      linear-gradient(135deg, rgba(224, 224, 230, 0.35) 0%, rgba(100, 100, 110, 0.15) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
+    border: 0.5px solid transparent;
     border-radius: 12px;
     padding: 10px 14px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 10px rgba(212, 175, 55, 0.04);
   }
 
   .command-header-name {
     font-size: 15px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.95);
+    color: #ffffff;
     letter-spacing: 0.02em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    background: linear-gradient(90deg, #ffffff 0%, #e0e0e6 50%, #ffffff 100%);
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: silverSheen 4s linear infinite;
+  }
+
+  @keyframes silverSheen {
+    to {
+      background-position: 200% center;
+    }
   }
 
   .command-header-progress-wrap {
@@ -918,13 +938,17 @@
     padding: 18px;
     min-height: 125px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid rgba(255, 255, 255, 0.08);
+    background-image: linear-gradient(rgba(15, 15, 15, 0.85), rgba(15, 15, 15, 0.85)),
+      linear-gradient(135deg, rgba(224, 224, 230, 0.3) 0%, rgba(100, 100, 110, 0.1) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
     backdrop-filter: blur(25px);
     -webkit-backdrop-filter: blur(25px);
     cursor: pointer;
     transition: opacity 200ms ease, transform 200ms ease;
     overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.05);
+    border: 0.5px solid transparent;
   }
 
   .chat-preview:hover,
@@ -942,9 +966,9 @@
     justify-content: center;
     gap: 2px;
     font-size: 10px;
-    color: rgba(224, 224, 230, 0.85);
-    opacity: 0.6;
-    letter-spacing: 0.2em;
+    color: rgba(224, 224, 230, 0.95);
+    opacity: 0.8;
+    letter-spacing: 0.3em;
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     padding-right: 8px;
     margin-right: 8px;
@@ -1035,9 +1059,9 @@
   .girl-reply-label {
     font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: rgba(224, 224, 230, 0.7);
+    color: rgba(224, 224, 230, 0.9);
   }
 
   .girl-reply-textarea {
@@ -1177,9 +1201,9 @@
     display: block;
     font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.3em;
     text-transform: uppercase;
-    color: rgba(200, 200, 220, 0.45);
+    color: rgba(224, 224, 230, 0.6);
     text-align: center;
     padding: 0;
     margin-bottom: 0;
@@ -1239,15 +1263,18 @@
     justify-content: center;
     gap: 4px;
     text-align: center;
-    background: rgba(10, 10, 10, 1);
-    border: 0.5px solid rgba(224, 224, 230, 0.5);
+    background-image: linear-gradient(rgba(10, 10, 10, 1), rgba(10, 10, 10, 1)),
+      linear-gradient(135deg, rgba(224, 224, 230, 0.5) 0%, rgba(100, 100, 110, 0.2) 100%);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
     backdrop-filter: blur(35px);
     -webkit-backdrop-filter: blur(35px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7), 0 0 20px rgba(212, 175, 55, 0.1);
     color: rgba(255, 255, 255, 0.95);
     transform: scale(1);
     transition: transform 180ms ease, box-shadow 180ms ease, opacity 0.3s ease;
     font-size: 13px;
+    border: 0.5px solid transparent;
   }
 
   .strategy-badge {
