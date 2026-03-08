@@ -83,12 +83,15 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
         </button>
 
         <div className="command-header-center">
-          <span className="command-header-name">{girlName}</span>
-          <div className="command-header-progress-mini">
-            <div
-              className="command-header-progress-mini-fill"
-              style={{ width: `${progressWidth}%` }}
-            />
+          <div className="command-header-name">{girlName}</div>
+          <div className="command-header-progress-wrap">
+            <div className="command-header-progress-track">
+              <div
+                className="command-header-progress-fill"
+                style={{ width: `${progressWidth}%` }}
+              />
+              <span className="command-header-progress-label">{normalizedInterest}%</span>
+            </div>
           </div>
         </div>
 
