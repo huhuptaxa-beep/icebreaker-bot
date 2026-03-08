@@ -15,6 +15,12 @@ serve(async (req) => {
 
   try {
     const { conversation_id, selected_text, role, init_data, opener_variant_id } = await req.json()
+    console.log("CHAT SAVE BACKEND INPUT", {
+      conversation_id,
+      role,
+      text: selected_text,
+      opener_variant_id: opener_variant_id ?? null,
+    })
 
     if (!conversation_id || !selected_text) {
       return new Response(
@@ -55,6 +61,10 @@ serve(async (req) => {
     }
 
     const safeRole = role === "girl" ? "girl" : "user"
+    const normalizedOpenerVariantId =
+      typeof opener_variant_id === "string" && opener_variant_id.trim().length > 0
+        ? opener_variant_id.trim()
+        : null
 
     const { data, error } = await supabase
       .from("messages")
@@ -68,14 +78,21 @@ serve(async (req) => {
 
     if (error) throw error
 
-    if (opener_variant_id) {
-      const { error: openerVariantUpdateError } = await supabase
+    if (normalizedOpenerVariantId) {
+      const { data: wasSentUpdateData, error: wasSentUpdateError } = await supabase
         .from("opener_variants")
         .update({ was_sent: true })
-        .eq("id", opener_variant_id)
+        .eq("id", normalizedOpenerVariantId)
+        .select("id, was_sent")
 
-      if (openerVariantUpdateError) {
-        console.error("chat-save opener_variants update error:", openerVariantUpdateError)
+      console.log("WAS_SENT UPDATE RESULT", {
+        opener_variant_id: normalizedOpenerVariantId,
+        error: wasSentUpdateError ?? null,
+        data: wasSentUpdateData ?? null,
+      })
+
+      if (wasSentUpdateError) {
+        console.error("chat-save opener_variants update error:", wasSentUpdateError)
       }
     }
 
