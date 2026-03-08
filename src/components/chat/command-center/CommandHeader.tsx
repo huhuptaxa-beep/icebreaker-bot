@@ -10,11 +10,23 @@ interface CommandHeaderProps {
 }
 
 const ArrowIcon: React.FC<{ direction: "left" | "right" }> = ({ direction }) => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     {direction === "left" ? (
-      <path d="M15 18L9 12L15 6" stroke="rgba(200,200,220,0.5)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M15 18L9 12L15 6"
+        stroke="rgba(224, 224, 230, 0.9)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     ) : (
-      <path d="M9 18L15 12L9 6" stroke="rgba(200,200,220,0.5)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M9 18L15 12L9 6"
+        stroke="rgba(224, 224, 230, 0.9)"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     )}
   </svg>
 );
@@ -72,10 +84,11 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
   return (
     <header className={`command-header${disabled ? " header-disabled" : ""}`}>
-      <div className="command-header-row relative">
+      <div className="command-header-row relative flex items-center justify-center">
         <button
           onClick={onPrevConversation ?? onPrev}
-          className="command-header-arrow absolute left-0 z-10"
+          className="command-header-arrow-outside"
+          style={{ left: "-4px" }}
           disabled={!(onPrevConversation ?? onPrev)}
           aria-label="Предыдущий диалог"
         >
@@ -97,7 +110,8 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
 
         <button
           onClick={onNextConversation ?? onNext}
-          className="command-header-arrow absolute right-0 z-10"
+          className="command-header-arrow-outside"
+          style={{ right: "-4px" }}
           disabled={!(onNextConversation ?? onNext)}
           aria-label="Следующий диалог"
         >

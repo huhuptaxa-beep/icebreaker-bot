@@ -19,9 +19,9 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   const [flyingIndex, setFlyingIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [entranceActive, setEntranceActive] = useState(false);
-  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const selectionAnimationTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const highlightTimerRef = useRef<any | null>(null);
+  const pressTimerRef = useRef<any | null>(null);
+  const selectionAnimationTimersRef = useRef<any[]>([]);
   const swipeTrackerRef = useRef<
     Record<
       number,
@@ -321,6 +321,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                     transition,
                   }}
                 >
+                  <div className="strategy-badge">{i + 1}</div>
                   <div className="suggestion-text">
                     {suggestion.map((part, partIndex) => (
                       <React.Fragment key={partIndex}>

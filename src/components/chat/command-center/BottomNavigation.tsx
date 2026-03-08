@@ -38,12 +38,21 @@ const ProfileIcon = () => (
 
 const ActionIcon = () => (
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+    <defs>
+      <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#AD8B3A" />
+        <stop offset="50%" stopColor="#F9E076" />
+        <stop offset="100%" stopColor="#AD8B3A" />
+      </linearGradient>
+    </defs>
     <path
       d="M13 2L3 14H12L12 22L22 10H13L13 2Z"
-      stroke="currentColor"
-      strokeWidth="1.5"
+      stroke="url(#gold-gradient)"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      fill="url(#gold-gradient)"
+      fillOpacity="0.1"
     />
   </svg>
 );
