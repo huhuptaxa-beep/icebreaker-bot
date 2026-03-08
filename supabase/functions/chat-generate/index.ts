@@ -22,6 +22,7 @@ const corsHeaders = {
 }
 
 const FREE_WEEKLY_LIMIT = 7
+const OPENER_VARIANTS_COUNT = 8
 
 type JudgeScoreRow = {
   position: number | null
@@ -85,6 +86,14 @@ function parseJudgeResponse(raw: string): {
       return true
     })
     .slice(0, 3)
+
+  if (scoreMatches.length < OPENER_VARIANTS_COUNT) {
+    console.error("Judge score lines less than expected", {
+      expected: OPENER_VARIANTS_COUNT,
+      actual: scoreMatches.length,
+      judgeRawText: safeRaw,
+    })
+  }
 
   if (scoreMatches.length === 0 || cleanedFinalists.length === 0) {
     console.error("Judge finalists parse failed", {
@@ -220,7 +229,7 @@ serve(async (req) => {
       const generatorModel = "claude-sonnet-4-6"
       const judgeModel = "claude-sonnet-4-6"
 
-      /* ----- ЭТАП 1: Генератор (10 вариантов) ----- */
+      /* ----- ЭТАП 1: Генератор (8 вариантов) ----- */
 
       const generatorUserPrompt = girlMessage
         ? `Профиль девушки: ${profileInfo}\n\nЕё первое сообщение: ${girlMessage}`
@@ -253,15 +262,23 @@ serve(async (req) => {
 
       const generatorRawText = generatorData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
 
-      const tenVariants = splitVariants(generatorRawText).slice(0, 10)
+      const openerVariants = splitVariants(generatorRawText).slice(0, OPENER_VARIANTS_COUNT)
 
-      if (tenVariants.length === 0) {
+      if (openerVariants.length === 0) {
         return new Response(JSON.stringify({ error: "Generator produced no variants" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 })
+      }
+
+      if (openerVariants.length < OPENER_VARIANTS_COUNT) {
+        console.error("Generator variants less than expected", {
+          expected: OPENER_VARIANTS_COUNT,
+          actual: openerVariants.length,
+          generatorRawText,
+        })
       }
 
       /* ----- ЭТАП 2: Судья (выбирает 3 лучших) ----- */
 
-      const variantsBlock = tenVariants.map((v: string, i: number) => `${i + 1}. ${v}`).join("\n")
+      const variantsBlock = openerVariants.map((v: string, i: number) => `${i + 1}. ${v}`).join("\n")
 
       const judgeUserPrompt = girlMessage
         ? `Профиль девушки: ${profileInfo}\n\nЕё первое сообщение: ${girlMessage}\n\nВарианты:\n${variantsBlock}`
@@ -350,7 +367,7 @@ serve(async (req) => {
             finalists: parsedJudge.finalists,
           })
 
-          const variantRows = tenVariants.map((variantText: string, index: number) => {
+          const variantRows = openerVariants.map((variantText: string, index: number) => {
             const position = index + 1
             const parsedScore = parsedJudge.scores.find((s) => s.position === position)
             return {
@@ -390,17 +407,17 @@ serve(async (req) => {
           for (const entry of finalSuggestionEntries) {
             const finalistText = entry.text
             const finalistPosition = entry.finalistPosition
-            const matchedIndex = matchFinalistToVariant(finalistText, tenVariants)
+            const matchedIndex = matchFinalistToVariant(finalistText, openerVariants)
             console.log("FINALIST DEBUG", {
               generationId,
               finalistPosition,
               finalistText,
               matchedIndex,
-              matchedOriginal: matchedIndex !== -1 ? tenVariants[matchedIndex] : null,
+              matchedOriginal: matchedIndex !== -1 ? openerVariants[matchedIndex] : null,
             })
 
             if (matchedIndex >= 0) {
-              const originalText = tenVariants[matchedIndex]
+              const originalText = openerVariants[matchedIndex]
               const normalizedFinalist = normalizeText(finalistText)
               const normalizedOriginal = normalizeText(originalText)
               const textFinal = normalizedFinalist !== normalizedOriginal ? finalistText : null
