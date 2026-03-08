@@ -52,6 +52,47 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (prefersReducedMotion || loading || suggestions.length === 0) {
+      setEntranceActive(false);
+      return;
+    }
+    setEntranceActive(true);
+    const timer = window.setTimeout(() => setEntranceActive(false), 320);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [suggestions, loading, prefersReducedMotion]);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const midpoint = container.scrollLeft + container.clientWidth / 2;
+      let nearestIndex = 0;
+      let nearestDistance = Number.POSITIVE_INFINITY;
+
+      Array.from(container.children).forEach((child, index) => {
+        if (!(child instanceof HTMLElement)) return;
+        const childCenter = child.offsetLeft + child.clientWidth / 2;
+        const distance = Math.abs(midpoint - childCenter);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      });
+
+      setActiveIndex(nearestIndex);
+    };
+
+    handleScroll();
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+  }, [suggestions.length]);
+
   if (loading) {
     return (
       <div className="px-5 py-3 flex flex-col gap-3 animate-fadeIn">
@@ -97,47 +138,6 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   }
 
   if (suggestions.length === 0) return null;
-
-  useEffect(() => {
-    if (prefersReducedMotion || loading || suggestions.length === 0) {
-      setEntranceActive(false);
-      return;
-    }
-    setEntranceActive(true);
-    const timer = window.setTimeout(() => setEntranceActive(false), 320);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [suggestions, loading, prefersReducedMotion]);
-
-  useEffect(() => {
-    const container = scrollRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const midpoint = container.scrollLeft + container.clientWidth / 2;
-      let nearestIndex = 0;
-      let nearestDistance = Number.POSITIVE_INFINITY;
-
-      Array.from(container.children).forEach((child, index) => {
-        if (!(child instanceof HTMLElement)) return;
-        const childCenter = child.offsetLeft + child.clientWidth / 2;
-        const distance = Math.abs(midpoint - childCenter);
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestIndex = index;
-        }
-      });
-
-      setActiveIndex(nearestIndex);
-    };
-
-    handleScroll();
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-    };
-  }, [suggestions.length]);
 
   const completeSelection = (suggestion: string[], index: number) => {
     onSelect(suggestion, index);

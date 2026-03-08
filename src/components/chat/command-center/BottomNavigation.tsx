@@ -37,11 +37,11 @@ const ProfileIcon = () => (
 );
 
 const ActionIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     <path
       d="M13 2L3 14H12L12 22L22 10H13L13 2Z"
       stroke="currentColor"
-      strokeWidth="1.2"
+      strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />

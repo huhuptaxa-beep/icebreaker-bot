@@ -23,11 +23,13 @@ import WorkingZone from "./command-center/WorkingZone";
 
 const haptic = (type: "light" | "medium" | "heavy" = "medium") => {
   try {
-    const tg = (window as any).Telegram?.WebApp?.HapticFeedback;
+    const tg = (window as unknown as { Telegram?: { WebApp?: { HapticFeedback?: { impactOccurred: (style: string) => void } } } }).Telegram?.WebApp?.HapticFeedback;
     if (tg?.impactOccurred) {
       tg.impactOccurred(type);
     }
-  } catch { }
+  } catch (_e) {
+    // Ignore haptic feedback errors
+  }
 };
 
 interface ChatPageProps {
@@ -38,6 +40,7 @@ interface ChatPageProps {
   onNextConversation?: () => void;
   onOpenHistory: (payload: { conversationId: string; girlName: string; messages: Message[] }) => void;
   onActionStateChange?: (state: { generating: boolean; canGenerate: boolean }) => void;
+  onActionNudgeChange?: (nudge: boolean) => void;
 }
 
 export interface ChatPageHandle {
@@ -148,7 +151,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     diff: 0,
   });
   const [scoringProgress, setScoringProgress] = useState(0);
-  const generationTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const generationTimers = useRef<Array<NodeJS.Timeout>>([]);
   const scoringAnimationRef = useRef<number | null>(null);
 
   const isNewConversation = messages.length === 0;
@@ -697,7 +700,19 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     setAvailableActions([]);
 
     try {
-      let res: any;
+      let res: {
+        limit_reached?: boolean;
+        error?: string;
+        suggestions?: string[][];
+        opener_variant_ids?: Array<string | null>;
+        available_actions?: string[];
+        interest?: number;
+        free_remaining?: number;
+        paid_remaining?: number;
+        showDisinterestWarning?: boolean;
+        phase?: number;
+        telegram_channel_id?: string;
+      };
 
       if (isNewConversation && !actionOverride) {
         res = await chatGenerate(conversationIdRef.current, null, "opener", girlText);
@@ -744,7 +759,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         if (res.paid_remaining !== undefined) setPaidRemaining(res.paid_remaining);
 
         if (res.showDisinterestWarning) {
-          showToast("Она не в настроении - смени тему", "warning");
+          showToast("Она не в настроении - смени тему", "error"); // ToastType only has success/error/default? Let's assume error or change tone. Warning is not valid ToastType
         }
 
         if (actionOverride === "contact") setPendingAction("contact");
@@ -902,7 +917,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       : "AI готов подобрать ответ ⚡";
 
   const inputLabel = isNewConversation ? "Описание девушки" : "Ответ девушки";
-  const inputPlaceholder = isNewConversation ? "Опиши девушку или ситуацию" : "Вставь сообщение девушки";
+  const inputPlaceholder = isNewConversation ? "Введи 1-3 факта о ней..." : "Вставь сообщение...";
   const showPasteButton = !isNewConversation;
 
   const isIdleState = workingState === "idle";

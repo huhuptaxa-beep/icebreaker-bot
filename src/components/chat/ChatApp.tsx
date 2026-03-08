@@ -199,7 +199,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
     if (fallback) {
       openConversation(fallback);
     } else {
-      showToast("Нет активных диалогов", "warning");
+      showToast("Нет активных диалогов", "error"); // ToastType only has success/error/default? Wait, if we cast it to "default" or "error". Let's use error.
     }
   };
 
