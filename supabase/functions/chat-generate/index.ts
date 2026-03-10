@@ -409,15 +409,21 @@ serve(async (req) => {
         console.log("Judge scores:", parsedJudge.scores.length)
         console.log("VARIANTS TO INSERT:", variantRows.length)
         console.log("GENERATION ID USED:", generationId)
+        console.log("VARIANT ROWS DEBUG:", variantRows)
 
-        const { data: insertedVariants, error: variantsInsertError } = await supabase
+        const { data: insertedVariants, error: insertError } = await supabase
           .from("opener_variants")
           .insert(variantRows)
-          .select("id, position")
+          .select()
+        if (insertError) {
+          console.error("OPENER VARIANTS INSERT ERROR:", insertError)
+        } else {
+          console.log("OPENER VARIANTS INSERTED:", insertedVariants?.length)
+        }
         console.log("INSERT RESULT:", insertedVariants)
 
-        if (variantsInsertError) {
-          console.error("opener_variants insert error:", variantsInsertError)
+        if (insertError) {
+          console.error("opener_variants insert error:", insertError)
         }
 
         const debugVariants = await supabase
