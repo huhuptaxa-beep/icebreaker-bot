@@ -227,7 +227,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: generatorModel,
           max_tokens: 800,
-          temperature: 0.8,
+          temperature: 0.9,
           system: [{ type: "text", text: OPENER_GENERATOR_PROMPT, cache_control: { type: "ephemeral" } }],
           messages: [{ role: "user", content: generatorUserPrompt }]
         })
