@@ -22,7 +22,7 @@ const corsHeaders = {
 }
 
 const FREE_WEEKLY_LIMIT = 7
-const OPENER_VARIANTS_COUNT = 8
+const OPENER_VARIANTS_COUNT = 16
 
 type JudgeScoreRow = {
   position: number | null
@@ -87,10 +87,10 @@ function parseJudgeResponse(raw: string): {
     })
     .slice(0, 3)
 
-  if (scoreMatches.length < OPENER_VARIANTS_COUNT) {
-    console.error("Judge score lines less than expected", {
+  if (scores.length < OPENER_VARIANTS_COUNT) {
+    console.warn("Judge score lines less than expected", {
       expected: OPENER_VARIANTS_COUNT,
-      actual: scoreMatches.length,
+      actual: scores.length,
       judgeRawText: safeRaw,
     })
   }
@@ -229,7 +229,7 @@ serve(async (req) => {
       const generatorModel = "claude-sonnet-4-6"
       const judgeModel = "claude-sonnet-4-6"
 
-      /* ----- ЭТАП 1: Генератор (8 вариантов) ----- */
+      /* ----- ЭТАП 1: Генератор (до 16 вариантов) ----- */
 
       const generatorUserPrompt = girlMessage
         ? `Профиль девушки: ${profileInfo}\n\nЕё первое сообщение: ${girlMessage}`
@@ -269,7 +269,7 @@ serve(async (req) => {
       }
 
       if (openerVariants.length < OPENER_VARIANTS_COUNT) {
-        console.error("Generator variants less than expected", {
+        console.warn("Generator variants less than expected", {
           expected: OPENER_VARIANTS_COUNT,
           actual: openerVariants.length,
           generatorRawText,
@@ -311,6 +311,12 @@ serve(async (req) => {
 
       const judgeRawText = judgeData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
       const parsedJudge = parseJudgeResponse(judgeRawText)
+      if (parsedJudge.scores.length < OPENER_VARIANTS_COUNT) {
+        console.warn("Parsed judge scores less than expected", {
+          expected: OPENER_VARIANTS_COUNT,
+          actual: parsedJudge.scores.length,
+        })
+      }
       console.log("PARSED JUDGE FINALISTS", {
         generationId: null,
         finalists: parsedJudge.finalists,
