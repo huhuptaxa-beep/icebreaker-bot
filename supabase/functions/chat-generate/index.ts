@@ -199,6 +199,7 @@ serve(async (req) => {
 
     let suggestions: string[][] = []
     let openerVariantIds: Array<string | null> | undefined = undefined
+    let openerGenerationId: string | null = null
     let available_actions: string[] = []
     let strategyResult: any = null
     let totalUsage = { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
@@ -253,6 +254,8 @@ serve(async (req) => {
         .map((v: string) => v.trim())
         .filter((v: string) => v.length > 0)
       const openerVariants = parsedVariants.slice(0, OPENER_VARIANTS_COUNT)
+      console.log("OPENER GENERATOR RAW:", generatorRawText)
+      console.log("PARSED VARIANTS:", openerVariants.length)
 
       if (openerVariants.length === 0) {
         return new Response(JSON.stringify({ error: "Generator produced no variants" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 })
@@ -260,6 +263,38 @@ serve(async (req) => {
 
       if (openerVariants.length < OPENER_VARIANTS_COUNT) {
         console.warn(`Generator returned ${openerVariants.length} variants, expected ${OPENER_VARIANTS_COUNT}`)
+      }
+
+      let generationId: string | null = null
+      try {
+        const { data: generationRow, error: generationError } = await supabase
+          .from("opener_generations")
+          .insert({
+            user_id: telegram_id,
+            conversation_id: conversation_id || null,
+            profile_info: profileInfo,
+            first_girl_message: girlMessage || null,
+            generator_model: generatorModel,
+            judge_model: judgeModel,
+            generator_raw: generatorRawText,
+            judge_raw: "",
+            is_low_quality: false,
+            was_regenerated: false,
+            generation_attempt: 1,
+            created_at: now.toISOString(),
+          })
+          .select("id")
+          .single()
+
+        if (generationError) {
+          console.error("opener_generations insert error:", generationError)
+        }
+
+        generationId = generationRow?.id ?? null
+        openerGenerationId = generationId
+        console.log("GENERATION CREATED:", generationId)
+      } catch (generationCreateError) {
+        console.error("opener_generations create failed:", generationCreateError)
       }
 
       /* ----- ЭТАП 2: Судья (выбирает 3 лучших) ----- */
@@ -297,11 +332,14 @@ serve(async (req) => {
 
       const judgeRawText = judgeData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
       const parsedJudge = parseJudgeResponse(judgeRawText)
+      console.log("JUDGE RAW:", judgeRawText)
+      console.log("JUDGE SCORES:", parsedJudge.scores.length)
+      console.log("JUDGE FINALISTS:", parsedJudge.finalists)
       if (parsedJudge.scores.length < openerVariants.length) {
         console.warn(`Judge returned ${parsedJudge.scores.length} scores for ${openerVariants.length} variants`)
       }
       console.log("PARSED JUDGE FINALISTS", {
-        generationId: null,
+        generationId,
         finalists: parsedJudge.finalists,
       })
 
@@ -321,155 +359,154 @@ serve(async (req) => {
         .slice(0, 3)
         .map((entry, suggestionIndex) => ({ ...entry, suggestionIndex }))
 
+      if (finalSuggestionEntries.length === 0) {
+        console.warn("OPENER FALLBACK: no valid finalists after judge parsing")
+      }
+
       suggestions = finalSuggestionEntries.map((entry) => entry.parts)
       openerVariantIds = finalSuggestionEntries.map(() => null)
 
       try {
-        const { data: generationRow, error: generationError } = await supabase
-          .from("opener_generations")
-          .insert({
-            user_id: telegram_id,
-            conversation_id: conversation_id || null,
-            profile_info: profileInfo,
-            first_girl_message: girlMessage || null,
-            generator_model: generatorModel,
-            judge_model: judgeModel,
-            generator_raw: generatorRawText,
-            judge_raw: judgeRawText,
-            is_low_quality: parsedJudge.isLowQuality,
-            was_regenerated: false,
-            generation_attempt: 1,
-            created_at: now.toISOString(),
-          })
-          .select("id")
-          .maybeSingle()
+        if (generationId) {
+          const { error: generationUpdateError } = await supabase
+            .from("opener_generations")
+            .update({
+              judge_raw: judgeRawText,
+              is_low_quality: parsedJudge.isLowQuality,
+            })
+            .eq("id", generationId)
 
-        if (generationError) {
-          console.error("opener_generations insert error:", generationError)
+          if (generationUpdateError) {
+            console.error("opener_generations update error:", generationUpdateError)
+          }
         }
 
-        const generationId = generationRow?.id ?? null
+        if (!generationId) {
+          throw new Error("generationId missing before variant insert")
+        }
 
-        if (generationId) {
-          console.log("PARSED JUDGE FINALISTS", {
+        const variantRows = openerVariants.map((variantText: string, index: number) => {
+          const position = index + 1
+          return {
+            generation_id: generationId,
+            position,
+            text_original: variantText,
+            text_final: null,
+            score: parsedJudge.scores[index]?.score ?? null,
+            fact_used: null,
+            mechanic: null,
+            has_hook: null,
+            is_finalist: false,
+            finalist_position: null,
+            was_shown: false,
+            was_sent: false,
+            got_reply: null,
+            created_at: now.toISOString(),
+          }
+        })
+        console.log("OPENER DEBUG:")
+        console.log("Generator variants:", openerVariants.length)
+        console.log("Judge scores:", parsedJudge.scores.length)
+        console.log("VARIANTS TO INSERT:", variantRows.length)
+        console.log("GENERATION ID USED:", generationId)
+
+        const { data: insertedVariants, error: variantsInsertError } = await supabase
+          .from("opener_variants")
+          .insert(variantRows)
+          .select("id, position")
+        console.log("INSERT RESULT:", insertedVariants)
+
+        if (variantsInsertError) {
+          console.error("opener_variants insert error:", variantsInsertError)
+        }
+
+        const debugVariants = await supabase
+          .from("opener_variants")
+          .select("id")
+          .eq("generation_id", generationId)
+        console.log("VARIANTS IN DB:", debugVariants.data?.length)
+
+        const variantIdByPosition = new Map<number, string>()
+        for (const row of insertedVariants || []) {
+          if (typeof row?.position === "number" && row?.id) {
+            variantIdByPosition.set(row.position, row.id)
+          }
+        }
+
+        for (const entry of finalSuggestionEntries) {
+          const finalistText = entry.text
+          const finalistPosition = entry.finalistPosition
+          const matchedIndex = matchFinalistToVariant(finalistText, openerVariants)
+          console.log("FINALIST DEBUG", {
             generationId,
-            finalists: parsedJudge.finalists,
+            finalistPosition,
+            finalistText,
+            matchedIndex,
+            matchedOriginal: matchedIndex !== -1 ? openerVariants[matchedIndex] : null,
           })
 
-          const variantRows = openerVariants.map((variantText: string, index: number) => {
-            const position = index + 1
-            return {
-              generation_id: generationId,
-              position,
-              text_original: variantText,
-              text_final: null,
-              score: parsedJudge.scores[index]?.score ?? null,
-              fact_used: null,
-              mechanic: null,
-              has_hook: null,
-              is_finalist: false,
-              finalist_position: null,
-              was_shown: false,
-              was_sent: false,
-              got_reply: null,
-              created_at: now.toISOString(),
-            }
-          })
-          console.log("OPENER DEBUG:")
-          console.log("Generator variants:", openerVariants.length)
-          console.log("Judge scores:", parsedJudge.scores.length)
+          if (matchedIndex >= 0) {
+            const originalText = openerVariants[matchedIndex]
+            const normalizedFinalist = normalizeText(finalistText)
+            const normalizedOriginal = normalizeText(originalText)
+            const textFinal = normalizedFinalist !== normalizedOriginal ? finalistText : null
 
-          const { data: insertedVariants, error: variantsInsertError } = await supabase
-            .from("opener_variants")
-            .insert(variantRows)
-            .select("id, position")
-
-          if (variantsInsertError) {
-            console.error("opener_variants insert error:", variantsInsertError)
-          }
-
-          const variantIdByPosition = new Map<number, string>()
-          for (const row of insertedVariants || []) {
-            if (typeof row?.position === "number" && row?.id) {
-              variantIdByPosition.set(row.position, row.id)
-            }
-          }
-
-          for (const entry of finalSuggestionEntries) {
-            const finalistText = entry.text
-            const finalistPosition = entry.finalistPosition
-            const matchedIndex = matchFinalistToVariant(finalistText, openerVariants)
-            console.log("FINALIST DEBUG", {
+            const { error: finalistUpdateError } = await supabase
+              .from("opener_variants")
+              .update({
+                is_finalist: true,
+                finalist_position: finalistPosition,
+                was_shown: true,
+                text_final: textFinal,
+              })
+              .eq("generation_id", generationId)
+              .eq("position", matchedIndex + 1)
+            console.log("FINALIST UPDATE RESULT", {
               generationId,
               finalistPosition,
-              finalistText,
               matchedIndex,
-              matchedOriginal: matchedIndex !== -1 ? openerVariants[matchedIndex] : null,
+              error: finalistUpdateError ?? null,
             })
 
-            if (matchedIndex >= 0) {
-              const originalText = openerVariants[matchedIndex]
-              const normalizedFinalist = normalizeText(finalistText)
-              const normalizedOriginal = normalizeText(originalText)
-              const textFinal = normalizedFinalist !== normalizedOriginal ? finalistText : null
+            if (finalistUpdateError) {
+              console.error("opener_variants finalist update error:", finalistUpdateError)
+            }
 
-              const { error: finalistUpdateError } = await supabase
-                .from("opener_variants")
-                .update({
-                  is_finalist: true,
-                  finalist_position: finalistPosition,
-                  was_shown: true,
-                  text_final: textFinal,
-                })
-                .eq("generation_id", generationId)
-                .eq("position", matchedIndex + 1)
-              console.log("FINALIST UPDATE RESULT", {
-                generationId,
-                finalistPosition,
-                matchedIndex,
-                error: finalistUpdateError ?? null,
+            if (openerVariantIds) {
+              openerVariantIds[entry.suggestionIndex] = variantIdByPosition.get(matchedIndex + 1) || null
+            }
+          } else {
+            const { data: orphanFinalistRow, error: unmatchedInsertError } = await supabase
+              .from("opener_variants")
+              .insert({
+                generation_id: generationId,
+                position: null,
+                text_original: finalistText,
+                text_final: finalistText,
+                score: null,
+                fact_used: null,
+                mechanic: null,
+                has_hook: null,
+                is_finalist: true,
+                finalist_position: finalistPosition,
+                was_shown: true,
+                was_sent: false,
+                got_reply: null,
               })
+              .select("id")
+              .maybeSingle()
+            console.log("FINALIST FALLBACK INSERT RESULT", {
+              generationId,
+              finalistPosition,
+              error: unmatchedInsertError ?? null,
+            })
 
-              if (finalistUpdateError) {
-                console.error("opener_variants finalist update error:", finalistUpdateError)
-              }
+            if (unmatchedInsertError) {
+              console.error("opener_variants unmatched finalist insert error:", unmatchedInsertError)
+            }
 
-              if (openerVariantIds) {
-                openerVariantIds[entry.suggestionIndex] = variantIdByPosition.get(matchedIndex + 1) || null
-              }
-            } else {
-              const { data: orphanFinalistRow, error: unmatchedInsertError } = await supabase
-                .from("opener_variants")
-                .insert({
-                  generation_id: generationId,
-                  position: null,
-                  text_original: finalistText,
-                  text_final: finalistText,
-                  score: null,
-                  fact_used: null,
-                  mechanic: null,
-                  has_hook: null,
-                  is_finalist: true,
-                  finalist_position: finalistPosition,
-                  was_shown: true,
-                  was_sent: false,
-                  got_reply: null,
-                })
-                .select("id")
-                .maybeSingle()
-              console.log("FINALIST FALLBACK INSERT RESULT", {
-                generationId,
-                finalistPosition,
-                error: unmatchedInsertError ?? null,
-              })
-
-              if (unmatchedInsertError) {
-                console.error("opener_variants unmatched finalist insert error:", unmatchedInsertError)
-              }
-
-              if (openerVariantIds) {
-                openerVariantIds[entry.suggestionIndex] = orphanFinalistRow?.id || null
-              }
+            if (openerVariantIds) {
+              openerVariantIds[entry.suggestionIndex] = orphanFinalistRow?.id || null
             }
           }
         }
@@ -654,10 +691,13 @@ serve(async (req) => {
     const newWeeklyUsed = hasFree ? (weekExpired ? 1 : weeklyUsed + 1) : weeklyUsed
     const freeRemaining = Math.max(0, weeklyLimit - newWeeklyUsed)
     const paidRemaining = hasPaid && !hasFree ? paidBalance - 1 : paidBalance
+    console.log("SUGGESTIONS RETURNED:", suggestions)
+    console.log("GENERATION ID RETURNED:", openerGenerationId)
 
     return new Response(
       JSON.stringify({
         suggestions,
+        generation_id: messageType === "first_message" ? openerGenerationId : undefined,
         opener_variant_ids: messageType === "first_message" ? (openerVariantIds ?? suggestions.map(() => null)) : undefined,
         available_actions,
         phase: messageType === "reply" && strategyResult ? strategyResult.phase : undefined,
