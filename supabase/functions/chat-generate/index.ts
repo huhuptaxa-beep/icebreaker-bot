@@ -38,13 +38,6 @@ function normalizeText(text: string): string {
     .trim()
 }
 
-function splitVariants(raw: string): string[] {
-  return (raw || "")
-    .split("§")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
-}
-
 function parseJudgeResponse(raw: string): {
   isLowQuality: boolean
   scores: JudgeScoreRow[]
@@ -86,14 +79,6 @@ function parseJudgeResponse(raw: string): {
       return true
     })
     .slice(0, 3)
-
-  if (scores.length < OPENER_VARIANTS_COUNT) {
-    console.warn("Judge score lines less than expected", {
-      expected: OPENER_VARIANTS_COUNT,
-      actual: scores.length,
-      judgeRawText: safeRaw,
-    })
-  }
 
   if (scoreMatches.length === 0 || cleanedFinalists.length === 0) {
     console.error("Judge finalists parse failed", {
@@ -262,23 +247,24 @@ serve(async (req) => {
 
       const generatorRawText = generatorData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
 
-      const openerVariants = splitVariants(generatorRawText).slice(0, OPENER_VARIANTS_COUNT)
+      const rawVariants = (generatorRawText || "").replace(/§/g, "\n")
+      const parsedVariants = rawVariants
+        .split("\n")
+        .map((v: string) => v.trim())
+        .filter((v: string) => v.length > 0)
+      const openerVariants = parsedVariants.slice(0, OPENER_VARIANTS_COUNT)
 
       if (openerVariants.length === 0) {
         return new Response(JSON.stringify({ error: "Generator produced no variants" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 })
       }
 
       if (openerVariants.length < OPENER_VARIANTS_COUNT) {
-        console.warn("Generator variants less than expected", {
-          expected: OPENER_VARIANTS_COUNT,
-          actual: openerVariants.length,
-          generatorRawText,
-        })
+        console.warn(`Generator returned ${openerVariants.length} variants, expected ${OPENER_VARIANTS_COUNT}`)
       }
 
       /* ----- ЭТАП 2: Судья (выбирает 3 лучших) ----- */
 
-      const variantsBlock = openerVariants.map((v: string, i: number) => `${i + 1}. ${v}`).join("\n")
+      const variantsBlock = openerVariants.map((v: string, i: number) => `[${i + 1}] ${v}`).join("\n")
 
       const judgeUserPrompt = girlMessage
         ? `Профиль девушки: ${profileInfo}\n\nЕё первое сообщение: ${girlMessage}\n\nВарианты:\n${variantsBlock}`
@@ -311,11 +297,8 @@ serve(async (req) => {
 
       const judgeRawText = judgeData.content?.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n") || ""
       const parsedJudge = parseJudgeResponse(judgeRawText)
-      if (parsedJudge.scores.length < OPENER_VARIANTS_COUNT) {
-        console.warn("Parsed judge scores less than expected", {
-          expected: OPENER_VARIANTS_COUNT,
-          actual: parsedJudge.scores.length,
-        })
+      if (parsedJudge.scores.length < openerVariants.length) {
+        console.warn(`Judge returned ${parsedJudge.scores.length} scores for ${openerVariants.length} variants`)
       }
       console.log("PARSED JUDGE FINALISTS", {
         generationId: null,
@@ -375,13 +358,12 @@ serve(async (req) => {
 
           const variantRows = openerVariants.map((variantText: string, index: number) => {
             const position = index + 1
-            const parsedScore = parsedJudge.scores.find((s) => s.position === position)
             return {
               generation_id: generationId,
               position,
               text_original: variantText,
               text_final: null,
-              score: parsedScore?.score ?? null,
+              score: parsedJudge.scores[index]?.score ?? null,
               fact_used: null,
               mechanic: null,
               has_hook: null,
@@ -393,6 +375,9 @@ serve(async (req) => {
               created_at: now.toISOString(),
             }
           })
+          console.log("OPENER DEBUG:")
+          console.log("Generator variants:", openerVariants.length)
+          console.log("Judge scores:", parsedJudge.scores.length)
 
           const { data: insertedVariants, error: variantsInsertError } = await supabase
             .from("opener_variants")
