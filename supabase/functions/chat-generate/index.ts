@@ -564,7 +564,7 @@ serve(async (req) => {
         showDisinterestWarning: (conv.low_interest_streak || 0) >= 3,
       }
 
-      available_actions = getAvailableActions({
+      const availableActionsInput = {
         effective_interest: currentInterest,
         freshness_multiplier: currentFreshness,
         channel,
@@ -573,7 +573,10 @@ serve(async (req) => {
         telegram_invite_attempts: conv.telegram_invite_attempts || 0,
         date_invite_attempts: conv.date_invite_attempts || 0,
         signalType,
-      })
+      }
+      console.log("AVAILABLE ACTIONS INPUT", availableActionsInput)
+      available_actions = getAvailableActions(availableActionsInput)
+      console.log("AVAILABLE ACTIONS OUTPUT", available_actions)
 
       const { data: historyDesc } = await supabase.from("messages").select("role, text, created_at").eq("conversation_id", conversation_id).order("created_at", { ascending: false }).limit(20)
 

@@ -5,6 +5,11 @@ interface SuggestionsPanelProps {
   onSelect: (suggestion: string[], index: number) => void;
   loading?: boolean;
   prefersReducedMotion?: boolean;
+  actionButtons?: Array<{
+    key: "contact" | "date";
+    label: string;
+    onClick: () => void;
+  }>;
 }
 
 const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
@@ -12,6 +17,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   onSelect,
   loading,
   prefersReducedMotion = false,
+  actionButtons = [],
 }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -261,6 +267,20 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   return (
     <div className="suggestions-wrap">
       <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
+      {actionButtons.length > 0 && (
+        <div className="suggestions-actions-row">
+          {actionButtons.map((btn) => (
+            <button
+              key={btn.key}
+              type="button"
+              className="suggestions-action-button"
+              onClick={btn.onClick}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="suggestions-carousel-wrap">
         <div className="suggestions-carousel" ref={scrollRef}>
           {suggestions.map((suggestion, i) => {

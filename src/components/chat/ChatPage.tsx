@@ -761,6 +761,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           const rawId = res.opener_variant_ids?.[idx];
           return typeof rawId === "string" ? rawId : null;
         });
+        console.log("RAW AVAILABLE ACTIONS RESPONSE", res.available_actions || []);
 
         setTimeout(() => {
           setSuggestions(nextSuggestions);
@@ -882,6 +883,25 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         ? "suggestions"
         : "idle";
 
+  const renderedSuggestionActionButtons: Array<"contact" | "date"> =
+    suggestions.length > 0
+      ? [
+          ...(availableActions.includes("contact") ? (["contact"] as const) : []),
+          ...(availableActions.includes("date") ? (["date"] as const) : []),
+        ]
+      : [];
+
+  useEffect(() => {
+    console.log("ACTION BUTTONS RENDER DEBUG", {
+      availableActions,
+      renderedActionButtons: renderedSuggestionActionButtons,
+      pendingAction,
+      generating,
+      suggestionsCount: suggestions.length,
+      workingState,
+    });
+  }, [availableActions, renderedSuggestionActionButtons, pendingAction, generating, suggestions.length, workingState]);
+
   const handleHistoryOpen = useCallback(() => {
     onOpenHistory({
       conversationId,
@@ -1000,6 +1020,17 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                 onSelect={handleSelectSuggestion}
                 loading={generating}
                 prefersReducedMotion={prefersReducedMotion}
+                actionButtons={renderedSuggestionActionButtons.map((action) => ({
+                  key: action,
+                  label: action === "contact" ? "Взять Telegram" : "Пригласить на свидание",
+                  onClick: () => {
+                    console.log("ACTION BUTTON CLICK", {
+                      action,
+                      availableActions,
+                    });
+                    setPendingAction(action);
+                  },
+                }))}
               />
             }
             idle={

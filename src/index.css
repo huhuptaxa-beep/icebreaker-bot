@@ -1278,6 +1278,37 @@
     -webkit-text-fill-color: initial;
   }
 
+  .suggestions-actions-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    padding: 0 16px;
+    flex-wrap: wrap;
+  }
+
+  .suggestions-action-button {
+    min-height: 34px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 12px;
+    font-weight: 600;
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  }
+
+  .suggestions-action-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(244, 217, 122, 0.6);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  .suggestions-action-button:active {
+    transform: translateY(0);
+  }
+
   .suggestions-carousel-wrap {
     width: 100%;
     overflow-x: visible;
