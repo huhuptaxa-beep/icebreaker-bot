@@ -28,15 +28,21 @@ function normalizeChannel(channel: string | null | undefined): "app" | "telegram
   return channel === "telegram" ? "telegram" : "app"
 }
 
-export function derivePhaseLabel(effectiveInterest: number, channel: string | null | undefined): {
+export function derivePhaseLabel(
+  effectiveInterest: number,
+  channel: string | null | undefined
+): {
   phase: number
-  phaseLabel: "flirt" | "connection" | "telegram" | "tension" | "post_date"
+  phaseLabel: "flirt" | "connection" | "telegram" | "tension" | "date_ready"
 } {
-  const safeInterest = Number.isFinite(effectiveInterest) ? effectiveInterest : STRATEGY_CONFIG.interest.defaultScore
+  const safeInterest = Number.isFinite(effectiveInterest)
+    ? effectiveInterest
+    : STRATEGY_CONFIG.interest.defaultScore
+
   const safeChannel = normalizeChannel(channel)
 
   if (safeChannel === "telegram") {
-    if (safeInterest >= 80) return { phase: 5, phaseLabel: "post_date" }
+    if (safeInterest >= 80) return { phase: 5, phaseLabel: "date_ready" }
     if (safeInterest >= 50) return { phase: 4, phaseLabel: "tension" }
     return { phase: 3, phaseLabel: "telegram" }
   }
@@ -123,5 +129,5 @@ export function deriveNextObjective(input: NextObjectiveInput): string {
     return "BUILD_TENSION"
   }
 
-  return "END_CONVERSATION_GOOD"
+  return "DATE_READY"
 }
