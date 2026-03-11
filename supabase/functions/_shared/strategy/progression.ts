@@ -20,6 +20,7 @@ type AvailableActionsInput = {
 type NextObjectiveInput = {
   phase: number
   freshness_multiplier: number
+  base_interest_score: number
   low_interest_streak: number
   signalType?: StrategySignalType
 }
@@ -97,16 +98,19 @@ export function getAvailableActions(input: AvailableActionsInput): string[] {
 export function deriveNextObjective(input: NextObjectiveInput): string {
   const signalType = input.signalType ?? "NEUTRAL"
 
+  if (input.freshness_multiplier < 0.6) {
+    if (input.base_interest_score >= 40 && input.low_interest_streak === 0) {
+      return "SOFT_REWARM"
+    }
+    return "HARD_REWARM"
+  }
+
   if (input.low_interest_streak >= 3) {
     return "END_CONVERSATION"
   }
 
   if (input.low_interest_streak >= 2 || signalType === "LOW_INTEREST") {
     return "SALVAGE"
-  }
-
-  if (input.freshness_multiplier < 0.6) {
-    return "REWARM"
   }
 
   if (signalType === "SHIT_TEST") {

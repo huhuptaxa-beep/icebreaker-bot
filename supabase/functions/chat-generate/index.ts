@@ -552,6 +552,7 @@ serve(async (req) => {
       const nextObjective = deriveNextObjective({
         phase: derivedPhase,
         freshness_multiplier: currentFreshness,
+        base_interest_score: conv.base_interest_score ?? currentInterest,
         low_interest_streak: conv.low_interest_streak || 0,
         signalType,
       })

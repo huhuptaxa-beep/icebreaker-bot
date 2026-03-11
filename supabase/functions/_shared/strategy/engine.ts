@@ -120,6 +120,7 @@ export function runStrategyEngine(
   const nextObjective = deriveNextObjective({
     phase,
     freshness_multiplier: freshness,
+    base_interest_score: baseInterest,
     low_interest_streak: lowInterestStreak,
     signalType,
   })
