@@ -948,6 +948,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
   const isIdleState = workingState === "idle";
   const isAiScanActive = generating && isIdleState;
+  const showRewarmEntry = hasStaleGirlMessage && suggestions.length === 0 && !generating;
 
   return (
     <div
@@ -990,19 +991,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           <MiniContext messages={messages} />
         </div>
 
-        {hasStaleGirlMessage && (
-          <div className="rewarm-entry">
-            <button
-              type="button"
-              className="rewarm-entry-button"
-              onClick={() => handleGenerate("reengage")}
-              disabled={generating}
-            >
-              Возобновить диалог
-            </button>
-          </div>
-        )}
-
         <div className={`command-working${isAiScanActive ? " ai-scan" : ""}`} ref={suggestionsRef}>
           <WorkingZone
             state={workingState}
@@ -1019,6 +1007,24 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
               <div className={`working-zone-idle${generating ? " working-zone-idle-loading" : ""}`}>
                 <p className="working-zone-idle-title">{idleTitle}</p>
                 {idleSubtitle && <p className="working-zone-idle-text">{idleSubtitle}</p>}
+                {showRewarmEntry && (
+                  <div className="rewarm-entry">
+                    <button
+                      type="button"
+                      className="rewarm-entry-button"
+                      onClick={() => {
+                        console.log("REWARM BUTTON CLICK", {
+                          conversation_id: conversationIdRef.current,
+                          action_type: "reengage",
+                        });
+                        handleGenerate("reengage");
+                      }}
+                      disabled={generating}
+                    >
+                      Возобновить диалог
+                    </button>
+                  </div>
+                )}
               </div>
             }
             action={
