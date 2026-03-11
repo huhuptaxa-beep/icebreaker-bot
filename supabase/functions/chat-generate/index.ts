@@ -24,9 +24,32 @@ const corsHeaders = {
 const FREE_WEEKLY_LIMIT = 7
 const OPENER_VARIANTS_COUNT = 16
 
+type UsageActionType =
+  | "opener"
+  | "reply"
+  | "contact"
+  | "telegram_first"
+  | "reengage"
+  | "date"
+
 type JudgeScoreRow = {
   position: number | null
   score: number | null
+}
+
+function normalizeConversationId(value: unknown): string | null {
+  if (typeof value !== "string") return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function normalizeUsageActionType(value: unknown): UsageActionType {
+  if (value === "opener") return "opener"
+  if (value === "contact") return "contact"
+  if (value === "telegram_first") return "telegram_first"
+  if (value === "reengage") return "reengage"
+  if (value === "date") return "date"
+  return "reply"
 }
 
 function normalizeText(text: string): string {
@@ -151,6 +174,8 @@ serve(async (req) => {
       init_data,
       facts
     } = body
+    const normalizedConversationId = normalizeConversationId(conversation_id)
+    const usageActionType = normalizeUsageActionType(action_type)
 
     const BOT_TOKEN = Deno.env.get("BOT_TOKEN")
     if (!BOT_TOKEN) throw new Error("BOT_TOKEN missing")
@@ -196,6 +221,12 @@ serve(async (req) => {
     if (!ANTHROPIC_KEY) throw new Error("ANTHROPIC_API_KEY missing")
 
     const messageType = action_type === "opener" ? "first_message" : "reply"
+    if (messageType === "reply" && !normalizedConversationId) {
+      console.error("USAGE LOG WARNING: reply flow missing conversation_id", {
+        rawConversationId: conversation_id ?? null,
+        action_type: action_type ?? null,
+      })
+    }
 
     let suggestions: string[][] = []
     let openerVariantIds: Array<string | null> | undefined = undefined
@@ -271,7 +302,7 @@ serve(async (req) => {
           .from("opener_generations")
           .insert({
             user_id: telegram_id,
-            conversation_id: conversation_id || null,
+            conversation_id: normalizedConversationId,
             profile_info: profileInfo,
             first_girl_message: girlMessage || null,
             generator_model: generatorModel,
@@ -527,11 +558,11 @@ serve(async (req) => {
 
     if (messageType === "reply") {
 
-      if (!conversation_id) {
+      if (!normalizedConversationId) {
         return new Response(JSON.stringify({ error: "conversation_id missing" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 })
       }
 
-      const { data: conv } = await supabase.from("conversations").select("*").eq("id", conversation_id).single()
+      const { data: conv } = await supabase.from("conversations").select("*").eq("id", normalizedConversationId).single()
 
       if (!conv || String(conv.user_id) !== String(telegram_id)) {
         return new Response(JSON.stringify({ error: "Forbidden" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 })
@@ -578,7 +609,7 @@ serve(async (req) => {
       available_actions = getAvailableActions(availableActionsInput)
       console.log("AVAILABLE ACTIONS OUTPUT", available_actions)
 
-      const { data: historyDesc } = await supabase.from("messages").select("role, text, created_at").eq("conversation_id", conversation_id).order("created_at", { ascending: false }).limit(20)
+      const { data: historyDesc } = await supabase.from("messages").select("role, text, created_at").eq("conversation_id", normalizedConversationId).order("created_at", { ascending: false }).limit(20)
 
       const history = (historyDesc || []).reverse()
 
@@ -666,17 +697,36 @@ serve(async (req) => {
        USAGE LOGGING
     ===================== */
 
-    supabase.from("usage_logs").insert({
+    const usageLogPayload = {
       telegram_id,
-      conversation_id: conversation_id || null,
+      conversation_id: normalizedConversationId,
+      action_type: usageActionType,
       model: "claude-sonnet-4-6",
       input_tokens: totalUsage.input_tokens,
       output_tokens: totalUsage.output_tokens,
       cache_creation_input_tokens: totalUsage.cache_creation_input_tokens,
       cache_read_input_tokens: totalUsage.cache_read_input_tokens,
-      action_type: action_type || "normal",
       created_at: now.toISOString()
-    }).then(() => { }).catch((err: any) => console.error("usage log error:", err))
+    }
+    console.log("USAGE LOG PAYLOAD", usageLogPayload)
+    supabase.from("usage_logs").insert(usageLogPayload).select("id, conversation_id, action_type").maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("USAGE LOG INSERT ERROR", {
+            error,
+            payload: usageLogPayload,
+          })
+          return
+        }
+        console.log("USAGE LOG INSERT OK", data ?? {
+          conversation_id: usageLogPayload.conversation_id,
+          action_type: usageLogPayload.action_type,
+        })
+      })
+      .catch((err: any) => console.error("USAGE LOG INSERT ERROR", {
+        error: err,
+        payload: usageLogPayload,
+      }))
 
     /* =====================
        LIMIT DEDUCTION

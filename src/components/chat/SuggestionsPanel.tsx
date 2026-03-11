@@ -358,7 +358,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                     transition,
                   }}
                 >
-                  {!compactCards && <div className="strategy-badge">{i + 1}</div>}
+
                   <div className="suggestion-text">
                     {suggestion.map((part, partIndex) => (
                       <React.Fragment key={partIndex}>
