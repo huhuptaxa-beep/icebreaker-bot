@@ -101,9 +101,12 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
             <div className="command-header-progress-track">
               <div
                 className="command-header-progress-fill"
-                style={{ width: `${progressWidth}%` }}
+                style={{ 
+                  width: `${progressWidth}%`,
+                  filter: 'drop-shadow(0 0 5px rgba(212, 175, 55, 0.5))'
+                }}
               />
-              <span className="command-header-progress-label text-transparent bg-clip-text bg-gradient-to-b from-[#F9E498] via-[#D4AF37] to-[#B8860B]">
+              <span className="command-header-progress-label text-transparent bg-clip-text bg-gradient-to-b from-[#F9E498] via-[#D4AF37] to-[#B8860B] brightness-110">
                 {normalizedInterest}%
               </span>
             </div>

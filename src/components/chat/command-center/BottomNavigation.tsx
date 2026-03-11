@@ -75,7 +75,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
         </button>
         <span className="bottom-nav-label">Chats</span>
       </div>
-      <div className={`bottom-nav-column ${activeTab === "chat" ? "active" : ""}`}>
+      <div className={`bottom-nav-column ${activeTab === "chat" ? "active" : ""}`} style={{ transform: 'translateY(-10px)' }}>
         <button
           onClick={onAction}
           className={`bottom-nav-action ${actionPulse ? "pulse" : ""} ${actionNudge ? "action-nudge" : ""}`}
