@@ -83,7 +83,7 @@
 
   body {
     @apply antialiased;
-    background: #050505;
+    background: radial-gradient(circle at 50% 90%, rgba(212, 175, 55, 0.08) 0%, rgba(0, 0, 0, 0) 60%), #050505;
     background-attachment: fixed;
     min-height: 100dvh;
     color: #FFFFFF;
@@ -702,6 +702,17 @@
   }
 }
 
+@keyframes gold-shine {
+  0% { transform: translateX(-100%) skewX(-20deg); }
+  20% { transform: translateX(200%) skewX(-20deg); }
+  100% { transform: translateX(200%) skewX(-20deg); }
+}
+
+@keyframes gold-bloom {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5)); }
+  50% { filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.8)); }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -793,7 +804,7 @@
     padding: 0;
     cursor: pointer;
     opacity: 0.9;
-    transition: opacity 180ms ease, transform 180ms ease;
+    transition: opacity 180ms ease, transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     flex-shrink: 0;
     color: rgba(224, 224, 230, 0.9);
     position: absolute;
@@ -808,10 +819,14 @@
     cursor: default;
   }
 
-  .command-header-arrow-outside:hover:not(:disabled),
+  .command-header-arrow-outside:hover:not(:disabled) {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
+  }
+
   .command-header-arrow-outside:active:not(:disabled) {
     opacity: 1;
-    transform: translateY(-50%) scale(1.15);
+    transform: translateY(-50%) scale(1.2);
   }
 
   .command-header-center {
@@ -877,6 +892,21 @@
     align-items: center;
     justify-content: center;
     transition: width 0.4s cubic-bezier(.34, 1.56, .64, 1);
+    position: relative;
+    overflow: hidden;
+    animation: gold-bloom 3s infinite ease-in-out;
+  }
+
+  .command-header-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: gold-shine 3s infinite ease-in-out;
+    pointer-events: none;
   }
 
   .command-header-progress-label {

@@ -10,12 +10,12 @@ interface CommandHeaderProps {
 }
 
 const ArrowIcon: React.FC<{ direction: "left" | "right" }> = ({ direction }) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
     {direction === "left" ? (
       <path
         d="M15 18L9 12L15 6"
         stroke="rgba(224, 224, 230, 0.9)"
-        strokeWidth="1.8"
+        strokeWidth="2.0"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -23,7 +23,7 @@ const ArrowIcon: React.FC<{ direction: "left" | "right" }> = ({ direction }) => 
       <path
         d="M9 18L15 12L9 6"
         stroke="rgba(224, 224, 230, 0.9)"
-        strokeWidth="1.8"
+        strokeWidth="2.0"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -88,7 +88,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
         <button
           onClick={onPrevConversation ?? onPrev}
           className="command-header-arrow-outside"
-          style={{ left: "-4px" }}
+          style={{ left: "0px" }}
           disabled={!(onPrevConversation ?? onPrev)}
           aria-label="Предыдущий диалог"
         >
@@ -101,10 +101,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
             <div className="command-header-progress-track">
               <div
                 className="command-header-progress-fill"
-                style={{ 
-                  width: `${progressWidth}%`,
-                  filter: 'drop-shadow(0 0 5px rgba(212, 175, 55, 0.5))'
-                }}
+                style={{ width: `${progressWidth}%` }}
               />
               <span className="command-header-progress-label text-transparent bg-clip-text bg-gradient-to-b from-[#F9E498] via-[#D4AF37] to-[#B8860B] brightness-110">
                 {normalizedInterest}%
@@ -116,7 +113,7 @@ const CommandHeader: React.FC<CommandHeaderProps> = ({
         <button
           onClick={onNextConversation ?? onNext}
           className="command-header-arrow-outside"
-          style={{ right: "-4px" }}
+          style={{ right: "0px" }}
           disabled={!(onNextConversation ?? onNext)}
           aria-label="Следующий диалог"
         >
