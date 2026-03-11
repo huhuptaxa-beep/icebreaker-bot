@@ -1194,6 +1194,46 @@
     box-shadow: none;
   }
 
+  .telegram-start-entry {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  .telegram-start-entry-button {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.22), rgba(20, 20, 24, 0.9));
+    color: rgba(255, 245, 220, 0.95);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  }
+
+  .telegram-start-entry-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(244, 217, 122, 0.65);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.42);
+  }
+
+  .telegram-start-entry-button:active {
+    transform: translateY(0);
+  }
+
+  .telegram-start-entry-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
   .command-working.ai-scan {
     position: relative;
     overflow: visible;
@@ -1427,6 +1467,10 @@
     z-index: 5;
   }
 
+  .suggestions-wrap-compact .suggestions-carousel {
+    padding-bottom: 8px;
+  }
+
   .suggestions-carousel::-webkit-scrollbar {
     display: none;
   }
@@ -1467,6 +1511,20 @@
     transition: transform 180ms ease, box-shadow 180ms ease, opacity 0.3s ease;
     font-size: 13px;
     border: 0.5px solid transparent;
+  }
+
+  .suggestion-card-compact {
+    aspect-ratio: 1.04 / 0.86;
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .suggestion-card-compact .suggestion-text {
+    gap: 6px;
+  }
+
+  .suggestion-card-compact .suggestion-divider {
+    margin: 6px 0;
   }
 
   .strategy-badge {

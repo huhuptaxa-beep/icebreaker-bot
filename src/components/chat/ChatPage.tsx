@@ -54,6 +54,15 @@ interface ProgressChipState {
   phase: ProgressChipPhase;
 }
 
+type SuggestionFlowAction =
+  | "normal"
+  | "contact"
+  | "date"
+  | "reengage"
+  | "telegram_first"
+  | "opener"
+  | null;
+
 const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   {
     conversationId,
@@ -76,6 +85,8 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const [draftGirlReply, setDraftGirlReply] = useState("");
 
   const [availableActions, setAvailableActions] = useState<string[]>([]);
+  const [suggestionActionType, setSuggestionActionType] =
+    useState<SuggestionFlowAction>(null);
   const [pendingAction, setPendingAction] = useState<"contact" | "date" | null>(
     null
   );
@@ -494,7 +505,11 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       const lastMsg = (data.messages || [])[data.messages.length - 1];
       if (!lastMsg || lastMsg.role !== "user") {
         setShowTelegramStart(true);
+      } else {
+        setShowTelegramStart(false);
       }
+    } else {
+      setShowTelegramStart(false);
     }
     setCurrentInterest(data.effective_interest || 5);
   };
@@ -694,6 +709,9 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
       return;
     }
 
+    const generationAction: SuggestionFlowAction =
+      isNewConversation && !actionOverride ? "opener" : actionOverride ?? "normal";
+
     const shouldRunPhases = !actionOverride;
     if (shouldRunPhases) {
       triggerGenerationTimeline(isNewConversation);
@@ -705,6 +723,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     setSuggestions([]);
     setOpenerVariantIds([]);
     setAvailableActions([]);
+    setSuggestionActionType(null);
 
     try {
       let res: {
@@ -766,6 +785,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         setTimeout(() => {
           setSuggestions(nextSuggestions);
           setOpenerVariantIds(nextOpenerVariantIds);
+          setSuggestionActionType(nextSuggestions.length > 0 ? generationAction : null);
+          if (generationAction === "telegram_first" && nextSuggestions.length > 0) {
+            setShowTelegramStart(false);
+          }
           setGenerating(false);
         }, 200);
         setAvailableActions(res.available_actions || []);
@@ -782,8 +805,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           showToast("Она не в настроении - смени тему", "error"); // ToastType only has success/error/default? Let's assume error or change tone. Warning is not valid ToastType
         }
 
-        if (actionOverride === "contact") setPendingAction("contact");
-        if (actionOverride === "date") setPendingAction("date");
       }
 
       await refreshConversation();
@@ -807,11 +828,13 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
     haptic("light");
     const selectedOpenerVariantId = openerVariantIds[suggestionIndex] ?? null;
+    const selectedSuggestionActionType = suggestionActionType;
     console.log("OPENER SELECT DEBUG", {
       selectedIndex: suggestionIndex,
       selectedSuggestion: suggestion,
       selectedOpenerVariantId,
       openerVariantIds,
+      selectedSuggestionActionType,
     });
 
     const createdAt = new Date().toISOString();
@@ -834,6 +857,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     setSuggestions([]);
     setOpenerVariantIds([]);
     setAvailableActions([]);
+    setSuggestionActionType(null);
 
     const combined = suggestion.join("\n\n").trim();
     if (combined) {
@@ -853,6 +877,15 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         await chatSave(conversationId, text, "user", i === 0 ? selectedOpenerVariantId : null);
       }
       await refreshConversation();
+      if (selectedSuggestionActionType === "contact") {
+        setPendingAction("contact");
+      }
+      if (selectedSuggestionActionType === "date") {
+        setPendingAction("date");
+      }
+      if (selectedSuggestionActionType === "telegram_first") {
+        setShowTelegramStart(false);
+      }
     } catch (err) {
       console.error(err);
       showToast("Не удалось сохранить сообщение", "error");
@@ -884,7 +917,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         : "idle";
 
   const renderedSuggestionActionButtons: Array<"contact" | "date"> =
-    suggestions.length > 0
+    suggestions.length > 0 && suggestionActionType === "normal"
       ? [
           ...(availableActions.includes("contact") ? (["contact"] as const) : []),
           ...(availableActions.includes("date") ? (["date"] as const) : []),
@@ -895,12 +928,21 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     console.log("ACTION BUTTONS RENDER DEBUG", {
       availableActions,
       renderedActionButtons: renderedSuggestionActionButtons,
+      suggestionActionType,
       pendingAction,
       generating,
       suggestionsCount: suggestions.length,
       workingState,
     });
-  }, [availableActions, renderedSuggestionActionButtons, pendingAction, generating, suggestions.length, workingState]);
+  }, [
+    availableActions,
+    renderedSuggestionActionButtons,
+    suggestionActionType,
+    pendingAction,
+    generating,
+    suggestions.length,
+    workingState,
+  ]);
 
   const handleHistoryOpen = useCallback(() => {
     onOpenHistory({
@@ -968,6 +1010,8 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const isIdleState = workingState === "idle";
   const isAiScanActive = generating && isIdleState;
   const showRewarmEntry = hasStaleConversation && suggestions.length === 0 && !generating;
+  const showTelegramFirstEntry =
+    showTelegramStart && suggestions.length === 0 && !generating && !pendingAction;
 
   return (
     <div
@@ -1020,6 +1064,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                 onSelect={handleSelectSuggestion}
                 loading={generating}
                 prefersReducedMotion={prefersReducedMotion}
+                compactCards={suggestionActionType === "contact"}
                 actionButtons={renderedSuggestionActionButtons.map((action) => ({
                   key: action,
                   label: action === "contact" ? "Взять Telegram" : "Пригласить на свидание",
@@ -1028,32 +1073,57 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                       action,
                       availableActions,
                     });
-                    setPendingAction(action);
+                    if (action === "contact") {
+                      handleGenerate("contact");
+                      return;
+                    }
+                    setPendingAction("date");
                   },
                 }))}
               />
             }
             idle={
               <div className={`working-zone-idle${generating ? " working-zone-idle-loading" : ""}`}>
-                <p className="working-zone-idle-title">{idleTitle}</p>
-                {idleSubtitle && <p className="working-zone-idle-text">{idleSubtitle}</p>}
-                {showRewarmEntry && (
-                  <div className="rewarm-entry">
+                {showTelegramFirstEntry ? (
+                  <div className="telegram-start-entry" ref={telegramCardRef}>
                     <button
                       type="button"
-                      className="rewarm-entry-button"
+                      className="telegram-start-entry-button"
                       onClick={() => {
-                        console.log("REWARM BUTTON CLICK", {
+                        console.log("TELEGRAM FIRST CTA CLICK", {
                           conversation_id: conversationIdRef.current,
-                          action_type: "reengage",
+                          action_type: "telegram_first",
                         });
-                        handleGenerate("reengage");
+                        handleGenerate("telegram_first");
                       }}
                       disabled={generating}
                     >
-                      Возобновить диалог
+                      Сгенерировать первое сообщение в Telegram
                     </button>
                   </div>
+                ) : (
+                  <>
+                    <p className="working-zone-idle-title">{idleTitle}</p>
+                    {idleSubtitle && <p className="working-zone-idle-text">{idleSubtitle}</p>}
+                    {showRewarmEntry && (
+                      <div className="rewarm-entry">
+                        <button
+                          type="button"
+                          className="rewarm-entry-button"
+                          onClick={() => {
+                            console.log("REWARM BUTTON CLICK", {
+                              conversation_id: conversationIdRef.current,
+                              action_type: "reengage",
+                            });
+                            handleGenerate("reengage");
+                          }}
+                          disabled={generating}
+                        >
+                          Возобновить диалог
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             }

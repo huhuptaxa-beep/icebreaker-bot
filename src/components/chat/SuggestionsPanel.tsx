@@ -5,6 +5,7 @@ interface SuggestionsPanelProps {
   onSelect: (suggestion: string[], index: number) => void;
   loading?: boolean;
   prefersReducedMotion?: boolean;
+  compactCards?: boolean;
   actionButtons?: Array<{
     key: "contact" | "date";
     label: string;
@@ -17,6 +18,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   onSelect,
   loading,
   prefersReducedMotion = false,
+  compactCards = false,
   actionButtons = [],
 }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -268,7 +270,7 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
   const secondaryActionButtons = actionButtons.filter((btn) => btn.key !== "contact");
 
   return (
-    <div className="suggestions-wrap">
+    <div className={`suggestions-wrap${compactCards ? " suggestions-wrap-compact" : ""}`}>
       {contactActionButton ? (
         <div className="suggestions-top-cta-row">
           <button
@@ -349,14 +351,14 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
                       setHoveredIndex((prev) => (prev === i ? null : prev));
                     }
                   }}
-                  className="suggestion-card"
+                  className={`suggestion-card${compactCards ? " suggestion-card-compact" : ""}`}
                   style={{
                     transform,
                     opacity,
                     transition,
                   }}
                 >
-                  <div className="strategy-badge">{i + 1}</div>
+                  {!compactCards && <div className="strategy-badge">{i + 1}</div>}
                   <div className="suggestion-text">
                     {suggestion.map((part, partIndex) => (
                       <React.Fragment key={partIndex}>
