@@ -1157,6 +1157,43 @@
     overflow-y: visible;
   }
 
+  .rewarm-entry {
+    display: flex;
+    justify-content: center;
+    margin: 2px 0 8px;
+  }
+
+  .rewarm-entry-button {
+    min-height: 38px;
+    padding: 9px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(244, 217, 122, 0.14));
+    color: rgba(255, 245, 220, 0.96);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.36);
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  }
+
+  .rewarm-entry-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(244, 217, 122, 0.65);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .rewarm-entry-button:active {
+    transform: translateY(0);
+  }
+
+  .rewarm-entry-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
   .command-working.ai-scan {
     position: relative;
     overflow: visible;

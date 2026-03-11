@@ -74,7 +74,8 @@ serve(async (req) => {
         channel: conversation.channel || "app",
         phase: conversation.phase || 1,
         phase_message_count: conversation.phase_message_count || 0,
-        effective_interest: conversation.effective_interest
+        effective_interest: conversation.effective_interest,
+        last_girl_message_at: conversation.last_girl_message_at || null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )

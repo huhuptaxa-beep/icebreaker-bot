@@ -96,7 +96,7 @@ export const getConversations = async (): Promise<Conversation[]> => {
 
 export const getConversation = async (
   conversation_id: string
-): Promise<{ girl_name: string; messages: Message[]; channel?: string; phase?: number; phase_message_count?: number; effective_interest?: number }> => {
+): Promise<{ girl_name: string; messages: Message[]; channel?: string; phase?: number; phase_message_count?: number; effective_interest?: number; last_girl_message_at?: string | null }> => {
   const res = await fetch(`${BASE_URL}/functions/v1/get-conversation`, {
     method: "POST",
     headers,
@@ -125,6 +125,7 @@ export const getConversation = async (
     phase: data.phase,
     phase_message_count: data.phase_message_count,
     effective_interest: data.effective_interest,
+    last_girl_message_at: data.last_girl_message_at ?? null,
   };
 };
 

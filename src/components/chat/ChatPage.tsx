@@ -83,6 +83,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const [showTelegramStart, setShowTelegramStart] = useState(false);
   const [currentInterest, setCurrentInterest] = useState<number>(5);
   const [currentChannel, setCurrentChannel] = useState<string>("app");
+  const [lastGirlMessageAt, setLastGirlMessageAt] = useState<string | null>(null);
   const [confirmResult, setConfirmResult] = useState<{
     type: "telegram_success" | "telegram_fail" | "date_success" | "date_fail";
   } | null>(null);
@@ -155,6 +156,12 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const scoringAnimationRef = useRef<number | null>(null);
 
   const isNewConversation = messages.length === 0;
+  const hasStaleGirlMessage = (() => {
+    if (!lastGirlMessageAt || isNewConversation) return false;
+    const timestamp = Date.parse(lastGirlMessageAt);
+    if (Number.isNaN(timestamp)) return false;
+    return Date.now() - timestamp >= 20 * 60 * 60 * 1000;
+  })();
 
   const [showTutorial, setShowTutorial] = useState(() => {
     return localStorage.getItem("tutorial_chat_done") !== "true";
@@ -482,6 +489,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     setGirlName(data.girl_name || "Чат");
     setMessages(data.messages || []);
     setCurrentChannel(data.channel || "app");
+    setLastGirlMessageAt(data.last_girl_message_at ?? null);
     if (data.phase) setCurrentPhase(data.phase);
     if (data.channel === "telegram" && data.phase === 3) {
       const lastMsg = (data.messages || [])[data.messages.length - 1];
@@ -714,7 +722,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         telegram_channel_id?: string;
       };
 
-      const shouldPersistGirlMessage = !isNewConversation && girlText.length > 0;
+      const shouldPersistGirlMessage = !isNewConversation && !actionOverride && girlText.length > 0;
       if (shouldPersistGirlMessage) {
         console.log("CHAT FLOW DEBUG: saving girl message before generate", {
           conversation_id: conversationIdRef.current,
@@ -981,6 +989,19 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
           </div>
           <MiniContext messages={messages} />
         </div>
+
+        {hasStaleGirlMessage && (
+          <div className="rewarm-entry">
+            <button
+              type="button"
+              className="rewarm-entry-button"
+              onClick={() => handleGenerate("reengage")}
+              disabled={generating}
+            >
+              Возобновить диалог
+            </button>
+          </div>
+        )}
 
         <div className={`command-working${isAiScanActive ? " ai-scan" : ""}`} ref={suggestionsRef}>
           <WorkingZone
