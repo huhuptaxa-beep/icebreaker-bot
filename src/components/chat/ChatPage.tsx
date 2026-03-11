@@ -83,7 +83,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const [showTelegramStart, setShowTelegramStart] = useState(false);
   const [currentInterest, setCurrentInterest] = useState<number>(5);
   const [currentChannel, setCurrentChannel] = useState<string>("app");
-  const [lastGirlMessageAt, setLastGirlMessageAt] = useState<string | null>(null);
   const [confirmResult, setConfirmResult] = useState<{
     type: "telegram_success" | "telegram_fail" | "date_success" | "date_fail";
   } | null>(null);
@@ -156,11 +155,12 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
   const scoringAnimationRef = useRef<number | null>(null);
 
   const isNewConversation = messages.length === 0;
-  const hasStaleGirlMessage = (() => {
-    if (!lastGirlMessageAt || isNewConversation) return false;
-    const timestamp = Date.parse(lastGirlMessageAt);
+  const hasStaleConversation = (() => {
+    const lastMessageTimestamp = messages.length > 0 ? messages[messages.length - 1]?.created_at : null;
+    if (!lastMessageTimestamp) return false;
+    const timestamp = Date.parse(lastMessageTimestamp);
     if (Number.isNaN(timestamp)) return false;
-    return Date.now() - timestamp >= 20 * 60 * 60 * 1000;
+    return Date.now() - timestamp >= 10 * 60 * 60 * 1000;
   })();
 
   const [showTutorial, setShowTutorial] = useState(() => {
@@ -489,7 +489,6 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
     setGirlName(data.girl_name || "Чат");
     setMessages(data.messages || []);
     setCurrentChannel(data.channel || "app");
-    setLastGirlMessageAt(data.last_girl_message_at ?? null);
     if (data.phase) setCurrentPhase(data.phase);
     if (data.channel === "telegram" && data.phase === 3) {
       const lastMsg = (data.messages || [])[data.messages.length - 1];
@@ -948,7 +947,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
 
   const isIdleState = workingState === "idle";
   const isAiScanActive = generating && isIdleState;
-  const showRewarmEntry = hasStaleGirlMessage && suggestions.length === 0 && !generating;
+  const showRewarmEntry = hasStaleConversation && suggestions.length === 0 && !generating;
 
   return (
     <div
