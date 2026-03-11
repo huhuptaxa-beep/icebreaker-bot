@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { validateInitData } from "../_shared/validateTelegram.ts"
 import { STRATEGY_CONFIG } from "../_shared/strategy/config.ts"
+import { derivePhaseLabel } from "../_shared/strategy/progression.ts"
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,15 +49,16 @@ serve(async (req) => {
     const updateData: any = {}
 
     if (action === "telegram_success") {
-      updateData.phase = 3
       updateData.channel = "telegram"
-      updateData.phase_message_count = 0
       // Если interest ниже 40, установить на 40
       const currentInterest = conv.base_interest_score || 5
+      let nextInterest = currentInterest
       if (currentInterest < 40) {
+        nextInterest = 40
         updateData.base_interest_score = 40
         updateData.effective_interest = 40
       }
+      updateData.phase = derivePhaseLabel(nextInterest, "telegram").phase
     }
 
     if (action === "telegram_fail") {
@@ -67,12 +69,13 @@ serve(async (req) => {
       updateData.base_interest_score = newInterest
       updateData.effective_interest = newInterest * (conv.freshness_multiplier || 1)
       updateData.telegram_invite_attempts = (conv.telegram_invite_attempts || 0) + 1
+      updateData.phase = derivePhaseLabel(updateData.effective_interest, conv.channel || "app").phase
     }
 
     if (action === "date_success") {
-      updateData.phase = 5
       updateData.base_interest_score = 100
       updateData.effective_interest = 100
+      updateData.phase = derivePhaseLabel(100, conv.channel || "telegram").phase
     }
 
     if (action === "date_fail") {
@@ -83,6 +86,7 @@ serve(async (req) => {
       updateData.base_interest_score = newInterest
       updateData.effective_interest = newInterest * (conv.freshness_multiplier || 1)
       updateData.date_invite_attempts = (conv.date_invite_attempts || 0) + 1
+      updateData.phase = derivePhaseLabel(updateData.effective_interest, conv.channel || "telegram").phase
     }
 
     if (Object.keys(updateData).length > 0) {

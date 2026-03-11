@@ -78,6 +78,43 @@ serve(async (req) => {
 
     if (error) throw error
 
+    const nowIso = new Date().toISOString()
+    const currentChannel = conv.channel === "telegram" ? "telegram" : "app"
+    const messageCountTinder = (conv.message_count_tinder || 0) + (currentChannel === "app" ? 1 : 0)
+    const messageCountTg = (conv.message_count_tg || 0) + (currentChannel === "telegram" ? 1 : 0)
+    const strategyResult = runStrategyEngine(conv, selected_text, safeRole)
+
+    const conversationUpdate: Record<string, unknown> = {
+      base_interest_score: strategyResult.baseInterest,
+      effective_interest: strategyResult.effectiveInterest,
+      freshness_multiplier: strategyResult.freshness,
+      high_interest_streak: strategyResult.highInterestStreak,
+      low_interest_streak: strategyResult.lowInterestStreak,
+      phase: strategyResult.phase,
+      has_future_projection: strategyResult.hasFutureProjection,
+      telegram_invite_attempts: strategyResult.telegramInviteAttempts,
+      date_invite_attempts: strategyResult.dateInviteAttempts,
+      last_message_timestamp: nowIso,
+      message_count_tinder: messageCountTinder,
+      message_count_tg: messageCountTg,
+      phase_message_count: (conv.phase_message_count || 0) + 1,
+    }
+
+    if (safeRole === "user") {
+      conversationUpdate.last_user_message_at = nowIso
+    } else {
+      conversationUpdate.last_girl_message_at = nowIso
+    }
+
+    const { error: conversationUpdateError } = await supabase
+      .from("conversations")
+      .update(conversationUpdate)
+      .eq("id", conversation_id)
+
+    if (conversationUpdateError) {
+      throw conversationUpdateError
+    }
+
     if (normalizedOpenerVariantId) {
       const { data: wasSentUpdateData, error: wasSentUpdateError } = await supabase
         .from("opener_variants")
@@ -145,22 +182,6 @@ serve(async (req) => {
       } catch (openerReplyError) {
         console.error("chat-save opener got_reply pipeline error:", openerReplyError)
       }
-    }
-
-    // Если сохраняем сообщение пользователя — запускаем strategy engine для user-специфичных полей
-    if (safeRole === "user" && conv) {
-      const strategyResult = runStrategyEngine(conv, selected_text, "user")
-
-      await supabase
-        .from("conversations")
-        .update({
-          has_future_projection: strategyResult.hasFutureProjection,
-          telegram_invite_attempts: strategyResult.telegramInviteAttempts,
-          date_invite_attempts: strategyResult.dateInviteAttempts,
-          last_message_timestamp: new Date().toISOString(),
-          phase_message_count: (conv.phase_message_count || 0) + 1
-        })
-        .eq("id", conversation_id)
     }
 
     return new Response(

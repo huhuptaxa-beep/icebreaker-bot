@@ -2,15 +2,12 @@ import { analyzeGirlMessage, analyzeUserMessage } from "./analysis.ts"
 import { updateInterest } from "./interest.ts"
 import { calculateFreshness } from "./freshness.ts"
 import { STRATEGY_CONFIG } from "./config.ts"
+import { deriveNextObjective, derivePhaseLabel, type StrategySignalType } from "./progression.ts"
 
 /**
  * Тип сигнала от девушки.
  */
-type SignalType =
-  | "HIGH_INTEREST"
-  | "LOW_INTEREST"
-  | "SHIT_TEST"
-  | "NEUTRAL"
+type SignalType = StrategySignalType
 
 
 /**
@@ -37,7 +34,7 @@ export function runStrategyEngine(
     dialogue.effective_interest ?? baseInterest
 
   let phase =
-    dialogue.phase ?? 1
+    dialogue.phase ?? derivePhaseLabel(effectiveInterest, dialogue.channel).phase
 
   let hasFutureProjection =
     dialogue.has_future_projection ?? false
@@ -71,7 +68,7 @@ export function runStrategyEngine(
 
     // 2️⃣ Пересчитываем свежесть
     freshness = calculateFreshness(
-      dialogue.last_message_timestamp,
+      dialogue.last_girl_message_at || dialogue.last_message_timestamp,
       new Date()
     )
 
@@ -131,26 +128,10 @@ export function runStrategyEngine(
       )
     }
 
-    /* =========================================
-       ОБНОВЛЕНИЕ PHASE (производная от interest + channel)
-       ========================================= */
-
-    const channel = dialogue.channel || "app"
-
-    if (channel === "telegram") {
-      if (effectiveInterest >= 80) {
-        phase = 5
-      } else if (effectiveInterest >= 50) {
-        phase = 4
-      } else {
-        phase = 3
-      }
-    } else {
-      if (effectiveInterest >= 20) {
-        phase = 2
-      } else {
-        phase = 1
-      }
+    // High streak is a soft modifier: small boost only, never a primary driver.
+    if (highInterestStreak >= 2 && signalType === "HIGH_INTEREST") {
+      const bonus = Math.min(3, highInterestStreak - 1)
+      effectiveInterest = Number(Math.min(STRATEGY_CONFIG.interest.max, effectiveInterest + bonus).toFixed(2))
     }
   }
 
@@ -177,38 +158,20 @@ export function runStrategyEngine(
     }
   }
 
+  phase = derivePhaseLabel(effectiveInterest, dialogue.channel).phase
+
 
 
   /* ======================================================
      ===== DECISION ENGINE 2.1 ============================
      ====================================================== */
 
-  let nextObjective = "CONTINUE_PLAY"
-
-  if (freshness < 0.6) {
-    nextObjective = "REWARM"
-  }
-  else if (signalType === "SHIT_TEST") {
-    nextObjective = "PASS_TEST"
-  }
-  else if (signalType === "LOW_INTEREST" && lowInterestStreak >= 2) {
-    nextObjective = "SALVAGE"
-  }
-  else if (phase === 1) {
-    nextObjective = "CONTINUE_PLAY"
-  }
-  else if (phase === 2) {
-    nextObjective = "DEEPEN_CONNECTION"
-  }
-  else if (phase === 3) {
-    nextObjective = "RESTART_PLAY"
-  }
-  else if (phase === 4) {
-    nextObjective = "BUILD_TENSION"
-  }
-  else if (phase === 5) {
-    nextObjective = "POST_DATE"
-  }
+  const nextObjective = deriveNextObjective({
+    phase,
+    freshness_multiplier: freshness,
+    low_interest_streak: lowInterestStreak,
+    signalType,
+  })
 
 
 
@@ -226,6 +189,8 @@ export function runStrategyEngine(
     dateInviteAttempts,
     highInterestStreak,
     lowInterestStreak,
+    signalType,
+    phaseLabel: derivePhaseLabel(effectiveInterest, dialogue.channel).phaseLabel,
     nextObjective,
         // 3 dry подряд → сигнал фронту показать toast
     showDisinterestWarning: lowInterestStreak >= 3

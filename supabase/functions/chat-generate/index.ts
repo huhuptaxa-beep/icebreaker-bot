@@ -3,8 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 import { validateInitData } from "../_shared/validateTelegram.ts"
 import { generateSummary } from "../_shared/generateSummary.ts"
-import { runStrategyEngine } from "../_shared/strategy/engine.ts"
 import { STRATEGY_CONFIG } from "../_shared/strategy/config.ts"
+import { deriveNextObjective, derivePhaseLabel, getAvailableActions } from "../_shared/strategy/progression.ts"
 
 import { OPENER_GENERATOR_PROMPT } from "./openerGeneratorPrompt.ts"
 import { OPENER_JUDGE_PROMPT } from "./openerJudgePrompt.ts"
@@ -201,7 +201,7 @@ serve(async (req) => {
     let openerVariantIds: Array<string | null> | undefined = undefined
     let openerGenerationId: string | null = null
     let available_actions: string[] = []
-    let strategyResult: any = null
+    let strategyView: { phase: number; effectiveInterest: number; nextObjective: string; showDisinterestWarning: boolean } | null = null
     let totalUsage = { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
 
     /* ==========================================================
@@ -544,33 +544,35 @@ serve(async (req) => {
       if (action_type === "reengage") fullSystemPrompt += "\n\n" + REENGAGE_INSTRUCTIONS
       if (action_type === "telegram_first") fullSystemPrompt += "\n\n" + TELEGRAM_FIRST_MESSAGE
 
-      if (incoming_message) {
-        strategyResult = runStrategyEngine(conv, incoming_message, "girl")
+      const channel = conv.channel || "app"
+      const currentInterest = conv.effective_interest ?? conv.base_interest_score ?? STRATEGY_CONFIG.interest.defaultScore
+      const currentFreshness = conv.freshness_multiplier ?? 1
+      const derivedPhase = derivePhaseLabel(currentInterest, channel).phase
+      const signalType = (conv.low_interest_streak || 0) >= 2 ? "LOW_INTEREST" : "NEUTRAL"
+      const nextObjective = deriveNextObjective({
+        phase: derivedPhase,
+        freshness_multiplier: currentFreshness,
+        low_interest_streak: conv.low_interest_streak || 0,
+        signalType,
+      })
 
-        await supabase.from("conversations").update({
-          phase: strategyResult.phase,
-          base_interest_score: strategyResult.baseInterest,
-          effective_interest: strategyResult.effectiveInterest,
-          freshness_multiplier: strategyResult.freshness,
-          has_future_projection: strategyResult.hasFutureProjection,
-          telegram_invite_attempts: strategyResult.telegramInviteAttempts,
-          date_invite_attempts: strategyResult.dateInviteAttempts,
-          high_interest_streak: strategyResult.highInterestStreak,
-          low_interest_streak: strategyResult.lowInterestStreak,
-          last_message_timestamp: now.toISOString(),
-          phase_message_count: (conv.phase_message_count || 0) + 1
-        }).eq("id", conversation_id)
+      strategyView = {
+        phase: derivedPhase,
+        effectiveInterest: currentInterest,
+        nextObjective,
+        showDisinterestWarning: (conv.low_interest_streak || 0) >= 3,
       }
 
-      const currentInterest = strategyResult ? strategyResult.effectiveInterest : (conv.effective_interest || 5)
-      const currentPhase = strategyResult ? strategyResult.phase : (conv.phase || 1)
-      const currentFreshness = strategyResult ? strategyResult.freshness : (conv.freshness_multiplier || 1)
-      const totalMessages = (conv.phase_message_count || 0) + (strategyResult ? 1 : 0)
-      const channel = conv.channel || "app"
-
-      if (currentFreshness < 0.6) available_actions.push("reengage")
-      if (currentInterest >= STRATEGY_CONFIG.interest.thresholds.telegram && currentPhase === 2 && totalMessages >= STRATEGY_CONFIG.phase.minMessagesForTelegram && channel === "app") available_actions.push("contact")
-      if (currentInterest >= STRATEGY_CONFIG.interest.thresholds.date && currentPhase >= 4 && totalMessages >= STRATEGY_CONFIG.phase.minMessagesForDate && channel === "telegram") available_actions.push("date")
+      available_actions = getAvailableActions({
+        effective_interest: currentInterest,
+        freshness_multiplier: currentFreshness,
+        channel,
+        message_count_tinder: conv.message_count_tinder || 0,
+        message_count_tg: conv.message_count_tg || 0,
+        telegram_invite_attempts: conv.telegram_invite_attempts || 0,
+        date_invite_attempts: conv.date_invite_attempts || 0,
+        signalType,
+      })
 
       const { data: historyDesc } = await supabase.from("messages").select("role, text, created_at").eq("conversation_id", conversation_id).order("created_at", { ascending: false }).limit(20)
 
@@ -593,7 +595,6 @@ serve(async (req) => {
           const generated = await generateSummary(olderMessages, ANTHROPIC_KEY)
           if (generated) {
             conversationSummary = generated
-            supabase.from("conversations").update({ summary: generated, summary_updated_at: now.toISOString() }).eq("id", conversation_id)
           }
         }
       }
@@ -611,19 +612,13 @@ serve(async (req) => {
 
       const userPrompt = buildUserPrompt("reply", "", conversationContext, lastMessage, conversationSummary)
 
-      let strategyBlock = ""
-      if (strategyResult) {
-        strategyBlock = `[СТРАТЕГИЯ]\nФаза: ${strategyResult.phase}\nИнтерес: ${strategyResult.effectiveInterest}\nДиректива: ${strategyResult.nextObjective}`
-        if (channel === "telegram") {
-          if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateStrongHint) {
-            strategyBlock += "\nОдин из трёх вариантов ДОЛЖЕН содержать намёк на встречу вживую."
-          } else if (strategyResult.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateHint) {
-            strategyBlock += "\nОдин из трёх вариантов МОЖЕТ содержать лёгкий намёк на встречу, без давления."
-          }
+      let strategyBlock = `[СТРАТЕГИЯ]\nФаза: ${strategyView.phase}\nИнтерес: ${strategyView.effectiveInterest}\nДиректива: ${strategyView.nextObjective}`
+      if (channel === "telegram") {
+        if (strategyView.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateStrongHint) {
+          strategyBlock += "\nОдин из трёх вариантов ДОЛЖЕН содержать намёк на встречу вживую."
+        } else if (strategyView.effectiveInterest >= STRATEGY_CONFIG.interest.thresholds.dateHint) {
+          strategyBlock += "\nОдин из трёх вариантов МОЖЕТ содержать лёгкий намёк на встречу, без давления."
         }
-      } else {
-        const fallbackObjective = action_type === "date" ? "DATE_INVITE" : action_type === "contact" ? "TELEGRAM_INVITE" : action_type === "telegram_first" ? "RESTART_PLAY" : "REWARM"
-        strategyBlock = `[СТРАТЕГИЯ]\nФаза: ${conv.phase || 1}\nИнтерес: ${conv.effective_interest || 3}\nДиректива: ${fallbackObjective}`
       }
 
       const finalUserPrompt = strategyBlock + "\n\n" + userPrompt
@@ -661,9 +656,6 @@ serve(async (req) => {
         .filter((parts: string[]) => parts.length > 0)
         .slice(0, 3)
 
-      if (incoming_message && conversation_id) {
-        await supabase.from("messages").insert({ conversation_id, role: "girl", text: incoming_message })
-      }
     }
 
     /* =====================
@@ -706,9 +698,9 @@ serve(async (req) => {
         generation_id: messageType === "first_message" ? openerGenerationId : undefined,
         opener_variant_ids: messageType === "first_message" ? (openerVariantIds ?? suggestions.map(() => null)) : undefined,
         available_actions,
-        phase: messageType === "reply" && strategyResult ? strategyResult.phase : undefined,
-        interest: strategyResult ? strategyResult.effectiveInterest : undefined,
-        showDisinterestWarning: strategyResult?.showDisinterestWarning || false,
+        phase: messageType === "reply" && strategyView ? strategyView.phase : undefined,
+        interest: strategyView ? strategyView.effectiveInterest : undefined,
+        showDisinterestWarning: strategyView?.showDisinterestWarning || false,
         limit_reached: false,
         free_remaining: freeRemaining,
         paid_remaining: paidRemaining,
