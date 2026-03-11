@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Message, getConversation } from "@/api/chatApi";
 
 interface HistoryPageProps {
@@ -77,17 +77,15 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
     return index >= 0 && index < sortedMessages.length ? index : null;
   }, [conversationChannel, sortedMessages.length, telegramMessageCount]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!scrollRef.current) return;
     const container = scrollRef.current;
-    window.requestAnimationFrame(() => {
-      container.scrollTop = container.scrollHeight;
-    });
+    container.scrollTop = container.scrollHeight;
   }, [sortedMessages.length, conversationId]);
 
   return (
     <div
-      className="flex flex-col min-h-[100dvh] animate-fadeIn"
+      className="flex flex-col h-full min-h-0 animate-fadeIn"
       style={{
         background: "radial-gradient(120% 80% at 50% 0%, #1A1A22 0%, #0E0E12 60%, #0A0A0D 100%)",
         paddingBottom: "calc(120px + env(safe-area-inset-bottom))",
@@ -121,7 +119,11 @@ const HistoryPage: React.FC<HistoryPageProps> = ({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-4" ref={scrollRef}>
+      <div
+        className="flex-1 min-h-0 overflow-y-auto px-5 py-6 space-y-4"
+        ref={scrollRef}
+        style={{ scrollBehavior: "auto" }}
+      >
         {loadingHistory && (
           <p className="text-center text-xs tracking-wide" style={{ color: "rgba(255,255,255,0.5)" }}>
             Обновляю историю…
