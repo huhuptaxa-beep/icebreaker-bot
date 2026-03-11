@@ -138,16 +138,19 @@ export const chatGenerate = async (
   action_type: "normal" | "reengage" | "contact" | "date" | "opener" | "telegram_first",
   facts?: string
 ): Promise<GenerateResponse> => {
+  const payload = {
+    conversation_id,
+    incoming_message,
+    action_type,
+    init_data: getInitData(),
+    facts: facts || null,
+  };
+  console.log("CHAT GENERATE API DEBUG REQUEST", payload);
+
   const res = await fetch(`${BASE_URL}/functions/v1/chat-generate`, {
     method: "POST",
     headers,
-    body: JSON.stringify({
-      conversation_id,
-      incoming_message,
-      action_type,
-      init_data: getInitData(),
-      facts: facts || null,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!res.ok) {
@@ -166,7 +169,9 @@ export const chatGenerate = async (
     };
   }
 
-  return res.json();
+  const data = await res.json();
+  console.log("CHAT GENERATE API DEBUG RESPONSE", data);
+  return data;
 };
 
 /* ===========================
@@ -251,7 +256,7 @@ export const chatSave = async (
   role: "user" | "girl",
   opener_variant_id?: string | null
 ): Promise<Message> => {
-  console.log("CHAT SAVE API DEBUG", {
+  console.log("CHAT SAVE API DEBUG REQUEST", {
     conversation_id,
     role,
     text: selected_text,
@@ -277,6 +282,7 @@ export const chatSave = async (
   }
 
   const data = await res.json();
+  console.log("CHAT SAVE API DEBUG RESPONSE", data);
   return data.message;
 };
 

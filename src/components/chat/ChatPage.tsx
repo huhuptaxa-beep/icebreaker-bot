@@ -714,12 +714,24 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
         telegram_channel_id?: string;
       };
 
+      const shouldPersistGirlMessage = !isNewConversation && girlText.length > 0;
+      if (shouldPersistGirlMessage) {
+        console.log("CHAT FLOW DEBUG: saving girl message before generate", {
+          conversation_id: conversationIdRef.current,
+          role: "girl",
+          selected_text: girlText,
+        });
+        const savedGirlMessage = await chatSave(conversationIdRef.current, girlText, "girl");
+        console.log("CHAT FLOW DEBUG: girl message saved", savedGirlMessage);
+        await refreshConversation();
+      }
+
       if (isNewConversation && !actionOverride) {
         res = await chatGenerate(conversationIdRef.current, null, "opener", girlText);
         setDraftGirlReply("");
       } else {
         const action = actionOverride ?? "normal";
-        res = await chatGenerate(conversationIdRef.current, girlText || null, action, undefined);
+        res = await chatGenerate(conversationIdRef.current, null, action, undefined);
         if (!actionOverride) setDraftGirlReply("");
       }
 
