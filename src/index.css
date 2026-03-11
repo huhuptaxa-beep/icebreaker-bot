@@ -1278,6 +1278,42 @@
     -webkit-text-fill-color: initial;
   }
 
+  .suggestions-top-cta-row {
+    display: flex;
+    justify-content: center;
+    padding: 0 16px;
+    height: 10px;
+    margin: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .suggestions-top-cta-button {
+    position: absolute;
+    top: -8px;
+    min-height: 32px;
+    padding: 8px 16px;
+    border-radius: 11px;
+    border: 1px solid rgba(212, 175, 55, 0.48);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.22), rgba(20, 20, 24, 0.92));
+    color: rgba(255, 245, 220, 0.95);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  }
+
+  .suggestions-top-cta-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(244, 217, 122, 0.66);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
+  }
+
+  .suggestions-top-cta-button:active {
+    transform: translateY(0);
+  }
+
   .suggestions-actions-row {
     display: flex;
     justify-content: center;
@@ -1307,6 +1343,65 @@
 
   .suggestions-action-button:active {
     transform: translateY(0);
+  }
+
+  .command-contact-selector {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 16px 6px;
+  }
+
+  .command-contact-title {
+    margin-top: 0;
+  }
+
+  .command-contact-segmented {
+    width: min(360px, 100%);
+    display: flex;
+    align-items: stretch;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38);
+    background: rgba(8, 8, 10, 0.82);
+  }
+
+  .command-contact-segment {
+    flex: 1;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 0;
+    color: rgba(255, 255, 255, 0.94);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    transition: filter 160ms ease, transform 160ms ease;
+  }
+
+  .command-contact-segment + .command-contact-segment {
+    border-left: 1px solid rgba(255, 255, 255, 0.14);
+  }
+
+  .command-contact-segment-success {
+    background: linear-gradient(120deg, rgba(212, 175, 55, 0.86), rgba(6, 6, 8, 0.96));
+  }
+
+  .command-contact-segment-fail {
+    background: linear-gradient(120deg, rgba(128, 132, 144, 0.72), rgba(12, 12, 16, 0.95));
+  }
+
+  .command-contact-segment:hover {
+    filter: brightness(1.06);
+  }
+
+  .command-contact-segment:active {
+    transform: scale(0.99);
   }
 
   .suggestions-carousel-wrap {

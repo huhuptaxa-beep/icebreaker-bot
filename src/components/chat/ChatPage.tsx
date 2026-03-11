@@ -1060,9 +1060,10 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
             action={
               pendingAction === "contact" ? (
                 <div className="command-contact-selector" ref={contactSelectorRef}>
-                  <p>Удалось взять Telegram?</p>
-                  <div className="command-contact-buttons">
+                  <span className="suggestions-label command-contact-title">Удалось взять Telegram?</span>
+                  <div className="command-contact-segmented" role="group" aria-label="Telegram confirm">
                     <button
+                      className="command-contact-segment command-contact-segment-success"
                       onClick={async () => {
                         haptic("heavy");
                         try {
@@ -1085,6 +1086,7 @@ const ChatPage = forwardRef<ChatPageHandle, ChatPageProps>((
                       Telegram получен
                     </button>
                     <button
+                      className="command-contact-segment command-contact-segment-fail"
                       onClick={async () => {
                         haptic("light");
                         try {

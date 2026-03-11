@@ -264,12 +264,27 @@ const SuggestionsPanel: React.FC<SuggestionsPanelProps> = ({
     startAnimatedSelection(suggestion, index);
   };
 
+  const contactActionButton = actionButtons.find((btn) => btn.key === "contact");
+  const secondaryActionButtons = actionButtons.filter((btn) => btn.key !== "contact");
+
   return (
     <div className="suggestions-wrap">
-      <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
-      {actionButtons.length > 0 && (
+      {contactActionButton ? (
+        <div className="suggestions-top-cta-row">
+          <button
+            type="button"
+            className="suggestions-top-cta-button"
+            onClick={contactActionButton.onClick}
+          >
+            {contactActionButton.label}
+          </button>
+        </div>
+      ) : (
+        <span className="suggestions-label">AI предлагает 3 стратегии ответа</span>
+      )}
+      {secondaryActionButtons.length > 0 && (
         <div className="suggestions-actions-row">
-          {actionButtons.map((btn) => (
+          {secondaryActionButtons.map((btn) => (
             <button
               key={btn.key}
               type="button"
