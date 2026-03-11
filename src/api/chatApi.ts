@@ -96,7 +96,17 @@ export const getConversations = async (): Promise<Conversation[]> => {
 
 export const getConversation = async (
   conversation_id: string
-): Promise<{ girl_name: string; messages: Message[]; channel?: string; phase?: number; phase_message_count?: number; effective_interest?: number; last_girl_message_at?: string | null }> => {
+): Promise<{
+  girl_name: string;
+  messages: Message[];
+  channel?: string;
+  phase?: number;
+  phase_message_count?: number;
+  message_count_tinder?: number;
+  message_count_tg?: number;
+  effective_interest?: number;
+  last_girl_message_at?: string | null;
+}> => {
   const res = await fetch(`${BASE_URL}/functions/v1/get-conversation`, {
     method: "POST",
     headers,
@@ -124,6 +134,8 @@ export const getConversation = async (
     channel: data.channel,
     phase: data.phase,
     phase_message_count: data.phase_message_count,
+    message_count_tinder: data.message_count_tinder,
+    message_count_tg: data.message_count_tg,
     effective_interest: data.effective_interest,
     last_girl_message_at: data.last_girl_message_at ?? null,
   };

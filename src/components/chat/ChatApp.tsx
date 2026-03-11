@@ -246,6 +246,7 @@ const ChatApp: React.FC<ChatAppProps> = ({ telegramId }) => {
   } else if (activeScreen === "history" && historyView) {
     screenContent = (
       <HistoryPage
+        conversationId={historyView.conversationId}
         girlName={historyView.girlName}
         messages={historyView.messages}
         onBack={handleHistoryBack}

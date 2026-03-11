@@ -55,13 +55,12 @@ serve(async (req) => {
       )
     }
 
-    // Получаем сообщения (последние 50, в хронологическом порядке)
+    // Получаем сообщения в хронологическом порядке (raw timeline)
     const { data: messagesDesc, error: msgError } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", conversation_id)
       .order("created_at", { ascending: false })
-      .limit(50)
 
     if (msgError) throw msgError
 
@@ -74,6 +73,8 @@ serve(async (req) => {
         channel: conversation.channel || "app",
         phase: conversation.phase || 1,
         phase_message_count: conversation.phase_message_count || 0,
+        message_count_tinder: conversation.message_count_tinder || 0,
+        message_count_tg: conversation.message_count_tg || 0,
         effective_interest: conversation.effective_interest,
         last_girl_message_at: conversation.last_girl_message_at || null,
       }),
